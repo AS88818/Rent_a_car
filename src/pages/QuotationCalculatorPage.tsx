@@ -15,8 +15,8 @@ interface OtherFee {
 }
 
 interface QuoteInputs {
-  startDate: string;
-  endDate: string;
+  startDateTime: string;
+  endDateTime: string;
   hasHalfDay: boolean;
   hasChauffeur: boolean;
   clientName: string;
@@ -60,8 +60,8 @@ export function QuotationCalculatorPage() {
   const [quoteCreated, setQuoteCreated] = useState(false);
 
   const [inputs, setInputs] = useState<QuoteInputs>({
-    startDate: '',
-    endDate: '',
+    startDateTime: '',
+    endDateTime: '',
     hasHalfDay: false,
     hasChauffeur: false,
     clientName: '',
@@ -91,8 +91,8 @@ export function QuotationCalculatorPage() {
         clientName: quote.client_name,
         clientEmail: quote.client_email || '',
         clientPhone: quote.client_phone || '',
-        startDate: quote.start_date,
-        endDate: quote.end_date,
+        startDateTime: quote.start_date ? `${quote.start_date}T09:00` : '',
+        endDateTime: quote.end_date ? `${quote.end_date}T18:00` : '',
         hasHalfDay: quote.has_half_day,
         hasChauffeur: quote.has_chauffeur,
         pickupLocation: quote.pickup_location || quoteInputs?.pickupLocation || '',
@@ -144,9 +144,9 @@ export function QuotationCalculatorPage() {
   };
 
   const calculateRentalDays = () => {
-    if (!inputs.startDate || !inputs.endDate) return 0;
-    const start = new Date(inputs.startDate);
-    const end = new Date(inputs.endDate);
+    if (!inputs.startDateTime || !inputs.endDateTime) return 0;
+    const start = new Date(inputs.startDateTime);
+    const end = new Date(inputs.endDateTime);
     const days = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     return days;
   };
@@ -166,10 +166,10 @@ export function QuotationCalculatorPage() {
   };
 
   const splitDaysBySeason = () => {
-    if (!inputs.startDate || !inputs.endDate) return { peakDays: 0, offPeakDays: 0 };
+    if (!inputs.startDateTime || !inputs.endDateTime) return { peakDays: 0, offPeakDays: 0 };
 
-    const start = new Date(inputs.startDate);
-    const end = new Date(inputs.endDate);
+    const start = new Date(inputs.startDateTime);
+    const end = new Date(inputs.endDateTime);
     let peakDays = 0;
     let offPeakDays = 0;
 
@@ -251,10 +251,10 @@ export function QuotationCalculatorPage() {
   }> => {
     try {
       console.log(`Checking availability for ${categoryName}...`);
-      console.log(`Date range: ${inputs.startDate} to ${inputs.endDate}`);
+      console.log(`Date range: ${inputs.startDateTime} to ${inputs.endDateTime}`);
 
       // Validate dates
-      if (!inputs.startDate || !inputs.endDate) {
+      if (!inputs.startDateTime || !inputs.endDateTime) {
         console.warn('No dates provided for availability check');
         return { available: false, branchAvailability: [] };
       }
@@ -282,8 +282,8 @@ export function QuotationCalculatorPage() {
 
       // Get all active bookings
       const allBookings = await bookingService.getBookings();
-      const start = new Date(inputs.startDate);
-      const end = new Date(inputs.endDate);
+      const start = new Date(inputs.startDateTime);
+      const end = new Date(inputs.endDateTime);
 
       console.log(`Checking against ${allBookings.length} total bookings`);
 
@@ -369,14 +369,28 @@ export function QuotationCalculatorPage() {
     });
   };
 
+  // Check if pickup or dropoff is outside office hours (9 AM - 6 PM)
+  const isOutsideOfficeHours = () => {
+    if (!inputs.startDateTime || !inputs.endDateTime) return false;
+
+    const startTime = inputs.startDateTime.split('T')[1];
+    const endTime = inputs.endDateTime.split('T')[1];
+
+    const startHour = parseInt(startTime.split(':')[0]);
+    const endHour = parseInt(endTime.split(':')[0]);
+
+    // Outside hours if before 9 AM or after 6 PM (18:00)
+    return startHour < 9 || startHour >= 18 || endHour < 9 || endHour >= 18;
+  };
+
   const calculateQuote = async (): Promise<boolean> => {
-    if (!inputs.startDate || !inputs.endDate) {
-      showToast('Please select start and end dates', 'error');
+    if (!inputs.startDateTime || !inputs.endDateTime) {
+      showToast('Please select start and end date/time', 'error');
       return false;
     }
 
-    if (new Date(inputs.endDate) < new Date(inputs.startDate)) {
-      showToast('End date must be after start date', 'error');
+    if (new Date(inputs.endDateTime) < new Date(inputs.startDateTime)) {
+      showToast('End date/time must be after start date/time', 'error');
       return false;
     }
 
@@ -419,14 +433,17 @@ export function QuotationCalculatorPage() {
         const totalDays = totalRentalDays + (inputs.hasHalfDay ? 0.5 : 0);
         const chauffeurFee = inputs.hasChauffeur ? totalDays * chauffeurFeePerDay : 0;
 
-        console.log(`${pricing.category_name}: totalDays=${totalDays}, hasChauffeur=${inputs.hasChauffeur}, chauffeurFee=${chauffeurFee}`);
+        // Apply outside hours surcharge if pickup/dropoff is before 9 AM or after 6 PM
+        const outsideHoursCharge = isOutsideOfficeHours() ? (pricingConfig?.outside_hours_charges || 0) : 0;
+
+        console.log(`${pricing.category_name}: totalDays=${totalDays}, hasChauffeur=${inputs.hasChauffeur}, chauffeurFee=${chauffeurFee}, outsideHours=${outsideHoursCharge}`);
 
         const differentLocationFee = inputs.differentLocationCharge || 0;
         const otherFee1 = inputs.otherFee1Amount || 0;
         const otherFee2 = inputs.otherFee2Amount || 0;
         const dynamicOtherFeesTotal = inputs.otherFees.reduce((sum, fee) => sum + (fee.amount || 0), 0);
 
-        const subtotal = rentalFee + chauffeurFee + differentLocationFee + otherFee1 + otherFee2 + dynamicOtherFeesTotal;
+        const subtotal = rentalFee + chauffeurFee + outsideHoursCharge + differentLocationFee + otherFee1 + otherFee2 + dynamicOtherFeesTotal;
         const vat = subtotal * 0.16;
         const grandTotal = Math.ceil((subtotal + vat) / 10) * 10;
 
@@ -477,8 +494,8 @@ export function QuotationCalculatorPage() {
 
   const resetCalculator = () => {
     setInputs({
-      startDate: '',
-      endDate: '',
+      startDateTime: '',
+      endDateTime: '',
       hasHalfDay: false,
       hasChauffeur: false,
       clientName: '',
@@ -516,7 +533,7 @@ export function QuotationCalculatorPage() {
     }
 
     message += `*Client:* ${inputs.clientName}\n`;
-    message += `*Period:* ${inputs.startDate} to ${inputs.endDate}\n`;
+    message += `*Period:* ${inputs.startDateTime.split('T')[0]} ${inputs.startDateTime.split('T')[1]} to ${inputs.endDateTime.split('T')[0]} ${inputs.endDateTime.split('T')[1]}\n`;
     message += `*Duration:* ${rentalDays} day${rentalDays !== 1 ? 's' : ''}\n`;
     message += `*Pickup:* ${inputs.pickupLocation || 'TBD'}\n`;
     message += `*Drop-off:* ${inputs.dropoffLocation || 'TBD'}\n`;
@@ -579,8 +596,10 @@ export function QuotationCalculatorPage() {
       const pdfData = {
         quoteReference: savedQuoteReference,
         clientName: inputs.clientName,
-        startDate: inputs.startDate,
-        endDate: inputs.endDate,
+        startDate: inputs.startDateTime.split('T')[0],
+        startTime: inputs.startDateTime.split('T')[1],
+        endDate: inputs.endDateTime.split('T')[0],
+        endTime: inputs.endDateTime.split('T')[1],
         duration: `${rentalDays} day${rentalDays !== 1 ? 's' : ''}`,
         pickupLocation: inputs.pickupLocation || 'TBD',
         dropoffLocation: inputs.dropoffLocation || 'TBD',
@@ -606,8 +625,10 @@ export function QuotationCalculatorPage() {
         clientEmail: inputs.clientEmail,
         clientName: inputs.clientName,
         quoteReference: savedQuoteReference,
-        startDate: inputs.startDate,
-        endDate: inputs.endDate,
+        startDate: inputs.startDateTime.split('T')[0],
+        startTime: inputs.startDateTime.split('T')[1],
+        endDate: inputs.endDateTime.split('T')[0],
+        endTime: inputs.endDateTime.split('T')[1],
         duration: `${rentalDays} day${rentalDays !== 1 ? 's' : ''}`,
         pickupLocation: inputs.pickupLocation || 'TBD',
         rentalType: inputs.hasChauffeur ? 'With Chauffeur' : 'Self Drive',
@@ -685,8 +706,8 @@ export function QuotationCalculatorPage() {
         client_phone: inputs.clientPhone || undefined,
         pickup_location: inputs.pickupLocation || undefined,
         dropoff_location: inputs.dropoffLocation || undefined,
-        start_date: inputs.startDate,
-        end_date: inputs.endDate,
+        start_date: inputs.startDateTime.split('T')[0],
+        end_date: inputs.endDateTime.split('T')[0],
         has_chauffeur: inputs.hasChauffeur,
         has_half_day: inputs.hasHalfDay,
         other_fee_1_desc: inputs.otherFee1Desc || undefined,
@@ -725,8 +746,8 @@ export function QuotationCalculatorPage() {
         client_phone: inputs.clientPhone || undefined,
         pickup_location: inputs.pickupLocation || undefined,
         dropoff_location: inputs.dropoffLocation || undefined,
-        start_date: inputs.startDate,
-        end_date: inputs.endDate,
+        start_date: inputs.startDateTime.split('T')[0],
+        end_date: inputs.endDateTime.split('T')[0],
         has_chauffeur: inputs.hasChauffeur,
         has_half_day: inputs.hasHalfDay,
         other_fee_1_desc: inputs.otherFee1Desc || undefined,
@@ -770,8 +791,8 @@ export function QuotationCalculatorPage() {
           clientName: draft.client_name,
           clientEmail: draft.client_email || '',
           clientPhone: draft.client_phone || savedInputs.clientPhone || '',
-          startDate: draft.start_date,
-          endDate: draft.end_date,
+          startDateTime: draft.start_date ? `${draft.start_date}T09:00` : '',
+          endDateTime: draft.end_date ? `${draft.end_date}T18:00` : '',
           hasHalfDay: draft.has_half_day,
           hasChauffeur: draft.has_chauffeur,
           pickupLocation: draft.pickup_location || savedInputs.pickupLocation || '',
@@ -852,8 +873,8 @@ export function QuotationCalculatorPage() {
                 setCurrentStep(1);
                 setResults([]);
                 setInputs({
-                  startDate: '',
-                  endDate: '',
+                  startDateTime: '',
+                  endDateTime: '',
                   hasHalfDay: false,
                   hasChauffeur: false,
                   clientName: '',
@@ -1144,26 +1165,120 @@ export function QuotationCalculatorPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Start Date *
+              Start Date & Time *
             </label>
-            <input
-              type="date"
-              value={inputs.startDate}
-              onChange={e => setInputs({ ...inputs, startDate: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={inputs.startDateTime.split('T')[0] || ''}
+                onChange={(e) => {
+                  const date = e.target.value;
+                  const time = inputs.startDateTime.split('T')[1] || '09:00';
+                  setInputs({ ...inputs, startDateTime: `${date}T${time}` });
+                }}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <select
+                value={inputs.startDateTime.split('T')[1] || '09:00'}
+                onChange={(e) => {
+                  const date = inputs.startDateTime.split('T')[0] || new Date().toISOString().split('T')[0];
+                  setInputs({ ...inputs, startDateTime: `${date}T${e.target.value}` });
+                }}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="06:00">6:00 AM</option>
+                <option value="06:30">6:30 AM</option>
+                <option value="07:00">7:00 AM</option>
+                <option value="07:30">7:30 AM</option>
+                <option value="08:00">8:00 AM</option>
+                <option value="08:30">8:30 AM</option>
+                <option value="09:00">9:00 AM</option>
+                <option value="09:30">9:30 AM</option>
+                <option value="10:00">10:00 AM</option>
+                <option value="10:30">10:30 AM</option>
+                <option value="11:00">11:00 AM</option>
+                <option value="11:30">11:30 AM</option>
+                <option value="12:00">12:00 PM</option>
+                <option value="12:30">12:30 PM</option>
+                <option value="13:00">1:00 PM</option>
+                <option value="13:30">1:30 PM</option>
+                <option value="14:00">2:00 PM</option>
+                <option value="14:30">2:30 PM</option>
+                <option value="15:00">3:00 PM</option>
+                <option value="15:30">3:30 PM</option>
+                <option value="16:00">4:00 PM</option>
+                <option value="16:30">4:30 PM</option>
+                <option value="17:00">5:00 PM</option>
+                <option value="17:30">5:30 PM</option>
+                <option value="18:00">6:00 PM</option>
+                <option value="18:30">6:30 PM</option>
+                <option value="19:00">7:00 PM</option>
+                <option value="19:30">7:30 PM</option>
+                <option value="20:00">8:00 PM</option>
+                <option value="20:30">8:30 PM</option>
+                <option value="21:00">9:00 PM</option>
+              </select>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Operating hours: 9:00 AM - 6:00 PM (Kenya Time)</p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              End Date *
+              End Date & Time *
             </label>
-            <input
-              type="date"
-              value={inputs.endDate}
-              onChange={e => setInputs({ ...inputs, endDate: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={inputs.endDateTime.split('T')[0] || ''}
+                onChange={(e) => {
+                  const date = e.target.value;
+                  const time = inputs.endDateTime.split('T')[1] || '18:00';
+                  setInputs({ ...inputs, endDateTime: `${date}T${time}` });
+                }}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <select
+                value={inputs.endDateTime.split('T')[1] || '18:00'}
+                onChange={(e) => {
+                  const date = inputs.endDateTime.split('T')[0] || new Date().toISOString().split('T')[0];
+                  setInputs({ ...inputs, endDateTime: `${date}T${e.target.value}` });
+                }}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="06:00">6:00 AM</option>
+                <option value="06:30">6:30 AM</option>
+                <option value="07:00">7:00 AM</option>
+                <option value="07:30">7:30 AM</option>
+                <option value="08:00">8:00 AM</option>
+                <option value="08:30">8:30 AM</option>
+                <option value="09:00">9:00 AM</option>
+                <option value="09:30">9:30 AM</option>
+                <option value="10:00">10:00 AM</option>
+                <option value="10:30">10:30 AM</option>
+                <option value="11:00">11:00 AM</option>
+                <option value="11:30">11:30 AM</option>
+                <option value="12:00">12:00 PM</option>
+                <option value="12:30">12:30 PM</option>
+                <option value="13:00">1:00 PM</option>
+                <option value="13:30">1:30 PM</option>
+                <option value="14:00">2:00 PM</option>
+                <option value="14:30">2:30 PM</option>
+                <option value="15:00">3:00 PM</option>
+                <option value="15:30">3:30 PM</option>
+                <option value="16:00">4:00 PM</option>
+                <option value="16:30">4:30 PM</option>
+                <option value="17:00">5:00 PM</option>
+                <option value="17:30">5:30 PM</option>
+                <option value="18:00">6:00 PM</option>
+                <option value="18:30">6:30 PM</option>
+                <option value="19:00">7:00 PM</option>
+                <option value="19:30">7:30 PM</option>
+                <option value="20:00">8:00 PM</option>
+                <option value="20:30">8:30 PM</option>
+                <option value="21:00">9:00 PM</option>
+              </select>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Operating hours: 9:00 AM - 6:00 PM (Kenya Time)</p>
           </div>
 
           <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1332,7 +1447,7 @@ export function QuotationCalculatorPage() {
                 setCurrentStep(2);
               }
             }}
-            disabled={calculating || !inputs.clientName || !inputs.startDate || !inputs.endDate}
+            disabled={calculating || !inputs.clientName || !inputs.startDateTime || !inputs.endDateTime}
             className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {calculating ? 'Calculating...' : 'Calculate & Continue'}
