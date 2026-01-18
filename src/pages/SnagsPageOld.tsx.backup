@@ -1,0 +1,254 @@
+import { useEffect, useState } from 'react';
+import { useAuth } from '../lib/auth-context';
+import { snagService, vehicleService } from '../services/api';
+import { Snag, Vehicle } from '../types/database';
+import { getPriorityColor, formatDate } from '../lib/utils';
+import { Plus } from 'lucide-react';
+import { showToast } from '../lib/toast';
+import { ConfirmModal } from '../components/ConfirmModal';
+import { SnagFormModal } from '../components/SnagFormModal';
+
+export function SnagsPage() {
+  const { branchId } = useAuth();
+  const [snags, setSnags] = useState<Snag[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [filterStatus, setFilterStatus] = useState('Open');
+  const [filterPriority, setFilterPriority] = useState('');
+  const [confirmClose, setConfirmClose] = useState<string | null>(null);
+  const [closing, setClosing] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [snagsData, vehiclesData] = await Promise.all([
+          snagService.getSnags(undefined, branchId || undefined),
+          vehicleService.getVehicles(branchId || undefined),
+        ]);
+
+        setSnags(snagsData);
+        setVehicles(vehiclesData);
+      } catch (error) {
+        showToast('Failed to fetch snags', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [branchId]);
+
+  const handleAddSnags = async (vehicleId: string, issues: Array<{ description: string; priority: string }>) => {
+    setSubmitting(true);
+
+    try {
+      const vehicle = vehicles.find(v => v.id === vehicleId);
+      const vehicleBranchId = vehicle?.branch_id || branchId;
+
+      if (!vehicleBranchId) {
+        throw new Error('Branch ID is required');
+      }
+
+      const newSnags = await Promise.all(
+        issues.map(issue =>
+          snagService.createSnag({
+            vehicle_id: vehicleId,
+            priority: (issue.priority || null) as 'Dangerous' | 'Important' | 'Nice to Fix' | 'Aesthetic' | null,
+            status: 'Open',
+            date_opened: new Date().toISOString().split('T')[0],
+            description: issue.description,
+            branch_id: vehicleBranchId,
+          })
+        )
+      );
+
+      setSnags([...newSnags, ...snags]);
+      showToast(`${newSnags.length} snag(s) created successfully`, 'success');
+    } catch (error: any) {
+      showToast(error.message || 'Failed to create snags', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCloseSnag = async () => {
+    if (!confirmClose) return;
+
+    setClosing(true);
+    try {
+      const updates: any = {
+        status: 'Closed',
+        date_closed: new Date().toISOString().split('T')[0]
+      };
+
+      await snagService.updateSnag(confirmClose, updates);
+      setSnags(snags.map(s => (s.id === confirmClose ? { ...s, ...updates } : s)));
+      showToast('Snag marked as closed', 'success');
+      setConfirmClose(null);
+    } catch (error: any) {
+      showToast(error.message || 'Failed to close snag', 'error');
+    } finally {
+      setClosing(false);
+    }
+  };
+
+  const handleReopenSnag = async (snagId: string) => {
+    try {
+      const updates: any = {
+        status: 'Open',
+        date_closed: null
+      };
+
+      await snagService.updateSnag(snagId, updates);
+      setSnags(snags.map(s => (s.id === snagId ? { ...s, ...updates } : s)));
+      showToast('Snag reopened', 'success');
+    } catch (error: any) {
+      showToast(error.message || 'Failed to reopen snag', 'error');
+    }
+  };
+
+  const filteredSnags = snags.filter(s => {
+    const matchesStatus = !filterStatus || s.status === filterStatus;
+    const matchesPriority = !filterPriority || s.priority === filterPriority;
+    return matchesStatus && matchesPriority;
+  });
+
+  if (loading) {
+    return (
+      <div className="p-4 md:p-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-10 bg-gray-200 rounded w-1/4"></div>
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-24 bg-gray-200 rounded-lg"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 md:p-8">
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Snags</h1>
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Report Snag
+        </button>
+      </div>
+
+      <div className="bg-white rounded-lg shadow p-4 mb-6">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex gap-2">
+            {['Open', 'Closed', ''].map(status => (
+              <button
+                key={status}
+                onClick={() => setFilterStatus(status)}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  filterStatus === status
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {status || 'All'}
+              </button>
+            ))}
+          </div>
+
+          <select
+            value={filterPriority}
+            onChange={e => setFilterPriority(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          >
+            <option value="">All Priorities</option>
+            <option value="Dangerous">Dangerous</option>
+            <option value="Important">Important</option>
+            <option value="Nice to Fix">Nice to Fix</option>
+            <option value="Aesthetic">Aesthetic</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {filteredSnags.map(snag => {
+          const vehicle = vehicles.find(v => v.id === snag.vehicle_id);
+          return (
+            <div key={snag.id} className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">{snag.description}</h3>
+                  <p className="text-sm text-gray-600">Vehicle: {vehicle?.reg_number}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {snag.priority && (
+                    <span className={`px-2 py-1 rounded text-xs font-semibold ${getPriorityColor(snag.priority)}`}>
+                      {snag.priority}
+                    </span>
+                  )}
+                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                    snag.status === 'Open' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                  }`}>
+                    {snag.status}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mb-4 text-sm text-gray-600">
+                <span>Opened: {formatDate(snag.date_opened)}</span>
+                {snag.date_closed && <span>Closed: {formatDate(snag.date_closed)}</span>}
+              </div>
+
+              {snag.status === 'Open' ? (
+                <button
+                  onClick={() => setConfirmClose(snag.id)}
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm"
+                >
+                  Mark as Closed
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleReopenSnag(snag.id)}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors text-sm"
+                >
+                  Reopen
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {filteredSnags.length === 0 && (
+        <div className="bg-white rounded-lg shadow p-8 text-center">
+          <p className="text-gray-600">No snags found</p>
+        </div>
+      )}
+
+      <SnagFormModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onSubmit={handleAddSnags}
+        vehicles={vehicles}
+        submitting={submitting}
+      />
+
+      <ConfirmModal
+        isOpen={confirmClose !== null}
+        title="Close Snag"
+        message="Are you sure you want to mark this snag as closed? This will update the vehicle's health status."
+        confirmText="Yes, Close Snag"
+        cancelText="Cancel"
+        variant="warning"
+        onConfirm={handleCloseSnag}
+        onCancel={() => setConfirmClose(null)}
+        loading={closing}
+      />
+    </div>
+  );
+}

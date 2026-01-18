@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-cream-50 text-neutral-900;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-lime-500 hover:bg-lime-600 text-neutral-900 font-medium px-4 py-2 rounded-lg transition-all duration-200 hover:shadow-hover;
+  }
+
+  .btn-secondary {
+    @apply bg-white hover:bg-gray-50 text-neutral-900 font-medium px-4 py-2 rounded-lg border border-gray-200 transition-all duration-200;
+  }
+
+  .card {
+    @apply bg-white rounded-xl shadow-card p-6;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-transparent transition-all duration-200;
+  }
+}
+
+@media print {
+  @page {
+    size: landscape;
+    margin: 0.5in;
+  }
+
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .print-content,
+  .print-content * {
+    visibility: visible;
+  }
+
+  .print-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  button {
+    display: none !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+
+  .print\:block {
+    display: block !important;
+  }
+
+  .print\:shadow-none {
+    box-shadow: none !important;
+  }
+
+  .print\:py-1 {
+    padding-top: 0.25rem !important;
+    padding-bottom: 0.25rem !important;
+  }
+
+  nav, aside, header:not(.print-header), footer:not(.print-footer) {
+    display: none !important;
+  }
+
+  main {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+}
