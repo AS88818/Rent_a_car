@@ -58,7 +58,7 @@ export function InvoiceConversionModal({ quote, onClose, onSuccess }: InvoiceCon
           categoryName: name,
           rentalFee: data.rentalFee,
           chauffeurFee: data.chauffeurFee,
-          otherFees: (quote.other_fee_1_amount || 0) + (quote.other_fee_2_amount || 0) + (quote.outside_hours_charges || 0),
+          otherFees: (quote.other_fee_1_amount || 0) + (quote.other_fee_2_amount || 0),
           subtotal: data.subtotal,
           vat: data.vat,
           total: data.grandTotal,
