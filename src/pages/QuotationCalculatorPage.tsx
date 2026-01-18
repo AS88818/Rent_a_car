@@ -372,7 +372,7 @@ export function QuotationCalculatorPage() {
     });
   };
 
-  // Check if pickup or dropoff is outside office hours (9 AM - 6 PM)
+  // Check if pickup or dropoff is outside office hours (9 AM - 6 PM inclusive)
   const isOutsideOfficeHours = () => {
     if (!inputs.startDateTime || !inputs.endDateTime) return false;
 
@@ -382,8 +382,9 @@ export function QuotationCalculatorPage() {
     const startHour = parseInt(startTime.split(':')[0]);
     const endHour = parseInt(endTime.split(':')[0]);
 
-    // Outside hours if before 9 AM or after 6 PM (18:00)
-    return startHour < 9 || startHour >= 18 || endHour < 9 || endHour >= 18;
+    // Outside hours if before 9 AM or after 6 PM
+    // 6 PM (18:00) is included in office hours, only 6:30 PM (18:30) and later is outside
+    return startHour < 9 || startHour > 18 || endHour < 9 || endHour > 18;
   };
 
   const calculateQuote = async (): Promise<boolean> => {
