@@ -45,7 +45,7 @@ export function getPermissions(role: UserRole): PermissionCheck {
 
     case 'mechanic':
       return {
-        canViewAll: false,
+        canViewAll: true,
         canCreateGlobal: false,
         canEditGlobal: false,
         canDeleteGlobal: false,
@@ -123,7 +123,7 @@ export function getRoleDescription(role: UserRole): string {
     case 'manager':
       return 'Full access to their assigned branch. Can create, edit, and delete data within their branch.';
     case 'mechanic':
-      return 'Can perform maintenance work, update vehicle health, and report snags within their assigned branch.';
+      return 'Can view all vehicles across all branches and perform maintenance work, update vehicle health, and report snags.';
     case 'driver':
       return 'Can update mileage, view bookings, and update location information for vehicles they operate.';
     default:

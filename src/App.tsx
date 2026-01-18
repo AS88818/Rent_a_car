@@ -24,6 +24,7 @@ import { PricingAdminPage } from './pages/PricingAdminPage';
 import { InvoicesPage } from './pages/InvoicesPage';
 import { EmailsPage } from './pages/EmailsPage';
 import QuotesPage from './pages/QuotesPage';
+import { ReportsPage } from './pages/ReportsPage';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -258,6 +259,17 @@ function AppRoutes() {
           <ProtectedRoute requiredRoles={['admin', 'manager']}>
             <Layout>
               <EmailsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/reports"
+        element={
+          <ProtectedRoute requiredRoles={['admin', 'manager']}>
+            <Layout>
+              <ReportsPage />
             </Layout>
           </ProtectedRoute>
         }

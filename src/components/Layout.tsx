@@ -2,7 +2,7 @@ import { ReactNode, useState } from 'react';
 import {
   Menu, X, LogOut, Settings, LayoutDashboard, Calendar, PlusCircle,
   Car, Gauge, Activity, CalendarDays, Wrench, AlertTriangle,
-  ClipboardList, FileText, Users, DollarSign, Mail, Receipt, Zap
+  ClipboardList, FileText, Users, DollarSign, Mail, Receipt, Zap, BarChart3
 } from 'lucide-react';
 import { useAuth } from '../lib/auth-context';
 import { Link, useLocation } from 'react-router-dom';
@@ -45,6 +45,9 @@ export function Layout({ children }: LayoutProps) {
     ...(userRole === 'admin' || userRole === 'manager' ? [
       { label: 'Create Invoice', href: '/invoices', icon: FileText },
       { label: 'Emails', href: '/emails', icon: Mail }
+    ] : []),
+    ...(userRole === 'admin' || userRole === 'manager' ? [
+      { label: 'Reports', href: '/reports', icon: BarChart3 }
     ] : []),
     ...(userRole === 'admin' ? [
       { label: 'User Management', href: '/users', icon: Users },
