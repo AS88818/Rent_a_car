@@ -51,6 +51,11 @@ export function CalendarPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [branches, setBranches] = useState<any[]>([]);
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [filterStartLocation, setFilterStartLocation] = useState('');
+  const [filterEndLocation, setFilterEndLocation] = useState('');
+  const [filterBookingType, setFilterBookingType] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -133,6 +138,35 @@ export function CalendarPage() {
     setHighlightedDateRange({ start, end });
     setCurrentMonth(start.getMonth());
     setCurrentYear(start.getFullYear());
+    setCustomStartDate('');
+    setCustomEndDate('');
+  };
+
+  const handleCustomDateRange = () => {
+    if (!customStartDate || !customEndDate) {
+      showToast('Please select both start and end dates', 'error');
+      return;
+    }
+
+    const start = new Date(customStartDate);
+    const end = new Date(customEndDate);
+
+    if (start > end) {
+      showToast('Start date must be before end date', 'error');
+      return;
+    }
+
+    setQuickPeriod('custom');
+    setHighlightedDateRange({ start, end });
+    setCurrentMonth(start.getMonth());
+    setCurrentYear(start.getFullYear());
+  };
+
+  const clearCustomDateRange = () => {
+    setCustomStartDate('');
+    setCustomEndDate('');
+    setHighlightedDateRange(null);
+    setQuickPeriod('this_month');
   };
 
   const toggleCategory = (categoryId: string) => {
@@ -160,6 +194,18 @@ export function CalendarPage() {
 
       const vehicle = vehicles.find(v => v.id === b.vehicle_id);
       if (!vehicle || !selectedCategories.includes(vehicle.category_id)) return false;
+
+      if (filterStartLocation && !b.start_location.toLowerCase().includes(filterStartLocation.toLowerCase())) {
+        return false;
+      }
+
+      if (filterEndLocation && !b.end_location.toLowerCase().includes(filterEndLocation.toLowerCase())) {
+        return false;
+      }
+
+      if (filterBookingType && b.booking_type !== filterBookingType) {
+        return false;
+      }
 
       const startDate = new Date(b.start_datetime).toISOString().split('T')[0];
       const endDate = new Date(b.end_datetime).toISOString().split('T')[0];
@@ -325,49 +371,143 @@ export function CalendarPage() {
       </div>
 
       {showFilters && (
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-6 print:hidden">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold text-gray-900">Filter by Category</h3>
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6 print:hidden">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
             <button onClick={() => setShowFilters(false)} className="text-gray-500 hover:text-gray-700">
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={selectedCategories.length === categories.length}
-                onChange={toggleAllCategories}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="font-medium">All Categories ({categories.length})</span>
-            </label>
+          <div className="space-y-6">
+            <div>
+              <h4 className="font-medium text-gray-900 mb-3">Category</h4>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedCategories.length === categories.length}
+                    onChange={toggleAllCategories}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="font-medium">All Categories ({categories.length})</span>
+                </label>
 
-            <div className="pl-6 space-y-2">
-              {categories.map((category, idx) => {
-                const color = getCategoryColor(category.category_name, idx);
-                return (
-                  <label key={category.id} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedCategories.includes(category.id)}
-                      onChange={() => toggleCategory(category.id)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className={`w-3 h-3 rounded-full ${color.dot}`}></span>
-                    <span>{category.category_name}</span>
-                  </label>
-                );
-              })}
+                <div className="pl-6 space-y-2">
+                  {categories.map((category, idx) => {
+                    const color = getCategoryColor(category.category_name, idx);
+                    return (
+                      <label key={category.id} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedCategories.includes(category.id)}
+                          onChange={() => toggleCategory(category.id)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className={`w-3 h-3 rounded-full ${color.dot}`}></span>
+                        <span>{category.category_name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-gray-200">
+              <h4 className="font-medium text-gray-900 mb-3">Location & Type</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Location</label>
+                  <input
+                    type="text"
+                    value={filterStartLocation}
+                    onChange={(e) => setFilterStartLocation(e.target.value)}
+                    placeholder="Filter by pickup..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Drop-off Location</label>
+                  <input
+                    type="text"
+                    value={filterEndLocation}
+                    onChange={(e) => setFilterEndLocation(e.target.value)}
+                    placeholder="Filter by drop-off..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Rental Type</label>
+                  <select
+                    value={filterBookingType}
+                    onChange={(e) => setFilterBookingType(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">All Types</option>
+                    <option value="self_drive">Self Drive</option>
+                    <option value="chauffeur">Chauffeur</option>
+                    <option value="transfer">Transfer</option>
+                  </select>
+                </div>
+              </div>
+
+              {(filterStartLocation || filterEndLocation || filterBookingType) && (
+                <button
+                  onClick={() => {
+                    setFilterStartLocation('');
+                    setFilterEndLocation('');
+                    setFilterBookingType('');
+                  }}
+                  className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Clear location & type filters
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
 
+      <div className="bg-white rounded-lg shadow p-4 mb-6 print:shadow-none">
+        <h3 className="text-sm font-semibold text-gray-700 mb-4">Overview</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+          <div>
+            <div className="text-2xl font-bold text-gray-900">{selectedCategories.length}</div>
+            <div className="text-sm text-gray-600">Categories Selected</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-gray-900">
+              {vehicles.filter(v => selectedCategories.includes(v.category_id) && !v.is_personal).length}
+            </div>
+            <div className="text-sm text-gray-600">Total Vehicles</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-gray-900">
+              {bookings.filter(b => {
+                const vehicle = vehicles.find(v => v.id === b.vehicle_id);
+                return vehicle && selectedCategories.includes(vehicle.category_id) && b.status !== 'Cancelled';
+              }).length}
+            </div>
+            <div className="text-sm text-gray-600">Active Bookings</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-gray-900">
+              {vehicles.filter(v =>
+                selectedCategories.includes(v.category_id) &&
+                !v.is_personal &&
+                v.status === 'Available'
+              ).length}
+            </div>
+            <div className="text-sm text-gray-600">Available Now</div>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-white rounded-lg shadow p-4 md:p-6 mb-6 print:shadow-none">
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="flex-1">
+        <div className="flex flex-col gap-4 mb-6">
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Quick Period</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
               {[
@@ -391,6 +531,52 @@ export function CalendarPage() {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="pt-4 border-t border-gray-200">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Custom Date Range</label>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Start date"
+                />
+              </div>
+              <div className="flex-1">
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="End date"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCustomDateRange}
+                  disabled={!customStartDate || !customEndDate}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                >
+                  Apply Range
+                </button>
+                {(customStartDate || customEndDate) && (
+                  <button
+                    onClick={clearCustomDateRange}
+                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+            {highlightedDateRange && quickPeriod === 'custom' && (
+              <p className="mt-2 text-sm text-gray-600">
+                Viewing: {highlightedDateRange.start.toLocaleDateString()} - {highlightedDateRange.end.toLocaleDateString()}
+              </p>
+            )}
           </div>
         </div>
 
@@ -727,40 +913,6 @@ export function CalendarPage() {
               <div className="w-8 h-3 border-2 border-gray-400 border-dotted"></div>
               <span>Advance Payment Not Paid</span>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow p-4 print:shadow-none">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-          <div>
-            <div className="text-2xl font-bold text-gray-900">{selectedCategories.length}</div>
-            <div className="text-sm text-gray-600">Categories Selected</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-gray-900">
-              {vehicles.filter(v => selectedCategories.includes(v.category_id) && !v.is_personal).length}
-            </div>
-            <div className="text-sm text-gray-600">Total Vehicles</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-gray-900">
-              {bookings.filter(b => {
-                const vehicle = vehicles.find(v => v.id === b.vehicle_id);
-                return vehicle && selectedCategories.includes(vehicle.category_id) && b.status !== 'Cancelled';
-              }).length}
-            </div>
-            <div className="text-sm text-gray-600">Active Bookings</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-gray-900">
-              {vehicles.filter(v =>
-                selectedCategories.includes(v.category_id) &&
-                !v.is_personal &&
-                v.status === 'Available'
-              ).length}
-            </div>
-            <div className="text-sm text-gray-600">Available Now</div>
           </div>
         </div>
       </div>
