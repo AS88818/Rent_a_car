@@ -25,6 +25,7 @@ interface QuoteInputs {
   pickupLocation: string;
   dropoffLocation: string;
   differentLocationCharge: number;
+  outsideHoursCharge: number;
   otherFees: OtherFee[];
   additionalNotes: string;
   otherFee1Desc: string;
@@ -70,6 +71,7 @@ export function QuotationCalculatorPage() {
     pickupLocation: '',
     dropoffLocation: '',
     differentLocationCharge: 0,
+    outsideHoursCharge: 0,
     otherFees: [],
     additionalNotes: '',
     otherFee1Desc: '',
@@ -98,6 +100,7 @@ export function QuotationCalculatorPage() {
         pickupLocation: quote.pickup_location || quoteInputs?.pickupLocation || '',
         dropoffLocation: quote.dropoff_location || quoteInputs?.dropoffLocation || '',
         differentLocationCharge: quoteInputs?.differentLocationCharge || 0,
+        outsideHoursCharge: quote.outside_hours_charges || quoteInputs?.outsideHoursCharge || 0,
         otherFees: quoteInputs?.otherFees || [],
         additionalNotes: quoteInputs?.additionalNotes || '',
         otherFee1Desc: quote.other_fee_1_desc || '',
@@ -433,8 +436,8 @@ export function QuotationCalculatorPage() {
         const totalDays = totalRentalDays + (inputs.hasHalfDay ? 0.5 : 0);
         const chauffeurFee = inputs.hasChauffeur ? totalDays * chauffeurFeePerDay : 0;
 
-        // Apply outside hours surcharge if pickup/dropoff is before 9 AM or after 6 PM
-        const outsideHoursCharge = isOutsideOfficeHours() ? (pricingConfig?.outside_hours_charges || 0) : 0;
+        // Use manually entered outside hours charge if outside office hours
+        const outsideHoursCharge = isOutsideOfficeHours() ? (inputs.outsideHoursCharge || 0) : 0;
 
         console.log(`${pricing.category_name}: totalDays=${totalDays}, hasChauffeur=${inputs.hasChauffeur}, chauffeurFee=${chauffeurFee}, outsideHours=${outsideHoursCharge}`);
 
@@ -504,6 +507,7 @@ export function QuotationCalculatorPage() {
       pickupLocation: '',
       dropoffLocation: '',
       differentLocationCharge: 0,
+      outsideHoursCharge: 0,
       otherFees: [],
       additionalNotes: '',
       otherFee1Desc: '',
@@ -710,6 +714,7 @@ export function QuotationCalculatorPage() {
         end_date: inputs.endDateTime.split('T')[0],
         has_chauffeur: inputs.hasChauffeur,
         has_half_day: inputs.hasHalfDay,
+        outside_hours_charges: isOutsideOfficeHours() ? inputs.outsideHoursCharge : undefined,
         other_fee_1_desc: inputs.otherFee1Desc || undefined,
         other_fee_1_amount: inputs.otherFee1Amount || undefined,
         other_fee_2_desc: inputs.otherFee2Desc || undefined,
@@ -750,6 +755,7 @@ export function QuotationCalculatorPage() {
         end_date: inputs.endDateTime.split('T')[0],
         has_chauffeur: inputs.hasChauffeur,
         has_half_day: inputs.hasHalfDay,
+        outside_hours_charges: isOutsideOfficeHours() ? inputs.outsideHoursCharge : undefined,
         other_fee_1_desc: inputs.otherFee1Desc || undefined,
         other_fee_1_amount: inputs.otherFee1Amount || undefined,
         other_fee_2_desc: inputs.otherFee2Desc || undefined,
@@ -798,6 +804,7 @@ export function QuotationCalculatorPage() {
           pickupLocation: draft.pickup_location || savedInputs.pickupLocation || '',
           dropoffLocation: draft.dropoff_location || savedInputs.dropoffLocation || '',
           differentLocationCharge: savedInputs.differentLocationCharge || 0,
+          outsideHoursCharge: draft.outside_hours_charges || savedInputs.outsideHoursCharge || 0,
           otherFees: savedInputs.otherFees || [],
           additionalNotes: savedInputs.additionalNotes || '',
           otherFee1Desc: draft.other_fee_1_desc || '',
@@ -883,6 +890,7 @@ export function QuotationCalculatorPage() {
                   pickupLocation: '',
                   dropoffLocation: '',
                   differentLocationCharge: 0,
+                  outsideHoursCharge: 0,
                   otherFees: [],
                   additionalNotes: '',
                   otherFee1Desc: '',
@@ -1310,6 +1318,27 @@ export function QuotationCalculatorPage() {
               </label>
             </div>
           </div>
+
+          {isOutsideOfficeHours() && (
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Outside Office Hours Surcharge
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">KES</span>
+                <input
+                  type="number"
+                  value={inputs.outsideHoursCharge || ''}
+                  onChange={e => setInputs({ ...inputs, outsideHoursCharge: parseFloat(e.target.value) || 0 })}
+                  placeholder="0"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <p className="text-xs text-amber-600 mt-1">
+                ⚠️ Pickup or dropoff is outside operating hours (9 AM - 6 PM). Enter surcharge amount.
+              </p>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
