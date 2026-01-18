@@ -2,7 +2,7 @@ import { ReactNode, useState } from 'react';
 import {
   Menu, X, LogOut, Settings, LayoutDashboard, Calendar, PlusCircle,
   Car, Gauge, Activity, CalendarDays, Wrench, AlertTriangle,
-  ClipboardList, FileText, Users, DollarSign, Mail, Receipt
+  ClipboardList, FileText, Users, DollarSign, Mail, Receipt, Zap
 } from 'lucide-react';
 import { useAuth } from '../lib/auth-context';
 import { Link, useLocation } from 'react-router-dom';
@@ -30,6 +30,7 @@ export function Layout({ children }: LayoutProps) {
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { label: 'My Assignments', href: '/my-assignments', icon: ClipboardList },
     { label: 'Vehicles', href: '/vehicles', icon: Car },
+    { label: 'Quick Actions', href: '/quick-actions', icon: Zap },
     { label: 'Update Mileage', href: '/vehicles/update-mileage', icon: Gauge },
     { label: 'Update Health', href: '/vehicles/update-health', icon: Activity },
     { label: 'Snags', href: '/snags', icon: AlertTriangle },

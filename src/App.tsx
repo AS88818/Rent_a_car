@@ -11,6 +11,7 @@ import { VehiclesPage } from './pages/VehiclesPage';
 import { VehicleDetailsPage } from './pages/VehicleDetailsPage';
 import { UpdateMileagePage } from './pages/UpdateMileagePage';
 import { UpdateHealthPage } from './pages/UpdateHealthPage';
+import { QuickActionsPage } from './pages/QuickActionsPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { MaintenancePage } from './pages/MaintenancePage';
 import { SnagsPage } from './pages/SnagsPage';
@@ -114,6 +115,17 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <UpdateHealthPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quick-actions"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <QuickActionsPage />
             </Layout>
           </ProtectedRoute>
         }
