@@ -77,8 +77,15 @@ export function SnagFormModal({
 
     if (isOpen) {
       fetchBranches();
+
+      if (vehicles.length === 1 && !vehicleId) {
+        setVehicleId(vehicles[0].id);
+        if (vehicles[0].current_mileage) {
+          setMileage(String(vehicles[0].current_mileage));
+        }
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, vehicles]);
 
   const handleClose = () => {
     setVehicleId('');

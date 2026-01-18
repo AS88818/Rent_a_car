@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../lib/auth-context';
-import { vehicleService, branchService } from '../services/api';
+import { vehicleService, branchService, snagService } from '../services/api';
 import { Vehicle, Branch } from '../types/database';
 import { showToast } from '../lib/toast';
 import { Car, MapPin, Gauge, Heart, AlertTriangle, ArrowUpDown, Check, Loader2 } from 'lucide-react';
@@ -9,15 +9,8 @@ import { SnagFormModal } from '../components/SnagFormModal';
 type SortField = 'reg_number' | 'branch_id' | 'current_mileage' | 'updated_at';
 type SortDirection = 'asc' | 'desc';
 
-interface VehicleUpdate {
-  branch_id?: string;
-  current_mileage?: number;
-  health?: string;
-  location?: string;
-}
-
 export function QuickActionsPage() {
-  const { branchId } = useAuth();
+  const { branchId, user, userRole } = useAuth();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +21,7 @@ export function QuickActionsPage() {
   const [showSnagModal, setShowSnagModal] = useState(false);
   const [selectedVehicleForSnag, setSelectedVehicleForSnag] = useState<Vehicle | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [submittingSnag, setSubmittingSnag] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -79,8 +73,8 @@ export function QuickActionsPage() {
           bVal = b.reg_number.toLowerCase();
           break;
         case 'branch_id':
-          aVal = branches.find(br => br.id === a.branch_id)?.name || '';
-          bVal = branches.find(br => br.id === b.branch_id)?.name || '';
+          aVal = branches.find(br => br.id === a.branch_id)?.branch_name || '';
+          bVal = branches.find(br => br.id === b.branch_id)?.branch_name || '';
           break;
         case 'current_mileage':
           aVal = a.current_mileage || 0;
@@ -101,7 +95,9 @@ export function QuickActionsPage() {
     });
   };
 
-  const handleVehicleUpdate = async (vehicleId: string, updates: VehicleUpdate) => {
+  const handleLocationChange = async (vehicleId: string, newBranchId: string) => {
+    if (!user || !userRole) return;
+
     setSavingVehicleIds(prev => new Set(prev).add(vehicleId));
     setSavedVehicleIds(prev => {
       const newSet = new Set(prev);
@@ -110,7 +106,16 @@ export function QuickActionsPage() {
     });
 
     try {
-      const updatedVehicle = await vehicleService.updateVehicle(vehicleId, updates);
+      const updatedVehicle = await vehicleService.updateVehicleLocation(
+        vehicleId,
+        newBranchId,
+        {
+          id: user.id,
+          name: user.email || 'Unknown User',
+          role: userRole,
+        }
+      );
+
       setVehicles(vehicles.map(v => (v.id === vehicleId ? updatedVehicle : v)));
 
       setSavedVehicleIds(prev => new Set(prev).add(vehicleId));
@@ -121,8 +126,10 @@ export function QuickActionsPage() {
           return newSet;
         });
       }, 2000);
+
+      showToast('Location updated successfully', 'success');
     } catch (error: any) {
-      showToast(error.message || 'Failed to update vehicle', 'error');
+      showToast(error.message || 'Failed to update location', 'error');
     } finally {
       setSavingVehicleIds(prev => {
         const newSet = new Set(prev);
@@ -132,23 +139,89 @@ export function QuickActionsPage() {
     }
   };
 
-  const handleLocationChange = (vehicleId: string, branchId: string) => {
-    const branch = branches.find(b => b.id === branchId);
-    handleVehicleUpdate(vehicleId, {
-      branch_id: branchId,
-      location: branch?.name || ''
-    });
-  };
-
-  const handleMileageChange = (vehicleId: string, mileage: string) => {
+  const handleMileageChange = async (vehicleId: string, mileage: string) => {
     const mileageNum = parseInt(mileage, 10);
-    if (!isNaN(mileageNum) && mileageNum >= 0) {
-      handleVehicleUpdate(vehicleId, { current_mileage: mileageNum });
+    if (isNaN(mileageNum) || mileageNum < 0) return;
+
+    setSavingVehicleIds(prev => new Set(prev).add(vehicleId));
+    setSavedVehicleIds(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(vehicleId);
+      return newSet;
+    });
+
+    try {
+      const updatedVehicle = await vehicleService.updateVehicle(vehicleId, {
+        current_mileage: mileageNum,
+      });
+
+      setVehicles(vehicles.map(v => (v.id === vehicleId ? updatedVehicle : v)));
+
+      setSavedVehicleIds(prev => new Set(prev).add(vehicleId));
+      setTimeout(() => {
+        setSavedVehicleIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(vehicleId);
+          return newSet;
+        });
+      }, 2000);
+
+      showToast('Mileage updated successfully', 'success');
+    } catch (error: any) {
+      showToast(error.message || 'Failed to update mileage', 'error');
+    } finally {
+      setSavingVehicleIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(vehicleId);
+        return newSet;
+      });
     }
   };
 
-  const handleHealthChange = (vehicleId: string, health: string) => {
-    handleVehicleUpdate(vehicleId, { health });
+  const handleHealthChange = async (vehicleId: string, healthFlag: string) => {
+    if (!user || !userRole) return;
+
+    setSavingVehicleIds(prev => new Set(prev).add(vehicleId));
+    setSavedVehicleIds(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(vehicleId);
+      return newSet;
+    });
+
+    try {
+      const updatedVehicle = await vehicleService.updateVehicleHealth(
+        vehicleId,
+        healthFlag as Vehicle['health_flag'],
+        `Health status updated via Quick Actions`,
+        {
+          id: user.id,
+          name: user.email || 'Unknown User',
+          role: userRole,
+          branchId: branchId || undefined,
+        }
+      );
+
+      setVehicles(vehicles.map(v => (v.id === vehicleId ? updatedVehicle : v)));
+
+      setSavedVehicleIds(prev => new Set(prev).add(vehicleId));
+      setTimeout(() => {
+        setSavedVehicleIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(vehicleId);
+          return newSet;
+        });
+      }, 2000);
+
+      showToast('Health status updated successfully', 'success');
+    } catch (error: any) {
+      showToast(error.message || 'Failed to update health status', 'error');
+    } finally {
+      setSavingVehicleIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(vehicleId);
+        return newSet;
+      });
+    }
   };
 
   const handleReportSnag = (vehicle: Vehicle) => {
@@ -156,17 +229,29 @@ export function QuickActionsPage() {
     setShowSnagModal(true);
   };
 
-  const getHealthColor = (health?: string) => {
-    switch (health?.toLowerCase()) {
+  const handleSubmitSnag = async (vehicleId: string, issues: any[], selectedBranchId?: string) => {
+    setSubmittingSnag(true);
+    try {
+      await snagService.createMultipleSnags(vehicleId, issues, selectedBranchId);
+      showToast('Snag(s) reported successfully', 'success');
+      setShowSnagModal(false);
+      setSelectedVehicleForSnag(null);
+      await fetchData();
+    } catch (error: any) {
+      showToast(error.message || 'Failed to report snag', 'error');
+      throw error;
+    } finally {
+      setSubmittingSnag(false);
+    }
+  };
+
+  const getHealthColor = (healthFlag?: string) => {
+    switch (healthFlag?.toLowerCase()) {
       case 'excellent':
         return 'bg-green-100 text-green-800 border-green-300';
-      case 'good':
+      case 'ok':
         return 'bg-blue-100 text-blue-800 border-blue-300';
-      case 'fair':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-      case 'poor':
-        return 'bg-orange-100 text-orange-800 border-orange-300';
-      case 'critical':
+      case 'grounded':
         return 'bg-red-100 text-red-800 border-red-300';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-300';
@@ -320,11 +405,12 @@ export function QuickActionsPage() {
                           value={vehicle.branch_id || ''}
                           onChange={(e) => handleLocationChange(vehicle.id, e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                          disabled={isSaving}
                         >
                           <option value="">Select location...</option>
                           {branches.map((branch) => (
                             <option key={branch.id} value={branch.id}>
-                              {branch.name}
+                              {branch.branch_name}
                             </option>
                           ))}
                         </select>
@@ -334,28 +420,41 @@ export function QuickActionsPage() {
                           <input
                             type="number"
                             value={vehicle.current_mileage || ''}
-                            onChange={(e) => handleMileageChange(vehicle.id, e.target.value)}
+                            onBlur={(e) => {
+                              const newValue = e.target.value;
+                              if (newValue !== String(vehicle.current_mileage)) {
+                                handleMileageChange(vehicle.id, newValue);
+                              }
+                            }}
+                            onChange={(e) => {
+                              const newVehicles = vehicles.map(v =>
+                                v.id === vehicle.id
+                                  ? { ...v, current_mileage: parseInt(e.target.value, 10) || 0 }
+                                  : v
+                              );
+                              setVehicles(newVehicles);
+                            }}
                             placeholder="Enter mileage"
                             className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                             min="0"
+                            disabled={isSaving}
                           />
                           <span className="text-sm text-gray-500">km</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <select
-                          value={vehicle.health || ''}
+                          value={vehicle.health_flag || ''}
                           onChange={(e) => handleHealthChange(vehicle.id, e.target.value)}
                           className={`px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium ${getHealthColor(
-                            vehicle.health
+                            vehicle.health_flag
                           )}`}
+                          disabled={isSaving}
                         >
                           <option value="">Select health...</option>
                           <option value="Excellent">Excellent</option>
-                          <option value="Good">Good</option>
-                          <option value="Fair">Fair</option>
-                          <option value="Poor">Poor</option>
-                          <option value="Critical">Critical</option>
+                          <option value="OK">OK</option>
+                          <option value="Grounded">Grounded</option>
                         </select>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -378,6 +477,7 @@ export function QuickActionsPage() {
                         <button
                           onClick={() => handleReportSnag(vehicle)}
                           className="flex items-center gap-2 px-3 py-2 bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 transition-colors text-sm font-medium"
+                          disabled={isSaving}
                         >
                           <AlertTriangle className="w-4 h-4" />
                           <span>Report Snag</span>
@@ -415,14 +515,10 @@ export function QuickActionsPage() {
             setShowSnagModal(false);
             setSelectedVehicleForSnag(null);
           }}
-          onSubmit={async (snagData) => {
-            setShowSnagModal(false);
-            setSelectedVehicleForSnag(null);
-            showToast('Snag reported successfully', 'success');
-          }}
-          vehicleId={selectedVehicleForSnag.id}
-          vehicleReg={selectedVehicleForSnag.reg_number}
-          currentMileage={selectedVehicleForSnag.current_mileage}
+          onSubmit={handleSubmitSnag}
+          vehicles={[selectedVehicleForSnag]}
+          submitting={submittingSnag}
+          userBranchId={branchId}
         />
       )}
     </div>
