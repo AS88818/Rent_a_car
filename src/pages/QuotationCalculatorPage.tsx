@@ -379,12 +379,19 @@ export function QuotationCalculatorPage() {
     const startTime = inputs.startDateTime.split('T')[1];
     const endTime = inputs.endDateTime.split('T')[1];
 
-    const startHour = parseInt(startTime.split(':')[0]);
-    const endHour = parseInt(endTime.split(':')[0]);
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
 
-    // Outside hours if before 9 AM or after 6 PM
-    // 6 PM (18:00) is included in office hours, only 6:30 PM (18:30) and later is outside
-    return startHour < 9 || startHour > 18 || endHour < 9 || endHour > 18;
+    // Convert to minutes for easier comparison
+    const startTotalMinutes = startHour * 60 + startMinute;
+    const endTotalMinutes = endHour * 60 + endMinute;
+
+    const officeStartMinutes = 9 * 60; // 9:00 AM
+    const officeEndMinutes = 18 * 60; // 6:00 PM
+
+    // Outside hours if before 9:00 AM or after 6:00 PM
+    return startTotalMinutes < officeStartMinutes || startTotalMinutes > officeEndMinutes
+        || endTotalMinutes < officeStartMinutes || endTotalMinutes > officeEndMinutes;
   };
 
   const calculateQuote = async (): Promise<boolean> => {
