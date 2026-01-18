@@ -12,6 +12,11 @@ interface WorkItem {
   work_description: string;
   work_category: string;
   photos: string[];
+  performed_by: string;
+  performed_by_user_id: string;
+  performed_by_type: 'registered' | 'other';
+  performed_by_other: string;
+  checked_by_user_id: string;
 }
 
 export function MaintenancePage() {
@@ -27,18 +32,22 @@ export function MaintenancePage() {
   const [showForm, setShowForm] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState('');
   const [selectedLog, setSelectedLog] = useState<MaintenanceLog | null>(null);
-  const [performedByType, setPerformedByType] = useState<'registered' | 'other'>('registered');
   const [formData, setFormData] = useState({
     service_date: '',
     mileage: '',
-    performed_by: '',
-    performed_by_user_id: '',
-    performed_by_other: '',
-    checked_by_user_id: '',
     notes: '',
   });
   const [workItems, setWorkItems] = useState<WorkItem[]>([
-    { work_description: '', work_category: '', photos: [] },
+    {
+      work_description: '',
+      work_category: '',
+      photos: [],
+      performed_by: '',
+      performed_by_user_id: '',
+      performed_by_type: 'registered' as const,
+      performed_by_other: '',
+      checked_by_user_id: '',
+    },
   ]);
 
   useEffect(() => {
@@ -102,7 +111,19 @@ export function MaintenancePage() {
   };
 
   const handleAddWorkItem = () => {
-    setWorkItems([...workItems, { work_description: '', work_category: '', photos: [] }]);
+    setWorkItems([
+      ...workItems,
+      {
+        work_description: '',
+        work_category: '',
+        photos: [],
+        performed_by: '',
+        performed_by_user_id: '',
+        performed_by_type: 'registered' as const,
+        performed_by_other: '',
+        checked_by_user_id: '',
+      },
+    ]);
   };
 
   const handleRemoveWorkItem = (index: number) => {
@@ -139,6 +160,18 @@ export function MaintenancePage() {
       return;
     }
 
+    for (let i = 0; i < validWorkItems.length; i++) {
+      const item = validWorkItems[i];
+      if (item.performed_by_type === 'registered' && !item.performed_by_user_id) {
+        showToast(`Please select who performed work item ${i + 1}`, 'error');
+        return;
+      }
+      if (item.performed_by_type === 'other' && !item.performed_by_other.trim()) {
+        showToast(`Please enter who performed work item ${i + 1}`, 'error');
+        return;
+      }
+    }
+
     try {
       const vehicle = vehicles.find(v => v.id === selectedVehicle);
       const vehicleBranchId = vehicle?.branch_id || branchId;
@@ -147,48 +180,67 @@ export function MaintenancePage() {
         throw new Error('Branch ID is required');
       }
 
-      let performedBy = '';
-      let performedByUserId: string | undefined = undefined;
+      const processedWorkItems = validWorkItems.map(item => {
+        let performedBy = '';
+        let performedByUserId: string | undefined = undefined;
 
-      if (performedByType === 'registered') {
-        const selectedMechanic = mechanics.find(m => m.id === formData.performed_by_user_id);
-        if (selectedMechanic) {
-          performedBy = selectedMechanic.full_name;
-          performedByUserId = selectedMechanic.id;
+        if (item.performed_by_type === 'registered') {
+          const selectedMechanic = mechanics.find(m => m.id === item.performed_by_user_id);
+          if (selectedMechanic) {
+            performedBy = selectedMechanic.full_name;
+            performedByUserId = selectedMechanic.id;
+          }
+        } else {
+          performedBy = item.performed_by_other;
         }
-      } else {
-        performedBy = formData.performed_by_other;
-      }
+
+        return {
+          work_description: item.work_description,
+          work_category: item.work_category,
+          photos: item.photos,
+          performed_by: performedBy,
+          performed_by_user_id: performedByUserId,
+          checked_by_user_id: item.checked_by_user_id || undefined,
+        };
+      });
 
       const workDoneSummary = validWorkItems
         .map((item, idx) => `${idx + 1}. ${item.work_description}`)
         .join('\n');
+
+      const firstWorkItem = processedWorkItems[0];
 
       const newLog = await maintenanceService.createMaintenanceLog({
         vehicle_id: selectedVehicle,
         service_date: formData.service_date,
         mileage: parseFloat(formData.mileage),
         work_done: workDoneSummary,
-        performed_by: performedBy,
-        performed_by_user_id: performedByUserId,
-        checked_by_user_id: formData.checked_by_user_id || undefined,
+        performed_by: firstWorkItem.performed_by,
+        performed_by_user_id: firstWorkItem.performed_by_user_id,
+        checked_by_user_id: firstWorkItem.checked_by_user_id,
         notes: formData.notes,
         branch_id: vehicleBranchId,
-        work_items: validWorkItems,
+        work_items: processedWorkItems,
       });
 
       setLogs([newLog, ...logs]);
       setFormData({
         service_date: '',
         mileage: '',
-        performed_by: '',
-        performed_by_user_id: '',
-        performed_by_other: '',
-        checked_by_user_id: '',
         notes: '',
       });
-      setWorkItems([{ work_description: '', work_category: '', photos: [] }]);
-      setPerformedByType('registered');
+      setWorkItems([
+        {
+          work_description: '',
+          work_category: '',
+          photos: [],
+          performed_by: '',
+          performed_by_user_id: '',
+          performed_by_type: 'registered' as const,
+          performed_by_other: '',
+          checked_by_user_id: '',
+        },
+      ]);
       setShowForm(false);
       showToast('Maintenance log created', 'success');
     } catch (error: any) {
@@ -233,7 +285,6 @@ export function MaintenancePage() {
             <button
               onClick={() => {
                 setShowForm(false);
-                setPhotoUrls([]);
               }}
               className="p-1 hover:bg-gray-100 rounded"
             >
@@ -285,72 +336,6 @@ export function MaintenancePage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Performed By <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={performedByType === 'other' ? 'other' : formData.performed_by_user_id}
-                  onChange={e => {
-                    const value = e.target.value;
-                    if (value === 'other') {
-                      setPerformedByType('other');
-                      setFormData({ ...formData, performed_by_user_id: '', performed_by_other: '' });
-                    } else {
-                      setPerformedByType('registered');
-                      setFormData({ ...formData, performed_by_user_id: value, performed_by_other: '' });
-                    }
-                  }}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                >
-                  <option value="">Select who performed the work...</option>
-                  <optgroup label="Registered Mechanics">
-                    {mechanics.map(m => (
-                      <option key={m.id} value={m.id}>
-                        {m.full_name} ({m.role})
-                      </option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="External">
-                    <option value="other">Other (External Service Center)</option>
-                  </optgroup>
-                </select>
-
-                {performedByType === 'other' && (
-                  <input
-                    type="text"
-                    placeholder="Enter name or service center"
-                    value={formData.performed_by_other}
-                    onChange={e => setFormData({ ...formData, performed_by_other: e.target.value })}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none mt-2"
-                  />
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Work Checked By <span className="text-gray-400 text-xs">(Optional)</span>
-                </label>
-                <select
-                  value={formData.checked_by_user_id}
-                  onChange={e => setFormData({ ...formData, checked_by_user_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                >
-                  <option value="">No quality check performed</option>
-                  {mechanics.length > 0 && (
-                    <optgroup label="Select Quality Checker">
-                      {mechanics.map(m => (
-                        <option key={m.id} value={m.id}>
-                          {m.full_name} ({m.role})
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-                </select>
-              </div>
             </div>
 
             <div>
@@ -360,30 +345,9 @@ export function MaintenancePage() {
 
               <div className="space-y-4">
                 {workItems.map((workItem, index) => (
-                  <div key={index} className="p-4 border border-gray-200 rounded-lg space-y-3">
-                    <div className="flex gap-2 items-start">
-                      <div className="flex-1">
-                        <input
-                          type="text"
-                          placeholder={`Work item ${index + 1}`}
-                          value={workItem.work_description}
-                          onChange={e => handleWorkItemChange(index, 'work_description', e.target.value)}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                        />
-                      </div>
-                      <select
-                        value={workItem.work_category}
-                        onChange={e => handleWorkItemChange(index, 'work_category', e.target.value)}
-                        className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                      >
-                        <option value="">No Category</option>
-                        <option value="Engine / Fuel">Engine / Fuel</option>
-                        <option value="Gearbox">Gearbox</option>
-                        <option value="Suspension">Suspension</option>
-                        <option value="Electrical">Electrical</option>
-                        <option value="Body">Body</option>
-                        <option value="Accessories">Accessories</option>
-                      </select>
+                  <div key={index} className="p-4 border border-gray-200 rounded-lg space-y-3 bg-gray-50">
+                    <div className="flex gap-2 items-start justify-between mb-3">
+                      <h4 className="font-semibold text-gray-900">Work Item {index + 1}</h4>
                       {workItems.length > 1 && (
                         <button
                           type="button"
@@ -393,6 +357,117 @@ export function MaintenancePage() {
                           <Trash2 className="w-5 h-5" />
                         </button>
                       )}
+                    </div>
+
+                    <div className="flex gap-2 items-start">
+                      <div className="flex-1">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Description <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          placeholder={`Describe the work performed...`}
+                          value={workItem.work_description}
+                          onChange={e => handleWorkItemChange(index, 'work_description', e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
+                        <select
+                          value={workItem.work_category}
+                          onChange={e => handleWorkItemChange(index, 'work_category', e.target.value)}
+                          className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        >
+                          <option value="">No Category</option>
+                          <option value="Engine / Fuel">Engine / Fuel</option>
+                          <option value="Gearbox">Gearbox</option>
+                          <option value="Suspension">Suspension</option>
+                          <option value="Electrical">Electrical</option>
+                          <option value="Body">Body</option>
+                          <option value="Accessories">Accessories</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Performed By <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={workItem.performed_by_type === 'other' ? 'other' : workItem.performed_by_user_id}
+                          onChange={e => {
+                            const value = e.target.value;
+                            const newWorkItems = [...workItems];
+                            if (value === 'other') {
+                              newWorkItems[index].performed_by_type = 'other';
+                              newWorkItems[index].performed_by_user_id = '';
+                              newWorkItems[index].performed_by_other = '';
+                            } else {
+                              newWorkItems[index].performed_by_type = 'registered';
+                              newWorkItems[index].performed_by_user_id = value;
+                              newWorkItems[index].performed_by_other = '';
+                            }
+                            setWorkItems(newWorkItems);
+                          }}
+                          required
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        >
+                          <option value="">Select performer...</option>
+                          <optgroup label="Registered Mechanics">
+                            {mechanics.map(m => (
+                              <option key={m.id} value={m.id}>
+                                {m.full_name}
+                              </option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="External">
+                            <option value="other">Other (External)</option>
+                          </optgroup>
+                        </select>
+
+                        {workItem.performed_by_type === 'other' && (
+                          <input
+                            type="text"
+                            placeholder="Enter name or service center"
+                            value={workItem.performed_by_other}
+                            onChange={e => {
+                              const newWorkItems = [...workItems];
+                              newWorkItems[index].performed_by_other = e.target.value;
+                              setWorkItems(newWorkItems);
+                            }}
+                            required
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none mt-2"
+                          />
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Work Checked By <span className="text-gray-400">(Optional)</span>
+                        </label>
+                        <select
+                          value={workItem.checked_by_user_id}
+                          onChange={e => {
+                            const newWorkItems = [...workItems];
+                            newWorkItems[index].checked_by_user_id = e.target.value;
+                            setWorkItems(newWorkItems);
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        >
+                          <option value="">No quality check</option>
+                          {mechanics.length > 0 && (
+                            <optgroup label="Select Checker">
+                              {mechanics.map(m => (
+                                <option key={m.id} value={m.id}>
+                                  {m.full_name}
+                                </option>
+                              ))}
+                            </optgroup>
+                          )}
+                        </select>
+                      </div>
                     </div>
 
                     <div>
@@ -464,17 +539,23 @@ export function MaintenancePage() {
                 type="button"
                 onClick={() => {
                   setShowForm(false);
-                  setWorkItems([{ work_description: '', work_category: '', photos: [] }]);
+                  setWorkItems([
+                    {
+                      work_description: '',
+                      work_category: '',
+                      photos: [],
+                      performed_by: '',
+                      performed_by_user_id: '',
+                      performed_by_type: 'registered' as const,
+                      performed_by_other: '',
+                      checked_by_user_id: '',
+                    },
+                  ]);
                   setFormData({
                     service_date: '',
                     mileage: '',
-                    performed_by: '',
-                    performed_by_user_id: '',
-                    performed_by_other: '',
-                    checked_by_user_id: '',
                     notes: '',
                   });
-                  setPerformedByType('registered');
                 }}
                 className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
               >
