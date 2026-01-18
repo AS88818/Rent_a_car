@@ -62,11 +62,11 @@ export function BookingListPage() {
 
         const bookingsWithDetails = bookingsData.map(booking => {
           const vehicle = vehiclesData.find(v => v.id === booking.vehicle_id);
-          const branch = branchesData.find(b => b.id === vehicle?.branch_id);
+          const vehicleBranch = branchesData.find(b => b.id === vehicle?.branch_id);
           return {
             ...booking,
             vehicle,
-            branch_name: branch?.branch_name,
+            branch_name: booking.branch_name || vehicleBranch?.branch_name,
             category_id: vehicle?.category_id,
           };
         });

@@ -93,6 +93,7 @@ export interface Booking {
   health_at_booking?: string;
   status: 'Draft' | 'Advance Payment Not Paid' | 'Active' | 'Completed' | 'Cancelled';
   branch_id: string;
+  branch_name?: string;
   booking_type?: 'self_drive' | 'chauffeur' | 'transfer';
   chauffeur_id?: string;
   chauffeur_name?: string;
