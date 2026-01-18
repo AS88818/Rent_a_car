@@ -22,6 +22,7 @@ export function QuickActionsPage() {
   const [selectedVehicleForSnag, setSelectedVehicleForSnag] = useState<Vehicle | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [submittingSnag, setSubmittingSnag] = useState(false);
+  const [editingMileage, setEditingMileage] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     fetchData();
@@ -419,20 +420,24 @@ export function QuickActionsPage() {
                         <div className="flex items-center gap-2">
                           <input
                             type="number"
-                            value={vehicle.current_mileage || ''}
+                            value={editingMileage.get(vehicle.id) ?? vehicle.current_mileage ?? ''}
+                            onFocus={(e) => {
+                              const currentValue = vehicle.current_mileage?.toString() || '';
+                              setEditingMileage(prev => new Map(prev).set(vehicle.id, currentValue));
+                            }}
                             onBlur={(e) => {
                               const newValue = e.target.value;
-                              if (newValue !== String(vehicle.current_mileage)) {
+                              setEditingMileage(prev => {
+                                const newMap = new Map(prev);
+                                newMap.delete(vehicle.id);
+                                return newMap;
+                              });
+                              if (newValue && newValue !== String(vehicle.current_mileage)) {
                                 handleMileageChange(vehicle.id, newValue);
                               }
                             }}
                             onChange={(e) => {
-                              const newVehicles = vehicles.map(v =>
-                                v.id === vehicle.id
-                                  ? { ...v, current_mileage: parseInt(e.target.value, 10) || 0 }
-                                  : v
-                              );
-                              setVehicles(newVehicles);
+                              setEditingMileage(prev => new Map(prev).set(vehicle.id, e.target.value));
                             }}
                             placeholder="Enter mileage"
                             className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
