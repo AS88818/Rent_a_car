@@ -235,7 +235,10 @@ export const bookingService = {
   async getBookings(branchId?: string) {
     let query = supabase
       .from('bookings')
-      .select('*')
+      .select(`
+        *,
+        branch_name:branches(branch_name)
+      `)
       .order('start_datetime', { ascending: false });
 
     if (branchId) {
@@ -244,26 +247,55 @@ export const bookingService = {
 
     const { data, error } = await query;
     if (error) throw error;
-    return data as Booking[];
+
+    // Flatten the branch_name from nested object
+    const bookings = data?.map((booking: any) => ({
+      ...booking,
+      branch_name: booking.branch_name?.branch_name || null
+    })) || [];
+
+    return bookings as Booking[];
   },
 
   async getBookingsByVehicle(vehicleId: string) {
     const { data, error } = await supabase
       .from('bookings')
-      .select('*')
+      .select(`
+        *,
+        branch_name:branches(branch_name)
+      `)
       .eq('vehicle_id', vehicleId)
       .order('start_datetime', { ascending: false });
     if (error) throw error;
-    return data as Booking[];
+
+    // Flatten the branch_name from nested object
+    const bookings = data?.map((booking: any) => ({
+      ...booking,
+      branch_name: booking.branch_name?.branch_name || null
+    })) || [];
+
+    return bookings as Booking[];
   },
 
   async getBookingById(id: string) {
     const { data, error } = await supabase
       .from('bookings')
-      .select('*')
+      .select(`
+        *,
+        branch_name:branches(branch_name)
+      `)
       .eq('id', id)
       .single();
     if (error) throw error;
+
+    // Flatten the branch_name from nested object
+    if (data) {
+      return {
+        ...data,
+        branch_name: (data as any).branch_name?.branch_name || null
+      } as Booking;
+    }
+
     return data as Booking;
   },
 
@@ -277,9 +309,21 @@ export const bookingService = {
     const { data, error } = await supabase
       .from('bookings')
       .insert([booking])
-      .select()
+      .select(`
+        *,
+        branch_name:branches(branch_name)
+      `)
       .single();
     if (error) throw error;
+
+    // Flatten the branch_name from nested object
+    if (data) {
+      return {
+        ...data,
+        branch_name: (data as any).branch_name?.branch_name || null
+      } as Booking;
+    }
+
     return data as Booking;
   },
 
@@ -301,9 +345,21 @@ export const bookingService = {
       .from('bookings')
       .update(updates)
       .eq('id', id)
-      .select()
+      .select(`
+        *,
+        branch_name:branches(branch_name)
+      `)
       .single();
     if (error) throw error;
+
+    // Flatten the branch_name from nested object
+    if (data) {
+      return {
+        ...data,
+        branch_name: (data as any).branch_name?.branch_name || null
+      } as Booking;
+    }
+
     return data as Booking;
   },
 
@@ -800,10 +856,19 @@ export const quotationService = {
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
       .insert([bookingData])
-      .select()
+      .select(`
+        *,
+        branch_name:branches(branch_name)
+      `)
       .single();
 
     if (bookingError) throw bookingError;
+
+    // Flatten the branch_name from nested object
+    const bookingWithBranchName = booking ? {
+      ...booking,
+      branch_name: (booking as any).branch_name?.branch_name || null
+    } : booking;
 
     await this.updateQuote(quoteId, {
       status: 'Converted',
@@ -811,7 +876,7 @@ export const quotationService = {
       converted_at: new Date().toISOString(),
     });
 
-    return booking as Booking;
+    return bookingWithBranchName as Booking;
   },
 };
 
