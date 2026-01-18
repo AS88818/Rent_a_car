@@ -348,7 +348,6 @@ export function VehicleDetailsPage() {
                 <h3 className="text-white font-bold text-lg">Personal Vehicle</h3>
                 <p className="text-amber-50 text-sm">
                   This vehicle is marked as personal and is not available for hire
-                  {vehicle.owner_name && ` • Owner: ${vehicle.owner_name}`}
                 </p>
               </div>
             </div>
