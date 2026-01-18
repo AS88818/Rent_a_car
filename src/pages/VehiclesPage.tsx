@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { vehicleService, categoryService, branchService, imageService } from '../services/api';
 import { Vehicle, VehicleCategory, Branch, VehicleImage } from '../types/database';
-import { Search, Car, Gauge, Plus, X } from 'lucide-react';
+import { Search, Car, Gauge, Plus, X, ArrowUpDown } from 'lucide-react';
 import { showToast } from '../lib/toast';
 import { VehicleTypeBadge } from '../components/VehicleTypeBadge';
 
@@ -27,6 +27,9 @@ export function VehiclesPage() {
   const [filterStatus, setFilterStatus] = useState('');
   const [filterHealth, setFilterHealth] = useState('');
   const [filterType, setFilterType] = useState('');
+
+  const [sortField, setSortField] = useState<'reg_number' | 'branch_id' | 'current_mileage' | 'updated_at'>('reg_number');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -191,18 +194,58 @@ export function VehiclesPage() {
     }
   };
 
-  const filteredVehicles = vehicles.filter(v => {
-    const matchesSearch =
-      v.reg_number.toLowerCase().includes(search.toLowerCase()) ||
-      v.category_name?.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = !filterCategory || v.category_id === filterCategory;
-    const matchesBranch = !filterBranch || v.branch_id === filterBranch;
-    const matchesStatus = !filterStatus || v.status === filterStatus;
-    const matchesHealth = !filterHealth || v.health_flag === filterHealth;
-    const matchesType = !filterType || (filterType === 'personal' ? v.is_personal : !v.is_personal);
+  const handleSort = (field: typeof sortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
 
-    return matchesSearch && matchesCategory && matchesBranch && matchesStatus && matchesHealth && matchesType;
-  });
+  const filteredVehicles = vehicles
+    .filter(v => {
+      const matchesSearch =
+        v.reg_number.toLowerCase().includes(search.toLowerCase()) ||
+        v.category_name?.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory = !filterCategory || v.category_id === filterCategory;
+      const matchesBranch = !filterBranch || v.branch_id === filterBranch;
+      const matchesStatus = !filterStatus || v.status === filterStatus;
+      const matchesHealth = !filterHealth || v.health_flag === filterHealth;
+      const matchesType = !filterType || (filterType === 'personal' ? v.is_personal : !v.is_personal);
+
+      return matchesSearch && matchesCategory && matchesBranch && matchesStatus && matchesHealth && matchesType;
+    })
+    .sort((a, b) => {
+      let aVal: any;
+      let bVal: any;
+
+      switch (sortField) {
+        case 'reg_number':
+          aVal = a.reg_number.toLowerCase();
+          bVal = b.reg_number.toLowerCase();
+          break;
+        case 'branch_id':
+          aVal = a.branch_name?.toLowerCase() || '';
+          bVal = b.branch_name?.toLowerCase() || '';
+          break;
+        case 'current_mileage':
+          aVal = a.current_mileage || 0;
+          bVal = b.current_mileage || 0;
+          break;
+        case 'updated_at':
+          aVal = new Date(a.updated_at || 0).getTime();
+          bVal = new Date(b.updated_at || 0).getTime();
+          break;
+        default:
+          aVal = a.reg_number;
+          bVal = b.reg_number;
+      }
+
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
 
   if (loading) {
     return (
@@ -308,6 +351,67 @@ export function VehiclesPage() {
               <option value="business">Business</option>
               <option value="personal">Personal</option>
             </select>
+          </div>
+
+          <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
+            <span className="text-sm font-medium text-gray-700">Sort by:</span>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => handleSort('reg_number')}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  sortField === 'reg_number'
+                    ? 'bg-blue-100 text-blue-800 border-2 border-blue-300'
+                    : 'bg-gray-100 text-gray-700 border-2 border-gray-200 hover:bg-gray-200'
+                }`}
+              >
+                <span>Registration</span>
+                {sortField === 'reg_number' && (
+                  <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                )}
+              </button>
+
+              <button
+                onClick={() => handleSort('branch_id')}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  sortField === 'branch_id'
+                    ? 'bg-blue-100 text-blue-800 border-2 border-blue-300'
+                    : 'bg-gray-100 text-gray-700 border-2 border-gray-200 hover:bg-gray-200'
+                }`}
+              >
+                <span>Location</span>
+                {sortField === 'branch_id' && (
+                  <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                )}
+              </button>
+
+              <button
+                onClick={() => handleSort('current_mileage')}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  sortField === 'current_mileage'
+                    ? 'bg-blue-100 text-blue-800 border-2 border-blue-300'
+                    : 'bg-gray-100 text-gray-700 border-2 border-gray-200 hover:bg-gray-200'
+                }`}
+              >
+                <span>Mileage</span>
+                {sortField === 'current_mileage' && (
+                  <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                )}
+              </button>
+
+              <button
+                onClick={() => handleSort('updated_at')}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  sortField === 'updated_at'
+                    ? 'bg-blue-100 text-blue-800 border-2 border-blue-300'
+                    : 'bg-gray-100 text-gray-700 border-2 border-gray-200 hover:bg-gray-200'
+                }`}
+              >
+                <span>Last Updated</span>
+                {sortField === 'updated_at' && (
+                  <span className="text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                )}
+              </button>
+            </div>
           </div>
 
           {(search || filterCategory || filterBranch || filterStatus || filterHealth || filterType) && (
