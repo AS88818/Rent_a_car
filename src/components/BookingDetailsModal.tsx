@@ -1,7 +1,9 @@
-import { X, Calendar, MapPin, User, Phone, Mail, Car, AlertTriangle, FileText, Edit } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Calendar, MapPin, User, Phone, Mail, Car, AlertTriangle, FileText, Edit, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Booking, Vehicle, Branch } from '../types/database';
+import { Booking, Vehicle, Branch, BookingDocument } from '../types/database';
 import { formatDate, checkInsuranceExpiryDuringBooking } from '../lib/utils';
+import { bookingDocumentService } from '../services/api';
 
 interface BookingDetailsModalProps {
   isOpen: boolean;
@@ -21,6 +23,44 @@ export function BookingDetailsModal({
   onEdit,
 }: BookingDetailsModalProps) {
   const navigate = useNavigate();
+  const [documents, setDocuments] = useState<BookingDocument[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && booking) {
+      loadDocuments();
+    }
+  }, [isOpen, booking?.id]);
+
+  const loadDocuments = async () => {
+    if (!booking) return;
+    try {
+      setLoadingDocs(true);
+      const data = await bookingDocumentService.getDocuments(booking.id);
+      setDocuments(data || []);
+    } catch (error) {
+      console.error('Failed to load documents:', error);
+    } finally {
+      setLoadingDocs(false);
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  const getDocumentTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      license: "Driver's License",
+      contract: 'Signed Contract',
+      id_document: 'ID Document',
+      insurance: 'Insurance Document',
+      other: 'Other Document',
+    };
+    return labels[type] || type;
+  };
 
   if (!isOpen || !booking) return null;
 
@@ -321,6 +361,56 @@ export function BookingDetailsModal({
                   </div>
                 </div>
               )}
+
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Documents</h3>
+                {loadingDocs ? (
+                  <p className="text-sm text-gray-500">Loading documents...</p>
+                ) : documents.length === 0 ? (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                    <FileText className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">No documents uploaded</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {documents.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 truncate text-sm">
+                              {doc.document_name}
+                            </p>
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <span>{getDocumentTypeLabel(doc.document_type)}</span>
+                              <span>•</span>
+                              <span>{formatFileSize(doc.file_size)}</span>
+                              {doc.notes && (
+                                <>
+                                  <span>•</span>
+                                  <span className="truncate">{doc.notes}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <a
+                          href={doc.document_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex-shrink-0"
+                          title="Download"
+                        >
+                          <Download className="w-4 h-4" />
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
