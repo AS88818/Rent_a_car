@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
-import { vehicleService, bookingService, snagService, branchService, categoryService, imageService } from '../services/api';
+import { vehicleService, bookingService, snagService, branchService, categoryService, imageService, alertSnoozeService } from '../services/api';
 import { Vehicle, Booking, Snag, Branch, VehicleCategory, VehicleImage } from '../types/database';
 import { daysUntilExpiry, formatDate, checkInsuranceExpiryDuringBooking } from '../lib/utils';
 import {
@@ -21,7 +21,8 @@ import {
   MapPin,
   User,
   Users,
-  ArrowRightLeft
+  ArrowRightLeft,
+  BellOff
 } from 'lucide-react';
 import { showToast } from '../lib/toast';
 import { BookingDetailsModal } from '../components/BookingDetailsModal';
@@ -68,6 +69,7 @@ export function DashboardPage() {
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [snoozedAlerts, setSnoozedAlerts] = useState<any[]>([]);
 
   const [alertsExpanded, setAlertsExpanded] = useState(() => {
     const saved = localStorage.getItem('dashboard_alerts_expanded');
@@ -142,6 +144,19 @@ export function DashboardPage() {
   useEffect(() => {
     localStorage.setItem('dashboard_category_view', categoryView);
   }, [categoryView]);
+
+  useEffect(() => {
+    const fetchSnoozedAlerts = async () => {
+      try {
+        await alertSnoozeService.cleanupExpiredSnoozed();
+        const snoozes = await alertSnoozeService.getActiveSnoozedAlerts();
+        setSnoozedAlerts(snoozes);
+      } catch (error) {
+        console.error('Failed to fetch snoozed alerts:', error);
+      }
+    };
+    fetchSnoozedAlerts();
+  }, []);
 
   const handleEditBooking = () => {
     if (selectedBooking) {
@@ -243,6 +258,7 @@ export function DashboardPage() {
     if (b.status === 'Completed' || b.status === 'Cancelled') return false;
     if (b.booking_type !== 'chauffeur' && b.booking_type !== 'transfer') return false;
     if (b.chauffeur_name) return false;
+    if (isAlertSnoozed('driver_allocation', undefined, b.id)) return false;
 
     const startDate = new Date(b.start_datetime);
     return startDate >= threeDaysFromNow && startDate <= fiveDaysFromNow;
@@ -271,8 +287,35 @@ export function DashboardPage() {
     })
     .slice(0, 10);
 
+  // Helper function to check if an alert is snoozed
+  const isAlertSnoozed = (alertType: string, vehicleId?: string, bookingId?: string) => {
+    return snoozedAlerts.some(snooze =>
+      snooze.alert_type === alertType &&
+      (vehicleId ? snooze.vehicle_id === vehicleId : snooze.booking_id === bookingId)
+    );
+  };
 
-  const vehiclesWithHealthFlag = vehicles.filter(v => v.health_flag === 'Grounded');
+  // Handler for snoozing an alert
+  const handleSnoozeAlert = async (
+    alertType: 'health_flag' | 'snag' | 'spare_key' | 'driver_allocation',
+    vehicleId?: string,
+    bookingId?: string
+  ) => {
+    try {
+      await alertSnoozeService.snoozeAlert(alertType, vehicleId, bookingId);
+
+      // Refresh snoozed alerts list
+      const snoozes = await alertSnoozeService.getActiveSnoozedAlerts();
+      setSnoozedAlerts(snoozes);
+
+      showToast('Alert snoozed for 7 days', 'success');
+    } catch (error) {
+      console.error('Failed to snooze alert:', error);
+      showToast('Failed to snooze alert', 'error');
+    }
+  };
+
+  const vehiclesWithHealthFlag = vehicles.filter(v => v.health_flag === 'Grounded' && !isAlertSnoozed('health_flag', v.id));
 
   const snagCounts: Map<string, SnagCount> = new Map();
   snags.filter(s => s.status === 'Open').forEach(snag => {
@@ -293,13 +336,14 @@ export function DashboardPage() {
 
   const vehiclesWithSevereSnags = Array.from(snagCounts.values())
     .filter(sc => sc.dangerous_count > 0 || sc.important_count >= 3)
+    .filter(sc => !isAlertSnoozed('snag', sc.vehicle_id))
     .map(sc => {
       const vehicle = vehicles.find(v => v.id === sc.vehicle_id);
       return { ...sc, vehicle };
     })
     .filter(item => item.vehicle);
 
-  const vehiclesWithoutSpareKey = vehicles.filter(v => !v.spare_key && !v.is_personal);
+  const vehiclesWithoutSpareKey = vehicles.filter(v => !v.spare_key && !v.is_personal && !isAlertSnoozed('spare_key', v.id));
 
   const getHealthBadgeColor = (health?: string) => {
     if (!health) return 'bg-gray-100 text-gray-600';
@@ -762,7 +806,7 @@ export function DashboardPage() {
                     return (
                       <div
                         key={vehicle.id}
-                        className="bg-white rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow flex items-center gap-3"
+                        className="group relative bg-white rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow flex items-center gap-3"
                         onClick={() => navigate(`/vehicles/${vehicle.id}`)}
                       >
                         {primaryImage ? (
@@ -790,6 +834,16 @@ export function DashboardPage() {
                             <VehicleTypeBadge isPersonal={vehicle.is_personal} size="sm" showIcon={false} />
                           </div>
                         </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSnoozeAlert('health_flag', vehicle.id);
+                          }}
+                          className="absolute top-2 right-2 p-1.5 bg-white/90 hover:bg-gray-100 rounded-md shadow-sm border border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Snooze for 7 days"
+                        >
+                          <BellOff className="h-4 w-4 text-gray-600" />
+                        </button>
                       </div>
                     );
                   })}
@@ -811,7 +865,7 @@ export function DashboardPage() {
                     return (
                       <div
                         key={item.vehicle_id}
-                        className="bg-white rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow flex items-center gap-3"
+                        className="group relative bg-white rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow flex items-center gap-3"
                         onClick={() => navigate(`/vehicles/${item.vehicle_id}`)}
                       >
                         {primaryImage ? (
@@ -848,6 +902,16 @@ export function DashboardPage() {
                             {item.vehicle && <VehicleTypeBadge isPersonal={item.vehicle.is_personal} size="sm" showIcon={false} />}
                           </div>
                         </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSnoozeAlert('snag', item.vehicle_id);
+                          }}
+                          className="absolute top-2 right-2 p-1.5 bg-white/90 hover:bg-gray-100 rounded-md shadow-sm border border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Snooze for 7 days"
+                        >
+                          <BellOff className="h-4 w-4 text-gray-600" />
+                        </button>
                       </div>
                     );
                   })}
@@ -870,7 +934,7 @@ export function DashboardPage() {
                       <div
                         key={vehicle.id}
                         onClick={() => navigate(`/vehicles/${vehicle.id}`)}
-                        className="flex items-center gap-3 bg-white p-3 rounded border border-yellow-200 hover:shadow-md transition-shadow cursor-pointer"
+                        className="group relative flex items-center gap-3 bg-white p-3 rounded border border-yellow-200 hover:shadow-md transition-shadow cursor-pointer"
                       >
                         {primaryImage ? (
                           <div className="w-12 h-12 rounded overflow-hidden border border-gray-200 flex-shrink-0">
@@ -895,6 +959,16 @@ export function DashboardPage() {
                         <span className={`text-xs font-semibold px-2.5 py-1 rounded ${getHealthBadgeColor(vehicle.health_flag)}`}>
                           {vehicle.health_flag}
                         </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSnoozeAlert('spare_key', vehicle.id);
+                          }}
+                          className="absolute top-2 right-2 p-1.5 bg-white/90 hover:bg-gray-100 rounded-md shadow-sm border border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Snooze for 7 days"
+                        >
+                          <BellOff className="h-4 w-4 text-gray-600" />
+                        </button>
                       </div>
                     );
                   })}
@@ -920,7 +994,7 @@ export function DashboardPage() {
                     return (
                       <div
                         key={booking.id}
-                        className="bg-white rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow"
+                        className="group relative bg-white rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow"
                         onClick={() => {
                           setSelectedBooking(booking);
                           setIsDetailsModalOpen(true);
@@ -943,6 +1017,16 @@ export function DashboardPage() {
                             <span>{startDate.toLocaleDateString()}</span>
                           </div>
                         </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSnoozeAlert('driver_allocation', undefined, booking.id);
+                          }}
+                          className="absolute top-2 right-2 p-1.5 bg-white/90 hover:bg-gray-100 rounded-md shadow-sm border border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Snooze for 7 days"
+                        >
+                          <BellOff className="h-4 w-4 text-gray-600" />
+                        </button>
                       </div>
                     );
                   })}

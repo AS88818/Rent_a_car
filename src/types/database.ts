@@ -521,3 +521,13 @@ export interface UserCalendarSettings {
   created_at: string;
   updated_at: string;
 }
+
+export interface AlertSnooze {
+  id: string;
+  user_id: string;
+  alert_type: 'health_flag' | 'snag' | 'spare_key' | 'driver_allocation';
+  vehicle_id?: string | null;
+  booking_id?: string | null;
+  snoozed_until: string;
+  created_at: string;
+}

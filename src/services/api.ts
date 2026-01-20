@@ -1897,3 +1897,64 @@ export const bookingDocumentService = {
     if (error) throw error;
   },
 };
+
+export const alertSnoozeService = {
+  // Snooze an alert for 7 days
+  async snoozeAlert(
+    alertType: 'health_flag' | 'snag' | 'spare_key' | 'driver_allocation',
+    vehicleId?: string,
+    bookingId?: string
+  ) {
+    const snoozedUntil = new Date();
+    snoozedUntil.setDate(snoozedUntil.getDate() + 7); // 7 days from now
+
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('alert_snoozes')
+      .upsert({
+        user_id: userData.user.id,
+        alert_type: alertType,
+        vehicle_id: vehicleId || null,
+        booking_id: bookingId || null,
+        snoozed_until: snoozedUntil.toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Get all active snoozed alerts for current user
+  async getActiveSnoozedAlerts() {
+    const { data, error } = await supabase
+      .from('alert_snoozes')
+      .select('*')
+      .gt('snoozed_until', new Date().toISOString());
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Un-snooze an alert (manual restore)
+  async unsnoozeAlert(id: string) {
+    const { error } = await supabase
+      .from('alert_snoozes')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  // Cleanup expired snoozes (call on dashboard load)
+  async cleanupExpiredSnoozed() {
+    const { error } = await supabase
+      .from('alert_snoozes')
+      .delete()
+      .lt('snoozed_until', new Date().toISOString());
+
+    if (error) throw error;
+  }
+};
