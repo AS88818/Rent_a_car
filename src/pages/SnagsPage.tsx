@@ -20,7 +20,7 @@ type SortOption =
   | 'health_grounded';
 
 export function SnagsPage() {
-  const { user, branchId } = useAuth();
+  const { user, branchId, userRole } = useAuth();
   const [vehicles, setVehicles] = useState<VehicleWithSnagCount[]>([]);
   const [snags, setSnags] = useState<Snag[]>([]);
   const [users, setUsers] = useState<AuthUser[]>([]);
@@ -42,15 +42,15 @@ export function SnagsPage() {
 
   useEffect(() => {
     fetchData();
-  }, [branchId, showDeletedSnags]);
+  }, [branchId, userRole, showDeletedSnags]);
 
   const fetchData = async () => {
     try {
       // Mechanics should see ALL snags across all branches (cross-branch access)
       // Other roles see only their branch
-      const snagBranchFilter = user?.role === 'mechanic' ? undefined : (branchId || undefined);
+      const snagBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
       // Mechanics should also see ALL vehicles across all branches
-      const vehicleBranchFilter = user?.role === 'mechanic' ? undefined : (branchId || undefined);
+      const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
 
       const [vehiclesData, snagsData, usersData] = await Promise.all([
         snagService.getVehiclesWithSnagCounts(vehicleBranchFilter),
