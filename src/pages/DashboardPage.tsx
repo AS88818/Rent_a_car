@@ -93,8 +93,11 @@ export function DashboardPage() {
         // Other roles see only their branch
         const snagBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
 
+        // Mechanics should see ALL vehicles across all branches
+        const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+
         const [vehiclesData, bookingsData, snagsData, branchesData, categoriesData] = await Promise.all([
-          vehicleService.getVehicles(branchId || undefined),
+          vehicleService.getVehicles(vehicleBranchFilter),
           bookingService.getBookings(branchId || undefined),
           snagService.getSnags(undefined, snagBranchFilter),
           branchService.getBranches(),
@@ -397,14 +400,16 @@ export function DashboardPage() {
     <div className="p-4 md:p-8 space-y-8">
       <h1 className="text-2xl md:text-3xl font-bold text-neutral-900">Dashboard</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <button
-          onClick={() => navigate('/bookings/create')}
-          className="flex items-center justify-center gap-3 bg-lime-500 hover:bg-lime-600 text-neutral-900 rounded-xl p-6 transition-all duration-200 min-h-[100px] shadow-card hover:shadow-hover active:scale-95 transform"
-        >
-          <Plus className="w-8 h-8" />
-          <span className="text-lg font-semibold">New Booking</span>
-        </button>
+      <div className={`grid grid-cols-1 md:grid-cols-2 ${userRole !== 'mechanic' ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4`}>
+        {userRole !== 'mechanic' && (
+          <button
+            onClick={() => navigate('/bookings/create')}
+            className="flex items-center justify-center gap-3 bg-lime-500 hover:bg-lime-600 text-neutral-900 rounded-xl p-6 transition-all duration-200 min-h-[100px] shadow-card hover:shadow-hover active:scale-95 transform"
+          >
+            <Plus className="w-8 h-8" />
+            <span className="text-lg font-semibold">New Booking</span>
+          </button>
+        )}
 
         <button
           onClick={() => navigate('/vehicles/update-mileage')}
@@ -422,13 +427,15 @@ export function DashboardPage() {
           <span className="text-lg font-semibold">Vehicle List</span>
         </button>
 
-        <button
-          onClick={() => navigate('/quotation')}
-          className="flex items-center justify-center gap-3 bg-white hover:bg-cream-100 text-neutral-900 rounded-xl p-6 transition-all duration-200 min-h-[100px] shadow-card hover:shadow-hover active:scale-95 transform border border-gray-200"
-        >
-          <Calculator className="w-8 h-8" />
-          <span className="text-lg font-semibold">Quotation Calculator</span>
-        </button>
+        {userRole !== 'mechanic' && (
+          <button
+            onClick={() => navigate('/quotation')}
+            className="flex items-center justify-center gap-3 bg-white hover:bg-cream-100 text-neutral-900 rounded-xl p-6 transition-all duration-200 min-h-[100px] shadow-card hover:shadow-hover active:scale-95 transform border border-gray-200"
+          >
+            <Calculator className="w-8 h-8" />
+            <span className="text-lg font-semibold">Quotation Calculator</span>
+          </button>
+        )}
       </div>
 
       <div className="card">
@@ -1202,23 +1209,27 @@ export function DashboardPage() {
                     </div>
                   );
                 })}
-                <button
-                  onClick={() => navigate('/bookings')}
-                  className="w-full mt-4 py-3 text-lime-600 hover:text-lime-700 font-semibold text-sm hover:bg-lime-50 rounded-lg transition-all duration-200"
-                >
-                  View All Bookings →
-                </button>
+                {userRole !== 'mechanic' && (
+                  <button
+                    onClick={() => navigate('/bookings')}
+                    className="w-full mt-4 py-3 text-lime-600 hover:text-lime-700 font-semibold text-sm hover:bg-lime-50 rounded-lg transition-all duration-200"
+                  >
+                    View All Bookings →
+                  </button>
+                )}
               </div>
             ) : (
               <div className="text-center py-8">
                 <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-600">No current or upcoming bookings</p>
-                <button
-                  onClick={() => navigate('/bookings/create')}
-                  className="btn-primary mt-4 px-6 py-3"
-                >
-                  Create New Booking
-                </button>
+                {userRole !== 'mechanic' && (
+                  <button
+                    onClick={() => navigate('/bookings/create')}
+                    className="btn-primary mt-4 px-6 py-3"
+                  >
+                    Create New Booking
+                  </button>
+                )}
               </div>
             )}
           </div>
