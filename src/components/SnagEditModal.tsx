@@ -1,6 +1,7 @@
-import { X } from 'lucide-react';
+import { X, AlertTriangle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Snag } from '../types/database';
+import { showToast } from '../lib/toast';
 
 interface SnagEditModalProps {
   isOpen: boolean;
@@ -61,6 +62,12 @@ export function SnagEditModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Check if trying to save a closed snag without an assignee
+    if (status === 'Closed' && !snag?.assigned_to) {
+      showToast('Cannot edit: closed snags must have an assignee. Please assign someone first.', 'error');
+      return;
+    }
+
     const updates: Partial<Snag> = {
       description,
       priority: priority || null,
@@ -95,6 +102,15 @@ export function SnagEditModal({
 
         <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-4">
+            {snag?.status === 'Closed' && !snag?.assigned_to && (
+              <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-amber-800">Cannot save changes</p>
+                  <p className="text-amber-700">This closed snag has no assignee. Please use the "Assign" button first.</p>
+                </div>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Description <span className="text-red-500">*</span>
