@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { UserRole } from '../types/database';
 
@@ -22,13 +23,7 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
   }
 
   if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center">
-          <p className="text-gray-600 mb-4">Please log in to continue</p>
-        </div>
-      </div>
-    );
+    return <Navigate to="/login" replace />;
   }
 
   if (requiredRoles && !requiredRoles.includes(userRole!)) {
