@@ -48,8 +48,7 @@ CREATE TABLE IF NOT EXISTS alert_snoozes (
 
 -- Index for fetching active snoozes for a user
 CREATE INDEX idx_alert_snoozes_user_active
-  ON alert_snoozes(user_id, snoozed_until)
-  WHERE snoozed_until > now();
+  ON alert_snoozes(user_id, snoozed_until);
 
 -- Index for vehicle-based lookups
 CREATE INDEX idx_alert_snoozes_vehicle
