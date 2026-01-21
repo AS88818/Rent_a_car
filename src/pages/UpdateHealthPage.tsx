@@ -11,7 +11,7 @@ type HealthStatus = 'Excellent' | 'OK' | 'Grounded';
 
 export function UpdateHealthPage() {
   const navigate = useNavigate();
-  const { branchId } = useAuth();
+  const { branchId, userRole } = useAuth();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -22,7 +22,9 @@ export function UpdateHealthPage() {
   useEffect(() => {
     const fetchVehicles = async () => {
       try {
-        const vehiclesData = await vehicleService.getVehicles(branchId || undefined);
+        // Mechanics should see ALL vehicles across all branches
+        const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+        const vehiclesData = await vehicleService.getVehicles(vehicleBranchFilter);
         setVehicles(vehiclesData);
       } catch (error) {
         showToast('Failed to fetch vehicles', 'error');
@@ -32,7 +34,7 @@ export function UpdateHealthPage() {
     };
 
     fetchVehicles();
-  }, [branchId]);
+  }, [branchId, userRole]);
 
   const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
 

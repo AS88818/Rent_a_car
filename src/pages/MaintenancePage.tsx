@@ -20,7 +20,7 @@ interface WorkItem {
 }
 
 export function MaintenancePage() {
-  const { branchId } = useAuth();
+  const { branchId, userRole } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const vehicleIdFromUrl = searchParams.get('vehicleId');
@@ -53,11 +53,16 @@ export function MaintenancePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const vehiclesData = await vehicleService.getVehicles(branchId || undefined);
+        // Mechanics should see ALL vehicles across all branches
+        const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+
+        const vehiclesData = await vehicleService.getVehicles(vehicleBranchFilter);
         setVehicles(vehiclesData);
 
         try {
-          const usersData = await userService.getUsers(branchId || undefined);
+          // Also show all mechanics for mechanics role
+          const userBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+          const usersData = await userService.getUsers(userBranchFilter);
           const mechanicsOnly = usersData.filter(u => {
             const isActive = u.status === 'active' || !u.status;
             const isMechanic = u.role === 'mechanic';
@@ -86,7 +91,7 @@ export function MaintenancePage() {
     };
 
     fetchData();
-  }, [branchId, vehicleIdFromUrl]);
+  }, [branchId, userRole, vehicleIdFromUrl]);
 
   const handleVehicleChange = async (vehicleId: string) => {
     setSelectedVehicle(vehicleId);

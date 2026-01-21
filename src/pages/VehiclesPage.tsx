@@ -58,8 +58,11 @@ export function VehiclesPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Mechanics should see ALL vehicles across all branches
+        const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+
         const [vehiclesData, categoriesData, branchesData] = await Promise.all([
-          vehicleService.getVehicles(branchId || undefined),
+          vehicleService.getVehicles(vehicleBranchFilter),
           categoryService.getCategories(),
           branchService.getBranches(),
         ]);
@@ -96,7 +99,7 @@ export function VehiclesPage() {
     };
 
     fetchData();
-  }, [branchId]);
+  }, [branchId, userRole]);
 
   const getHealthBadgeColor = (health: string) => {
     switch (health) {

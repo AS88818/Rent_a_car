@@ -28,7 +28,7 @@ type SortDirection = 'asc' | 'desc';
 
 export function UpdateMileagePage() {
   const navigate = useNavigate();
-  const { branchId, user } = useAuth();
+  const { branchId, user, userRole } = useAuth();
   const [vehicles, setVehicles] = useState<VehicleWithDetails[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [vehicleImages, setVehicleImages] = useState<Map<string, VehicleImage[]>>(new Map());
@@ -49,8 +49,11 @@ export function UpdateMileagePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Mechanics should see ALL vehicles across all branches
+        const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+
         const [vehiclesData, branchesData] = await Promise.all([
-          vehicleService.getVehicles(branchId || undefined),
+          vehicleService.getVehicles(vehicleBranchFilter),
           branchService.getBranches(),
         ]);
 
@@ -84,7 +87,7 @@ export function UpdateMileagePage() {
     };
 
     fetchData();
-  }, [branchId]);
+  }, [branchId, userRole]);
 
   const getDaysSinceUpdate = (lastUpdate?: string) => {
     if (!lastUpdate) return null;

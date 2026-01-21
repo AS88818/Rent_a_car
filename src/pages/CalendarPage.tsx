@@ -29,7 +29,7 @@ interface DayBooking extends Booking {
 }
 
 export function CalendarPage() {
-  const { branchId } = useAuth();
+  const { branchId, userRole } = useAuth();
   const navigate = useNavigate();
   const [categories, setCategories] = useState<VehicleCategory[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -60,9 +60,12 @@ export function CalendarPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Mechanics should see ALL vehicles across all branches
+        const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+
         const [categoriesData, vehiclesData, bookingsData, branchesData] = await Promise.all([
           categoryService.getCategories(),
-          vehicleService.getVehicles(branchId || undefined),
+          vehicleService.getVehicles(vehicleBranchFilter),
           bookingService.getBookings(branchId || undefined),
           branchService.getBranches(),
         ]);
@@ -82,7 +85,7 @@ export function CalendarPage() {
     };
 
     fetchData();
-  }, [branchId]);
+  }, [branchId, userRole]);
 
   useEffect(() => {
     const weeks = getMonthCalendar(currentYear, currentMonth);
