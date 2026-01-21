@@ -89,10 +89,14 @@ export function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Mechanics should see ALL snags across all branches (cross-branch access)
+        // Other roles see only their branch
+        const snagBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+
         const [vehiclesData, bookingsData, snagsData, branchesData, categoriesData] = await Promise.all([
           vehicleService.getVehicles(branchId || undefined),
           bookingService.getBookings(branchId || undefined),
-          snagService.getSnags(undefined, branchId || undefined),
+          snagService.getSnags(undefined, snagBranchFilter),
           branchService.getBranches(),
           categoryService.getCategories(),
         ]);

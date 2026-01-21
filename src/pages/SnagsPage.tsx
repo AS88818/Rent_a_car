@@ -46,9 +46,13 @@ export function SnagsPage() {
 
   const fetchData = async () => {
     try {
+      // Mechanics should see ALL snags across all branches (cross-branch access)
+      // Other roles see only their branch
+      const snagBranchFilter = user?.role === 'mechanic' ? undefined : (branchId || undefined);
+
       const [vehiclesData, snagsData, usersData] = await Promise.all([
         snagService.getVehiclesWithSnagCounts(branchId || undefined),
-        snagService.getSnags(undefined, branchId || undefined, showDeletedSnags),
+        snagService.getSnags(undefined, snagBranchFilter, showDeletedSnags),
         userService.getAllUsers(),
       ]);
 
