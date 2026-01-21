@@ -1,12 +1,18 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Calendar, Car, Menu } from 'lucide-react';
+import { LayoutDashboard, Calendar, Car, Menu, Wrench } from 'lucide-react';
+import { useAuth } from '../lib/auth-context';
 
 export function BottomNav() {
   const location = useLocation();
+  const { userRole } = useAuth();
 
   const navItems = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { label: 'Bookings', href: '/bookings', icon: Calendar },
+    ...(userRole !== 'mechanic' ? [
+      { label: 'Bookings', href: '/bookings', icon: Calendar }
+    ] : [
+      { label: 'Snags', href: '/snags', icon: Wrench }
+    ]),
     { label: 'Vehicles', href: '/vehicles', icon: Car },
     { label: 'More', href: '/profile', icon: Menu },
   ];

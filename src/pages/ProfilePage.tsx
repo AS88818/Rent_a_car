@@ -63,13 +63,15 @@ export function ProfilePage() {
             <p className="text-sm text-gray-600">Overview and quick stats</p>
           </button>
 
-          <button
-            onClick={() => navigate('/bookings')}
-            className="w-full px-4 py-3 text-left border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <p className="font-medium text-gray-900">Bookings</p>
-            <p className="text-sm text-gray-600">View and manage bookings</p>
-          </button>
+          {userRole !== 'mechanic' && (
+            <button
+              onClick={() => navigate('/bookings')}
+              className="w-full px-4 py-3 text-left border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <p className="font-medium text-gray-900">Bookings</p>
+              <p className="text-sm text-gray-600">View and manage bookings</p>
+            </button>
+          )}
 
           <button
             onClick={() => navigate('/vehicles')}

@@ -36,12 +36,16 @@ export function Layout({ children }: LayoutProps) {
     { label: 'Snags', href: '/snags', icon: AlertTriangle },
     { label: 'Maintenance', href: '/maintenance', icon: Wrench },
     { label: 'Calendar', href: '/calendar', icon: CalendarDays },
-    { label: 'Create Quotation', href: '/quotation', icon: FileText },
+    ...(userRole !== 'mechanic' ? [
+      { label: 'Create Quotation', href: '/quotation', icon: FileText }
+    ] : []),
     ...(userRole === 'admin' || userRole === 'manager' ? [
       { label: 'Quotes', href: '/quotes', icon: Receipt }
     ] : []),
-    { label: 'Bookings', href: '/bookings', icon: Calendar },
-    { label: 'Create Booking', href: '/bookings/create', icon: PlusCircle },
+    ...(userRole !== 'mechanic' ? [
+      { label: 'Bookings', href: '/bookings', icon: Calendar },
+      { label: 'Create Booking', href: '/bookings/create', icon: PlusCircle }
+    ] : []),
     ...(userRole === 'admin' || userRole === 'manager' ? [
       { label: 'Create Invoice', href: '/invoices', icon: FileText },
       { label: 'Emails', href: '/emails', icon: Mail }
