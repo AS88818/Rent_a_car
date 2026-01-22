@@ -9,27 +9,62 @@ import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 export function OAuthCallbackPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
+  const { user, loading: authLoading } = useAuth();
+  const [status, setStatus] = useState<'loading' | 'processing' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
+  const [processed, setProcessed] = useState(false);
 
   // Check if this page was opened as a popup
   const isPopup = window.opener !== null;
 
+  // Debug logging
+  useEffect(() => {
+    console.log('OAuthCallbackPage mounted', {
+      isPopup,
+      authLoading,
+      hasUser: !!user,
+      userId: user?.id,
+      code: searchParams.get('code') ? 'present' : 'missing',
+      error: searchParams.get('error'),
+    });
+  }, [authLoading, user, searchParams, isPopup]);
+
   const notifyOpenerAndClose = (success: boolean, message?: string) => {
     if (isPopup && window.opener) {
       // Send message to parent window
-      window.opener.postMessage(
-        { type: 'google-oauth-callback', success, message },
-        window.location.origin
-      );
+      try {
+        window.opener.postMessage(
+          { type: 'google-oauth-callback', success, message },
+          window.location.origin
+        );
+      } catch (e) {
+        console.error('Failed to post message to opener:', e);
+      }
       // Close the popup after a brief delay
-      setTimeout(() => window.close(), 1500);
+      setTimeout(() => {
+        try {
+          window.close();
+        } catch (e) {
+          console.error('Failed to close window:', e);
+        }
+      }, 2000);
     }
   };
 
   useEffect(() => {
+    // Wait for auth to finish loading
+    if (authLoading) {
+      setStatus('loading');
+      return;
+    }
+
+    // Don't process more than once
+    if (processed) return;
+
     const handleCallback = async () => {
+      setProcessed(true);
+      setStatus('processing');
+
       const code = searchParams.get('code');
       const error = searchParams.get('error');
 
@@ -52,7 +87,7 @@ export function OAuthCallbackPage() {
       }
 
       if (!user?.id) {
-        const errorMsg = 'You must be logged in to connect Google Calendar';
+        const errorMsg = 'You must be logged in to connect Google Calendar. Please log in and try again.';
         setStatus('error');
         setErrorMessage(errorMsg);
         notifyOpenerAndClose(false, errorMsg);
@@ -60,7 +95,9 @@ export function OAuthCallbackPage() {
       }
 
       try {
+        console.log('Exchanging code for tokens...');
         const tokens = await exchangeCodeForTokens(code);
+        console.log('Got tokens, saving to database...');
 
         await calendarSettingsService.saveGoogleTokens(
           user.id,
@@ -68,6 +105,7 @@ export function OAuthCallbackPage() {
           tokens.refresh_token || '',
           tokens.expires_in
         );
+        console.log('Tokens saved successfully');
 
         setStatus('success');
 
@@ -89,16 +127,18 @@ export function OAuthCallbackPage() {
     };
 
     handleCallback();
-  }, [searchParams, user, navigate]);
+  }, [authLoading, user, searchParams, navigate, processed]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
       <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
-        {status === 'processing' && (
+        {(status === 'loading' || status === 'processing') && (
           <>
             <Loader2 className="w-16 h-16 text-blue-600 mx-auto mb-4 animate-spin" />
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Connecting Google Calendar</h1>
-            <p className="text-gray-600">Please wait while we complete the connection...</p>
+            <p className="text-gray-600">
+              {status === 'loading' ? 'Loading your session...' : 'Please wait while we complete the connection...'}
+            </p>
           </>
         )}
 
