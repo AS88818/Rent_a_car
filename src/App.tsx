@@ -25,6 +25,7 @@ import { InvoicesPage } from './pages/InvoicesPage';
 import { EmailsPage } from './pages/EmailsPage';
 import QuotesPage from './pages/QuotesPage';
 import { ReportsPage } from './pages/ReportsPage';
+import { OAuthCallbackPage } from './pages/OAuthCallbackPage';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -43,6 +44,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
 
       <Route
         path="/dashboard"

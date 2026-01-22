@@ -25,6 +25,26 @@ export function CalendarSettingsModal({ onClose }: CalendarSettingsModalProps) {
     fetchSettings();
   }, []);
 
+  // Listen for OAuth callback messages from popup window
+  useEffect(() => {
+    const handleOAuthMessage = (event: MessageEvent) => {
+      // Verify origin for security
+      if (event.origin !== window.location.origin) return;
+
+      if (event.data?.type === 'google-oauth-callback') {
+        if (event.data.success) {
+          showToast(event.data.message || 'Google Calendar connected successfully!', 'success');
+          fetchSettings(); // Refresh settings to show connected state
+        } else {
+          showToast(event.data.message || 'Failed to connect Google Calendar', 'error');
+        }
+      }
+    };
+
+    window.addEventListener('message', handleOAuthMessage);
+    return () => window.removeEventListener('message', handleOAuthMessage);
+  }, []);
+
   const fetchSettings = async () => {
     if (!user?.id) return;
 

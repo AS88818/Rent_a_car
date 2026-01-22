@@ -40,7 +40,25 @@ export function initiateGoogleOAuth(): void {
     `access_type=offline&` +
     `prompt=consent`;
 
-  window.location.href = authUrl;
+  // Check if we're in an iframe (like Bolt.host)
+  const isInIframe = window.self !== window.top;
+
+  if (isInIframe) {
+    // Open in a new window/tab to avoid X-Frame-Options issues
+    const width = 600;
+    const height = 700;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+
+    window.open(
+      authUrl,
+      'google-oauth',
+      `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+    );
+  } else {
+    // Normal redirect for non-iframe contexts
+    window.location.href = authUrl;
+  }
 }
 
 export async function exchangeCodeForTokens(code: string): Promise<GoogleTokenResponse> {
