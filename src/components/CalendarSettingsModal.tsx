@@ -3,7 +3,7 @@ import { X, Link as LinkIcon, Unlink, RefreshCw, CheckCircle, AlertCircle } from
 import { showToast } from '../lib/toast';
 import { useAuth } from '../lib/auth-context';
 import { calendarSettingsService, bookingSyncService } from '../services/calendar-service';
-import { initiateGoogleOAuth } from '../lib/google-oauth';
+import { initiateGoogleOAuth, exchangeCodeForTokens } from '../lib/google-oauth';
 
 interface CalendarSettingsModalProps {
   onClose: () => void;
@@ -27,23 +27,48 @@ export function CalendarSettingsModal({ onClose }: CalendarSettingsModalProps) {
 
   // Listen for OAuth callback messages from popup window
   useEffect(() => {
-    const handleOAuthMessage = (event: MessageEvent) => {
-      // Verify origin for security
-      if (event.origin !== window.location.origin) return;
-
+    const handleOAuthMessage = async (event: MessageEvent) => {
       if (event.data?.type === 'google-oauth-callback') {
-        if (event.data.success) {
-          showToast(event.data.message || 'Google Calendar connected successfully!', 'success');
-          fetchSettings(); // Refresh settings to show connected state
-        } else {
-          showToast(event.data.message || 'Failed to connect Google Calendar', 'error');
+        if (event.data.success && event.data.code) {
+          // Popup sent us the authorization code - exchange it for tokens
+          try {
+            if (!user?.id) {
+              throw new Error('Not logged in');
+            }
+
+            const tokens = await exchangeCodeForTokens(event.data.code);
+
+            await calendarSettingsService.saveGoogleTokens(
+              user.id,
+              tokens.access_token,
+              tokens.refresh_token || '',
+              tokens.expires_in
+            );
+
+            // Notify popup of success
+            if (event.source && 'postMessage' in event.source) {
+              (event.source as Window).postMessage({ type: 'google-oauth-complete', success: true }, '*');
+            }
+
+            showToast('Google Calendar connected successfully!', 'success');
+            fetchSettings();
+          } catch (err: any) {
+            console.error('Token exchange error:', err);
+            // Notify popup of failure
+            if (event.source && 'postMessage' in event.source) {
+              (event.source as Window).postMessage({ type: 'google-oauth-complete', success: false, error: err.message }, '*');
+            }
+            showToast(err.message || 'Failed to connect Google Calendar', 'error');
+          }
+        } else if (event.data.error) {
+          showToast(event.data.error || 'Failed to connect Google Calendar', 'error');
         }
       }
     };
 
     window.addEventListener('message', handleOAuthMessage);
     return () => window.removeEventListener('message', handleOAuthMessage);
-  }, []);
+  }, [user]);
 
   const fetchSettings = async () => {
     if (!user?.id) return;

@@ -15,7 +15,8 @@ interface GoogleTokenResponse {
 export function getGoogleOAuthConfig(): GoogleOAuthConfig {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   const clientSecret = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
-  const redirectUri = import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/oauth/callback`;
+  // Use static HTML callback page instead of React route
+  const redirectUri = import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/oauth/callback.html`;
 
   if (!clientId) {
     throw new Error('Google OAuth Client ID is not configured. Please set VITE_GOOGLE_CLIENT_ID in your environment variables.');

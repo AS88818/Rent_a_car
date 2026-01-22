@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Connecting Google Calendar...</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background: #f3f4f6;
+    }
+    .container {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      text-align: center;
+      max-width: 400px;
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid #e5e7eb;
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    h1 { font-size: 1.25rem; color: #111827; margin-bottom: 0.5rem; }
+    p { color: #6b7280; margin: 0; }
+    .error { color: #dc2626; }
+    .success { color: #059669; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="spinner" id="spinner"></div>
+    <h1 id="title">Connecting Google Calendar</h1>
+    <p id="message">Please wait...</p>
+  </div>
+
+  <script>
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      const error = params.get('error');
+
+      const spinner = document.getElementById('spinner');
+      const title = document.getElementById('title');
+      const message = document.getElementById('message');
+
+      function showError(msg) {
+        spinner.style.display = 'none';
+        title.textContent = 'Connection Failed';
+        title.className = 'error';
+        message.textContent = msg;
+        message.className = 'error';
+      }
+
+      function showSuccess() {
+        spinner.style.display = 'none';
+        title.textContent = 'Connected!';
+        title.className = 'success';
+        message.textContent = 'This window will close automatically...';
+      }
+
+      if (error) {
+        const errorMsg = error === 'access_denied'
+          ? 'You denied access to Google Calendar.'
+          : 'Google OAuth error: ' + error;
+        showError(errorMsg);
+
+        if (window.opener) {
+          window.opener.postMessage({ type: 'google-oauth-callback', success: false, error: errorMsg }, '*');
+          setTimeout(() => window.close(), 3000);
+        }
+        return;
+      }
+
+      if (!code) {
+        showError('No authorization code received.');
+        return;
+      }
+
+      // Send the code to the opener window for processing
+      if (window.opener) {
+        message.textContent = 'Completing connection...';
+        window.opener.postMessage({ type: 'google-oauth-callback', success: true, code: code }, '*');
+
+        // Wait for response from opener
+        window.addEventListener('message', function(event) {
+          if (event.data.type === 'google-oauth-complete') {
+            if (event.data.success) {
+              showSuccess();
+              setTimeout(() => window.close(), 1500);
+            } else {
+              showError(event.data.error || 'Failed to connect');
+              setTimeout(() => window.close(), 3000);
+            }
+          }
+        });
+
+        // Timeout fallback
+        setTimeout(() => {
+          showSuccess();
+          setTimeout(() => window.close(), 1500);
+        }, 5000);
+      } else {
+        showError('This page must be opened from the app.');
+      }
+    })();
+  </script>
+</body>
+</html>
