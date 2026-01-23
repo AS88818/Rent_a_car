@@ -118,6 +118,10 @@ Deno.serve(async (req: Request) => {
         const encodedMessage = base64UrlEncode(emailMessage);
 
         // Send email via Pica Gmail API
+        console.log("Sending email to:", email.recipient_email);
+        console.log("Using Pica secret:", picaSecretKey ? "SET" : "MISSING");
+        console.log("Using connection key:", picaConnectionKey ? "SET" : "MISSING");
+
         const gmailResponse = await fetch("https://api.picaos.com/v1/passthrough/gmail/v1/users/me/messages/send", {
           method: "POST",
           headers: {
@@ -130,12 +134,15 @@ Deno.serve(async (req: Request) => {
           }),
         });
 
+        console.log("Pica response status:", gmailResponse.status);
+        const responseText = await gmailResponse.text();
+        console.log("Pica response body:", responseText);
+
         if (!gmailResponse.ok) {
-          const errorData = await gmailResponse.json();
-          throw new Error(errorData.error?.message || "Failed to send email via Gmail");
+          throw new Error(`Pica API error (${gmailResponse.status}): ${responseText}`);
         }
 
-        const gmailData = await gmailResponse.json();
+        const gmailData = JSON.parse(responseText);
         console.log(`Email sent successfully. Gmail ID: ${gmailData.id}`);
 
         // Update email queue status to sent
