@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { categoryService, vehicleService, bookingService } from '../services/api';
+import { exchangeCodeForTokens } from '../lib/google-oauth';
+import { calendarSettingsService } from '../services/calendar-service';
 import { VehicleCategory, Vehicle, Booking } from '../types/database';
 import { showToast } from '../lib/toast';
 import { ChevronLeft, ChevronRight, Settings, Printer, Download, Filter, X } from 'lucide-react';
@@ -29,8 +31,9 @@ interface DayBooking extends Booking {
 }
 
 export function CalendarPage() {
-  const { branchId, userRole } = useAuth();
+  const { branchId, userRole, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [categories, setCategories] = useState<VehicleCategory[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -56,6 +59,45 @@ export function CalendarPage() {
   const [filterStartLocation, setFilterStartLocation] = useState('');
   const [filterEndLocation, setFilterEndLocation] = useState('');
   const [filterBookingType, setFilterBookingType] = useState('');
+
+  // Handle OAuth callback when redirected back with code
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      const oauthCode = searchParams.get('oauth_code');
+      const oauthError = searchParams.get('oauth_error');
+
+      if (oauthError) {
+        showToast(decodeURIComponent(oauthError), 'error');
+        // Clear the URL params
+        setSearchParams({});
+        return;
+      }
+
+      if (oauthCode && user?.id) {
+        try {
+          showToast('Completing Google Calendar connection...', 'success');
+          const tokens = await exchangeCodeForTokens(oauthCode);
+
+          await calendarSettingsService.saveGoogleTokens(
+            user.id,
+            tokens.access_token,
+            tokens.refresh_token || '',
+            tokens.expires_in
+          );
+
+          showToast('Google Calendar connected successfully!', 'success');
+          // Clear the URL params
+          setSearchParams({});
+        } catch (err: any) {
+          console.error('OAuth token exchange error:', err);
+          showToast(err.message || 'Failed to connect Google Calendar', 'error');
+          setSearchParams({});
+        }
+      }
+    };
+
+    handleOAuthCallback();
+  }, [searchParams, user, setSearchParams]);
 
   useEffect(() => {
     const fetchData = async () => {

@@ -67,18 +67,21 @@
         spinner.style.display = 'none';
         title.textContent = 'Connected!';
         title.className = 'success';
-        message.textContent = 'This window will close automatically...';
+        message.textContent = 'Redirecting...';
       }
 
       if (error) {
         const errorMsg = error === 'access_denied'
           ? 'You denied access to Google Calendar.'
           : 'Google OAuth error: ' + error;
-        showError(errorMsg);
 
         if (window.opener) {
           window.opener.postMessage({ type: 'google-oauth-callback', success: false, error: errorMsg }, '*');
+          showError(errorMsg);
           setTimeout(() => window.close(), 3000);
+        } else {
+          // No popup - redirect back to calendar with error
+          window.location.href = '/calendar?oauth_error=' + encodeURIComponent(errorMsg);
         }
         return;
       }
@@ -88,7 +91,7 @@
         return;
       }
 
-      // Send the code to the opener window for processing
+      // Check if opened as popup
       if (window.opener) {
         message.textContent = 'Completing connection...';
         window.opener.postMessage({ type: 'google-oauth-callback', success: true, code: code }, '*');
@@ -112,7 +115,10 @@
           setTimeout(() => window.close(), 1500);
         }, 5000);
       } else {
-        showError('This page must be opened from the app.');
+        // Not a popup - redirect back to calendar page with the code
+        // The calendar page will handle the token exchange
+        message.textContent = 'Redirecting to complete setup...';
+        window.location.href = '/calendar?oauth_code=' + encodeURIComponent(code);
       }
     })();
   </script>
