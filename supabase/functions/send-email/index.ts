@@ -225,7 +225,7 @@ Deno.serve(async (req: Request) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${picaSecretKey}`,
+        "x-pica-secret": picaSecretKey,
         "x-pica-connection-key": picaConnectionKey,
       },
       body: JSON.stringify({
