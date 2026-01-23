@@ -19,6 +19,16 @@ interface EmailQueueItem {
   attempts: number;
 }
 
+// Build MIME email and encode to base64url
+function buildMimeEmail(to: string, subject: string, body: string): string {
+  const mime = `To: ${to}\nSubject: ${subject}\nContent-Type: text/plain; charset=UTF-8\n\n${body}`;
+  // Base64url encode
+  const encoder = new TextEncoder();
+  const data = encoder.encode(mime);
+  let base64 = btoa(String.fromCharCode(...data));
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -61,8 +71,8 @@ Deno.serve(async (req: Request) => {
 
     if (!pendingEmails || pendingEmails.length === 0) {
       return new Response(
-        JSON.stringify({ 
-          success: true, 
+        JSON.stringify({
+          success: true,
           message: "No pending emails to process",
           processed: 0
         }),
@@ -87,21 +97,21 @@ Deno.serve(async (req: Request) => {
       results.processed++;
 
       try {
-        // Send email via Pica Gmail API using simplified format
+        // Build MIME email and encode to base64url
+        const raw = buildMimeEmail(email.recipient_email, email.subject, email.body);
+
+        // Send email via Pica Gmail API
         console.log("Sending email to:", email.recipient_email);
 
-        const gmailResponse = await fetch("https://api.picaos.com/v1/passthrough/gmail/v1/users/me/messages/send", {
+        const gmailResponse = await fetch("https://api.picaos.com/v1/passthrough/users/me/messages/send", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "x-pica-secret": picaSecretKey,
             "x-pica-connection-key": picaConnectionKey,
+            "x-pica-action-id": "conn_mod_def::F_JeJ_A_TKg::cc2kvVQQTiiIiLEDauy6zQ",
           },
-          body: JSON.stringify({
-            to: email.recipient_email,
-            subject: email.subject,
-            text: email.body,
-          }),
+          body: JSON.stringify({ raw }),
         });
 
         console.log("Pica response status:", gmailResponse.status);
@@ -113,7 +123,7 @@ Deno.serve(async (req: Request) => {
         }
 
         const gmailData = JSON.parse(responseText);
-        console.log(`Email sent successfully. Gmail ID: ${gmailData.id || gmailData.messageId || 'sent'}`);
+        console.log(`Email sent successfully. Gmail ID: ${gmailData.id}`);
 
         // Update email queue status to sent
         const { error: updateError } = await supabase
@@ -133,7 +143,7 @@ Deno.serve(async (req: Request) => {
         }
       } catch (error) {
         console.error(`Error sending email ${email.id}:`, error);
-        
+
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
         results.errors.push(`${email.id}: ${errorMessage}`);
         results.failed++;
@@ -169,7 +179,7 @@ Deno.serve(async (req: Request) => {
     );
   } catch (error) {
     console.error("Error in process-email-queue:", error);
-    
+
     return new Response(
       JSON.stringify({
         success: false,

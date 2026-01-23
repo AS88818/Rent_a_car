@@ -18,17 +18,8 @@ interface QuoteEmailRequest {
   pdfBase64: string;
 }
 
-// Helper function to encode string to base64url (Gmail API format)
-function base64UrlEncode(str: string): string {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(str);
-  let base64 = btoa(String.fromCharCode(...data));
-  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-// Helper function to build RFC 2822 formatted email with attachment
-function buildEmailMessageWithAttachment(
-  from: string,
+// Build MIME email with attachment and encode to base64url
+function buildMimeEmailWithAttachment(
   to: string,
   subject: string,
   htmlBody: string,
@@ -36,30 +27,18 @@ function buildEmailMessageWithAttachment(
   attachmentBase64: string
 ): string {
   const boundary = "----=_Part_" + Date.now().toString(36);
+  const plainText = htmlBody.replace(/<[^>]*>/g, '');
 
-  const message = [
-    `From: ${from}`,
+  const mime = [
     `To: ${to}`,
     `Subject: ${subject}`,
     `MIME-Version: 1.0`,
     `Content-Type: multipart/mixed; boundary="${boundary}"`,
     ``,
     `--${boundary}`,
-    `Content-Type: multipart/alternative; boundary="${boundary}_alt"`,
+    `Content-Type: text/plain; charset=UTF-8`,
     ``,
-    `--${boundary}_alt`,
-    `Content-Type: text/plain; charset="UTF-8"`,
-    `Content-Transfer-Encoding: 7bit`,
-    ``,
-    htmlBody.replace(/<[^>]*>/g, ''),
-    ``,
-    `--${boundary}_alt`,
-    `Content-Type: text/html; charset="UTF-8"`,
-    `Content-Transfer-Encoding: 7bit`,
-    ``,
-    htmlBody,
-    ``,
-    `--${boundary}_alt--`,
+    plainText,
     ``,
     `--${boundary}`,
     `Content-Type: application/pdf; name="${attachmentFilename}"`,
@@ -71,18 +50,22 @@ function buildEmailMessageWithAttachment(
     `--${boundary}--`,
   ].join('\r\n');
 
-  return message;
+  // Base64url encode
+  const encoder = new TextEncoder();
+  const data = encoder.encode(mime);
+  let base64 = btoa(String.fromCharCode(...data));
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 Deno.serve(async (req: Request) => {
   console.log('\n=== Edge Function Invoked ===');
   console.log('Method:', req.method);
-  
+
   if (req.method === 'OPTIONS') {
     console.log('Handling OPTIONS preflight');
-    return new Response(null, { 
+    return new Response(null, {
       status: 204,
-      headers: corsHeaders 
+      headers: corsHeaders
     });
   }
 
@@ -147,41 +130,37 @@ Deno.serve(async (req: Request) => {
     emailBody = emailBody.replace(/\{\{pickup_location\}\}/g, payload.pickupLocation);
     emailBody = emailBody.replace(/\{\{rental_type\}\}/g, payload.rentalType);
 
-    // Build email with attachment
+    // Build MIME email with attachment
     console.log('\n=== Sending via Pica Gmail ===');
-    const fromEmail = "rentacarinkenya@gmail.com";
-    const fromHeader = `Rentacarinkenya Team <${fromEmail}>`;
     const attachmentFilename = `Quote-${payload.quoteReference}.pdf`;
-
-    const emailMessage = buildEmailMessageWithAttachment(
-      fromHeader,
+    const raw = buildMimeEmailWithAttachment(
       payload.clientEmail,
       template.subject,
       emailBody,
       attachmentFilename,
       payload.pdfBase64
     );
-    const encodedMessage = base64UrlEncode(emailMessage);
 
     // Send email via Pica Gmail API
-    const gmailResponse = await fetch('https://api.picaos.com/v1/passthrough/gmail/v1/users/me/messages/send', {
+    const gmailResponse = await fetch('https://api.picaos.com/v1/passthrough/users/me/messages/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-pica-secret': picaSecretKey,
         'x-pica-connection-key': picaConnectionKey,
+        'x-pica-action-id': 'conn_mod_def::F_JeJ_A_TKg::cc2kvVQQTiiIiLEDauy6zQ',
       },
-      body: JSON.stringify({
-        raw: encodedMessage,
-      }),
+      body: JSON.stringify({ raw }),
     });
 
-    const gmailData = await gmailResponse.json();
+    const responseText = await gmailResponse.text();
 
     if (!gmailResponse.ok) {
-      console.error('Gmail API error:', gmailData);
-      throw new Error(`Gmail API error: ${gmailData.error?.message || gmailResponse.statusText}`);
+      console.error('Gmail API error:', responseText);
+      throw new Error(`Gmail API error: ${responseText}`);
     }
+
+    const gmailData = JSON.parse(responseText);
 
     console.log('\n=== Success ===');
     console.log('Email ID:', gmailData.id);
@@ -202,7 +181,7 @@ Deno.serve(async (req: Request) => {
     console.error('Type:', error.constructor?.name);
     console.error('Message:', error.message);
     console.error('Stack:', error.stack);
-    
+
     return new Response(
       JSON.stringify({
         success: false,

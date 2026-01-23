@@ -13,42 +13,16 @@ interface EmailRequest {
   emailType: 'confirmation' | 'pickup_reminder' | 'dropoff_reminder' | 'invoice_receipt';
 }
 
-// Helper function to encode string to base64url (Gmail API format)
-function base64UrlEncode(str: string): string {
+// Build MIME email and encode to base64url
+function buildMimeEmail(to: string, subject: string, body: string): string {
+  // Strip HTML tags for plain text
+  const plainText = body.replace(/<[^>]*>/g, '');
+  const mime = `To: ${to}\nSubject: ${subject}\nContent-Type: text/plain; charset=UTF-8\n\n${plainText}`;
+  // Base64url encode
   const encoder = new TextEncoder();
-  const data = encoder.encode(str);
+  const data = encoder.encode(mime);
   let base64 = btoa(String.fromCharCode(...data));
-  // Convert to base64url format
   return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-// Helper function to build RFC 2822 formatted email
-function buildEmailMessage(from: string, to: string, subject: string, htmlBody: string): string {
-  const boundary = "----=_Part_" + Date.now().toString(36);
-
-  const message = [
-    `From: ${from}`,
-    `To: ${to}`,
-    `Subject: ${subject}`,
-    `MIME-Version: 1.0`,
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    ``,
-    `--${boundary}`,
-    `Content-Type: text/plain; charset="UTF-8"`,
-    `Content-Transfer-Encoding: 7bit`,
-    ``,
-    htmlBody.replace(/<[^>]*>/g, ''), // Plain text version
-    ``,
-    `--${boundary}`,
-    `Content-Type: text/html; charset="UTF-8"`,
-    `Content-Transfer-Encoding: 7bit`,
-    ``,
-    htmlBody,
-    ``,
-    `--${boundary}--`,
-  ].join('\r\n');
-
-  return message;
 }
 
 Deno.serve(async (req: Request) => {
@@ -170,7 +144,7 @@ Deno.serve(async (req: Request) => {
       recipientEmail = booking.client_email;
       recipientName = booking.client_name;
 
-      const templateKey = emailType === 'confirmation' ? 'booking_confirmation' 
+      const templateKey = emailType === 'confirmation' ? 'booking_confirmation'
         : emailType === 'pickup_reminder' ? 'pickup_reminder'
         : 'dropoff_reminder';
 
@@ -214,23 +188,19 @@ Deno.serve(async (req: Request) => {
       throw new Error("Invalid email type for the provided ID");
     }
 
-    // Build the email message in RFC 2822 format
-    const fromEmail = "rentacarinkenya@gmail.com";
-    const fromHeader = `Rentacarinkenya Team <${fromEmail}>`;
-    const emailMessage = buildEmailMessage(fromHeader, recipientEmail, subject, body);
-    const encodedMessage = base64UrlEncode(emailMessage);
+    // Build MIME email and encode to base64url
+    const raw = buildMimeEmail(recipientEmail, subject, body);
 
     // Send email via Pica Gmail API
-    const gmailResponse = await fetch("https://api.picaos.com/v1/passthrough/gmail/v1/users/me/messages/send", {
+    const gmailResponse = await fetch("https://api.picaos.com/v1/passthrough/users/me/messages/send", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-pica-secret": picaSecretKey,
         "x-pica-connection-key": picaConnectionKey,
+        "x-pica-action-id": "conn_mod_def::F_JeJ_A_TKg::cc2kvVQQTiiIiLEDauy6zQ",
       },
-      body: JSON.stringify({
-        raw: encodedMessage,
-      }),
+      body: JSON.stringify({ raw }),
     });
 
     if (!gmailResponse.ok) {
