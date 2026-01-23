@@ -19,30 +19,6 @@ interface EmailQueueItem {
   attempts: number;
 }
 
-// Helper function to encode string to base64url (Gmail API format)
-function base64UrlEncode(str: string): string {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(str);
-  let base64 = btoa(String.fromCharCode(...data));
-  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-// Helper function to build RFC 2822 formatted email
-function buildEmailMessage(from: string, to: string, subject: string, textBody: string): string {
-  const message = [
-    `From: ${from}`,
-    `To: ${to}`,
-    `Subject: ${subject}`,
-    `MIME-Version: 1.0`,
-    `Content-Type: text/plain; charset="UTF-8"`,
-    `Content-Transfer-Encoding: 7bit`,
-    ``,
-    textBody,
-  ].join('\r\n');
-
-  return message;
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -111,16 +87,8 @@ Deno.serve(async (req: Request) => {
       results.processed++;
 
       try {
-        // Build email in RFC 2822 format
-        const fromEmail = "rentacarinkenya@gmail.com";
-        const fromHeader = `Rentacarinkenya Team <${fromEmail}>`;
-        const emailMessage = buildEmailMessage(fromHeader, email.recipient_email, email.subject, email.body);
-        const encodedMessage = base64UrlEncode(emailMessage);
-
-        // Send email via Pica Gmail API
+        // Send email via Pica Gmail API using simplified format
         console.log("Sending email to:", email.recipient_email);
-        console.log("Using Pica secret:", picaSecretKey ? "SET" : "MISSING");
-        console.log("Using connection key:", picaConnectionKey ? "SET" : "MISSING");
 
         const gmailResponse = await fetch("https://api.picaos.com/v1/passthrough/gmail/v1/users/me/messages/send", {
           method: "POST",
@@ -130,7 +98,9 @@ Deno.serve(async (req: Request) => {
             "x-pica-connection-key": picaConnectionKey,
           },
           body: JSON.stringify({
-            raw: encodedMessage,
+            to: email.recipient_email,
+            subject: email.subject,
+            text: email.body,
           }),
         });
 
@@ -143,7 +113,7 @@ Deno.serve(async (req: Request) => {
         }
 
         const gmailData = JSON.parse(responseText);
-        console.log(`Email sent successfully. Gmail ID: ${gmailData.id}`);
+        console.log(`Email sent successfully. Gmail ID: ${gmailData.id || gmailData.messageId || 'sent'}`);
 
         // Update email queue status to sent
         const { error: updateError } = await supabase
