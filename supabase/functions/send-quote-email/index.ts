@@ -18,6 +18,62 @@ interface QuoteEmailRequest {
   pdfBase64: string;
 }
 
+// Helper function to encode string to base64url (Gmail API format)
+function base64UrlEncode(str: string): string {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(str);
+  let base64 = btoa(String.fromCharCode(...data));
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// Helper function to build RFC 2822 formatted email with attachment
+function buildEmailMessageWithAttachment(
+  from: string,
+  to: string,
+  subject: string,
+  htmlBody: string,
+  attachmentFilename: string,
+  attachmentBase64: string
+): string {
+  const boundary = "----=_Part_" + Date.now().toString(36);
+
+  const message = [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    `MIME-Version: 1.0`,
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    ``,
+    `--${boundary}`,
+    `Content-Type: multipart/alternative; boundary="${boundary}_alt"`,
+    ``,
+    `--${boundary}_alt`,
+    `Content-Type: text/plain; charset="UTF-8"`,
+    `Content-Transfer-Encoding: 7bit`,
+    ``,
+    htmlBody.replace(/<[^>]*>/g, ''),
+    ``,
+    `--${boundary}_alt`,
+    `Content-Type: text/html; charset="UTF-8"`,
+    `Content-Transfer-Encoding: 7bit`,
+    ``,
+    htmlBody,
+    ``,
+    `--${boundary}_alt--`,
+    ``,
+    `--${boundary}`,
+    `Content-Type: application/pdf; name="${attachmentFilename}"`,
+    `Content-Disposition: attachment; filename="${attachmentFilename}"`,
+    `Content-Transfer-Encoding: base64`,
+    ``,
+    attachmentBase64,
+    ``,
+    `--${boundary}--`,
+  ].join('\r\n');
+
+  return message;
+}
+
 Deno.serve(async (req: Request) => {
   console.log('\n=== Edge Function Invoked ===');
   console.log('Method:', req.method);
@@ -32,16 +88,18 @@ Deno.serve(async (req: Request) => {
 
   try {
     console.log('\n=== Environment Check ===');
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    const picaSecretKey = Deno.env.get('PICA_SECRET_KEY');
+    const picaConnectionKey = Deno.env.get('PICA_GMAIL_CONNECTION_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    console.log('RESEND_API_KEY:', resendApiKey ? 'SET' : 'MISSING');
+    console.log('PICA_SECRET_KEY:', picaSecretKey ? 'SET' : 'MISSING');
+    console.log('PICA_GMAIL_CONNECTION_KEY:', picaConnectionKey ? 'SET' : 'MISSING');
     console.log('SUPABASE_URL:', supabaseUrl ? 'SET' : 'MISSING');
     console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseKey ? 'SET' : 'MISSING');
 
-    if (!resendApiKey) {
-      throw new Error('RESEND_API_KEY is not configured. Please add it to Supabase Edge Function secrets in your project settings.');
+    if (!picaSecretKey || !picaConnectionKey) {
+      throw new Error('Pica environment variables are not configured. Please add PICA_SECRET_KEY and PICA_GMAIL_CONNECTION_KEY to Supabase Edge Function secrets.');
     }
 
     if (!supabaseUrl || !supabaseKey) {
@@ -89,43 +147,50 @@ Deno.serve(async (req: Request) => {
     emailBody = emailBody.replace(/\{\{pickup_location\}\}/g, payload.pickupLocation);
     emailBody = emailBody.replace(/\{\{rental_type\}\}/g, payload.rentalType);
 
-    // Send email via Resend API
-    console.log('\n=== Sending via Resend ===');
-    const resendResponse = await fetch('https://api.resend.com/emails', {
+    // Build email with attachment
+    console.log('\n=== Sending via Pica Gmail ===');
+    const fromEmail = "rentacarinkenya@gmail.com";
+    const fromHeader = `Rentacarinkenya Team <${fromEmail}>`;
+    const attachmentFilename = `Quote-${payload.quoteReference}.pdf`;
+
+    const emailMessage = buildEmailMessageWithAttachment(
+      fromHeader,
+      payload.clientEmail,
+      template.subject,
+      emailBody,
+      attachmentFilename,
+      payload.pdfBase64
+    );
+    const encodedMessage = base64UrlEncode(emailMessage);
+
+    // Send email via Pica Gmail API
+    const gmailResponse = await fetch('https://api.picaos.com/v1/passthrough/gmail/users/me/messages/send', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${picaSecretKey}`,
+        'x-pica-connection-key': picaConnectionKey,
       },
       body: JSON.stringify({
-        from: 'Rentacarinkenya Team <info@autoflow-solutions.com>',
-        to: [payload.clientEmail],
-        subject: template.subject,
-        html: emailBody,
-        attachments: [
-          {
-            filename: `Quote-${payload.quoteReference}.pdf`,
-            content: payload.pdfBase64,
-          },
-        ],
+        raw: encodedMessage,
       }),
     });
 
-    const resendData = await resendResponse.json();
+    const gmailData = await gmailResponse.json();
 
-    if (!resendResponse.ok) {
-      console.error('Resend error:', resendData);
-      throw new Error(`Resend API error: ${resendData.message || resendResponse.statusText}`);
+    if (!gmailResponse.ok) {
+      console.error('Gmail API error:', gmailData);
+      throw new Error(`Gmail API error: ${gmailData.error?.message || gmailResponse.statusText}`);
     }
 
     console.log('\n=== Success ===');
-    console.log('Email ID:', resendData.id);
+    console.log('Email ID:', gmailData.id);
 
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Quote email sent successfully',
-        emailId: resendData.id,
+        emailId: gmailData.id,
       }),
       {
         status: 200,

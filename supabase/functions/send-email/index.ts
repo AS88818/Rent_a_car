@@ -13,6 +13,44 @@ interface EmailRequest {
   emailType: 'confirmation' | 'pickup_reminder' | 'dropoff_reminder' | 'invoice_receipt';
 }
 
+// Helper function to encode string to base64url (Gmail API format)
+function base64UrlEncode(str: string): string {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(str);
+  let base64 = btoa(String.fromCharCode(...data));
+  // Convert to base64url format
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// Helper function to build RFC 2822 formatted email
+function buildEmailMessage(from: string, to: string, subject: string, htmlBody: string): string {
+  const boundary = "----=_Part_" + Date.now().toString(36);
+
+  const message = [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    `MIME-Version: 1.0`,
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    ``,
+    `--${boundary}`,
+    `Content-Type: text/plain; charset="UTF-8"`,
+    `Content-Transfer-Encoding: 7bit`,
+    ``,
+    htmlBody.replace(/<[^>]*>/g, ''), // Plain text version
+    ``,
+    `--${boundary}`,
+    `Content-Type: text/html; charset="UTF-8"`,
+    `Content-Transfer-Encoding: 7bit`,
+    ``,
+    htmlBody,
+    ``,
+    `--${boundary}--`,
+  ].join('\r\n');
+
+  return message;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -24,10 +62,11 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    const picaSecretKey = Deno.env.get("PICA_SECRET_KEY");
+    const picaConnectionKey = Deno.env.get("PICA_GMAIL_CONNECTION_KEY");
 
-    if (!resendApiKey) {
-      throw new Error("RESEND_API_KEY environment variable is not set");
+    if (!picaSecretKey || !picaConnectionKey) {
+      throw new Error("Pica environment variables are not set (PICA_SECRET_KEY, PICA_GMAIL_CONNECTION_KEY)");
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -175,28 +214,31 @@ Deno.serve(async (req: Request) => {
       throw new Error("Invalid email type for the provided ID");
     }
 
-    const emailPayload = {
-      from: "Rentacarinkenya Team <info@autoflow-solutions.com>",
-      to: [recipientEmail],
-      subject: subject,
-      html: body,
-    };
+    // Build the email message in RFC 2822 format
+    const fromEmail = "rentacarinkenya@gmail.com";
+    const fromHeader = `Rentacarinkenya Team <${fromEmail}>`;
+    const emailMessage = buildEmailMessage(fromHeader, recipientEmail, subject, body);
+    const encodedMessage = base64UrlEncode(emailMessage);
 
-    const resendResponse = await fetch("https://api.resend.com/emails", {
+    // Send email via Pica Gmail API
+    const gmailResponse = await fetch("https://api.picaos.com/v1/passthrough/gmail/users/me/messages/send", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${resendApiKey}`,
+        "Authorization": `Bearer ${picaSecretKey}`,
+        "x-pica-connection-key": picaConnectionKey,
       },
-      body: JSON.stringify(emailPayload),
+      body: JSON.stringify({
+        raw: encodedMessage,
+      }),
     });
 
-    if (!resendResponse.ok) {
-      const errorData = await resendResponse.text();
-      throw new Error(`Resend API error: ${errorData}`);
+    if (!gmailResponse.ok) {
+      const errorData = await gmailResponse.text();
+      throw new Error(`Gmail API error: ${errorData}`);
     }
 
-    const resendData = await resendResponse.json();
+    const gmailData = await gmailResponse.json();
 
     if (invoiceId) {
       await supabase
@@ -226,7 +268,7 @@ Deno.serve(async (req: Request) => {
       JSON.stringify({
         success: true,
         message: "Email sent successfully",
-        emailId: resendData.id,
+        emailId: gmailData.id,
       }),
       {
         headers: {

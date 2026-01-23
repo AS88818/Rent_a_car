@@ -19,6 +19,30 @@ interface EmailQueueItem {
   attempts: number;
 }
 
+// Helper function to encode string to base64url (Gmail API format)
+function base64UrlEncode(str: string): string {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(str);
+  let base64 = btoa(String.fromCharCode(...data));
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// Helper function to build RFC 2822 formatted email
+function buildEmailMessage(from: string, to: string, subject: string, textBody: string): string {
+  const message = [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    `MIME-Version: 1.0`,
+    `Content-Type: text/plain; charset="UTF-8"`,
+    `Content-Transfer-Encoding: 7bit`,
+    ``,
+    textBody,
+  ].join('\r\n');
+
+  return message;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -28,10 +52,11 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    
-    if (!resendApiKey) {
-      throw new Error("RESEND_API_KEY environment variable is not set");
+    const picaSecretKey = Deno.env.get("PICA_SECRET_KEY");
+    const picaConnectionKey = Deno.env.get("PICA_GMAIL_CONNECTION_KEY");
+
+    if (!picaSecretKey || !picaConnectionKey) {
+      throw new Error("Pica environment variables are not set (PICA_SECRET_KEY, PICA_GMAIL_CONNECTION_KEY)");
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -86,28 +111,32 @@ Deno.serve(async (req: Request) => {
       results.processed++;
 
       try {
-        // Send email via Resend
-        const resendResponse = await fetch("https://api.resend.com/emails", {
+        // Build email in RFC 2822 format
+        const fromEmail = "rentacarinkenya@gmail.com";
+        const fromHeader = `Rentacarinkenya Team <${fromEmail}>`;
+        const emailMessage = buildEmailMessage(fromHeader, email.recipient_email, email.subject, email.body);
+        const encodedMessage = base64UrlEncode(emailMessage);
+
+        // Send email via Pica Gmail API
+        const gmailResponse = await fetch("https://api.picaos.com/v1/passthrough/gmail/users/me/messages/send", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${resendApiKey}`,
+            "Authorization": `Bearer ${picaSecretKey}`,
+            "x-pica-connection-key": picaConnectionKey,
           },
           body: JSON.stringify({
-            from: "FleetHub <info@autoflow-solutions.com>",
-            to: [email.recipient_email],
-            subject: email.subject,
-            text: email.body,
+            raw: encodedMessage,
           }),
         });
 
-        if (!resendResponse.ok) {
-          const errorData = await resendResponse.json();
-          throw new Error(errorData.message || "Failed to send email via Resend");
+        if (!gmailResponse.ok) {
+          const errorData = await gmailResponse.json();
+          throw new Error(errorData.error?.message || "Failed to send email via Gmail");
         }
 
-        const resendData = await resendResponse.json();
-        console.log(`Email sent successfully. Resend ID: ${resendData.id}`);
+        const gmailData = await gmailResponse.json();
+        console.log(`Email sent successfully. Gmail ID: ${gmailData.id}`);
 
         // Update email queue status to sent
         const { error: updateError } = await supabase
