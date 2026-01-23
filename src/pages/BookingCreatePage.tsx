@@ -216,18 +216,19 @@ export function BookingCreatePage() {
       return;
     }
 
-    if (!saveAsDraft && !formData.contact) {
-      showToast('Contact number is required', 'error');
+    if (!saveAsDraft && !formData.contact && !formData.client_email) {
+      showToast('Please enter either phone number or email address', 'error');
       return;
     }
 
     setSubmitting(true);
 
     try {
-      const vehicleBranchId = selectedVehicle.branch_id || branchId;
+      // Use vehicle's branch_id, or auth context branch, or the selected start branch location
+      const vehicleBranchId = selectedVehicle.branch_id || branchId || selectedStartBranchId;
 
       if (!vehicleBranchId) {
-        throw new Error('Branch ID is required');
+        throw new Error('Branch ID is required. Please select a start location.');
       }
 
       const createdBooking = await bookingService.createBooking({
@@ -276,7 +277,7 @@ export function BookingCreatePage() {
     if (step === 2) return formData.start_datetime && formData.end_datetime && formData.start_location && formData.end_location && validationErrors.length === 0;
     if (step === 3) return selectedCategory !== '';
     if (step === 4) return selectedVehicle !== null;
-    if (step === 5) return formData.client_name && formData.contact;
+    if (step === 5) return formData.client_name && (formData.contact || formData.client_email);
     return true;
   };
 
@@ -951,7 +952,7 @@ export function BookingCreatePage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Contact Number <span className="text-red-600">*</span>
+                  Contact Number {!formData.client_email && <span className="text-red-600">*</span>}
                 </label>
                 <input
                   type="tel"
@@ -959,13 +960,13 @@ export function BookingCreatePage() {
                   onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter contact number"
-                  required
                 />
+                <p className="text-xs text-gray-500 mt-1">Required if email not provided</p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email Address (Optional)
+                  Email Address {!formData.contact && <span className="text-red-600">*</span>}
                 </label>
                 <input
                   type="email"
@@ -974,7 +975,7 @@ export function BookingCreatePage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter email address for booking confirmation"
                 />
-                <p className="text-xs text-gray-500 mt-1">We'll send booking confirmation and reminders to this email</p>
+                <p className="text-xs text-gray-500 mt-1">Required if phone not provided. We'll send booking confirmation and reminders to this email</p>
               </div>
 
               {formData.booking_type === 'chauffeur' && (

@@ -146,6 +146,11 @@ export function getAvailableVehicles(
   excludeBookingId?: string
 ): Vehicle[] {
   return vehicles.filter(vehicle => {
+    // Exclude personal cars from hire
+    if (vehicle.is_personal) {
+      return false;
+    }
+
     if (vehicle.status === 'Grounded' || vehicle.health_flag === 'Grounded') {
       return false;
     }

@@ -829,6 +829,35 @@ export const quotationService = {
 
     const vehicle = await vehicleService.getVehicleById(vehicleId);
 
+    // Validate and determine the correct branch ID
+    // branchId might be 'unassigned' if vehicle had no branch when quote was created
+    let validBranchId = branchId;
+
+    // Check if branchId is a valid UUID (not 'unassigned' or other placeholder)
+    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(branchId);
+
+    if (!isValidUUID) {
+      // Use vehicle's existing branch_id if available
+      if (vehicle.branch_id) {
+        validBranchId = vehicle.branch_id;
+      } else {
+        // Try to find branch based on pickup location
+        const branches = await branchService.getBranches();
+        const matchingBranch = branches.find(b =>
+          b.branch_name.toLowerCase().includes(quote.pickup_location!.toLowerCase()) ||
+          quote.pickup_location!.toLowerCase().includes(b.branch_name.toLowerCase())
+        );
+        if (matchingBranch) {
+          validBranchId = matchingBranch.id;
+        } else if (branches.length > 0) {
+          // Default to first branch if no match found
+          validBranchId = branches[0].id;
+        } else {
+          throw new Error('No valid branch found for this booking.');
+        }
+      }
+    }
+
     const startDate = new Date(quote.start_date);
     const endDate = new Date(quote.end_date);
     startDate.setHours(9, 0, 0, 0);
@@ -844,7 +873,7 @@ export const quotationService = {
       start_location: quote.pickup_location,
       end_location: quote.dropoff_location,
       status: 'Active' as const,
-      branch_id: branchId,
+      branch_id: validBranchId,
       booking_type: quote.has_chauffeur ? 'chauffeur' as const : 'self_drive' as const,
       total_amount: categoryQuote.grandTotal,
       advance_payment_amount: categoryQuote.advancePayment,
@@ -863,6 +892,11 @@ export const quotationService = {
       .single();
 
     if (bookingError) throw bookingError;
+
+    // Update vehicle's branch_id if it was null or different
+    if (!vehicle.branch_id || vehicle.branch_id !== validBranchId) {
+      await vehicleService.updateVehicle(vehicleId, { branch_id: validBranchId });
+    }
 
     // Flatten the branch_name from nested object
     const bookingWithBranchName = booking ? {

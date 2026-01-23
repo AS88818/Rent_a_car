@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Calculator, Copy, RotateCcw, Save, MapPin, FileText, Share2, MessageCircle, Mail, FolderOpen, Trash2, Clock, Receipt, Check, CheckCircle, Plus, X } from 'lucide-react';
+import { ArrowLeft, Calculator, Copy, RotateCcw, Save, MapPin, FileText, Share2, MessageCircle, Mail, FolderOpen, Trash2, Clock, Receipt, Check, CheckCircle, Plus, X, Car, User, ArrowRightLeft } from 'lucide-react';
 import { quotationService, vehicleService, bookingService, branchService, categoryService } from '../services/api';
 import { CategoryPricing, SeasonRule, CategoryQuoteResult, Branch, PricingConfig, Quote, VehicleCategory } from '../types/database';
 import { showToast } from '../lib/toast';
@@ -19,6 +19,8 @@ interface QuoteInputs {
   endDateTime: string;
   hasHalfDay: boolean;
   hasChauffeur: boolean;
+  quoteType: 'self_drive' | 'chauffeur' | 'transfer';
+  chauffeurChargePerDay: number;
   clientName: string;
   clientEmail: string;
   clientPhone: string;
@@ -65,6 +67,8 @@ export function QuotationCalculatorPage() {
     endDateTime: '',
     hasHalfDay: false,
     hasChauffeur: false,
+    quoteType: 'self_drive',
+    chauffeurChargePerDay: 4000,
     clientName: '',
     clientEmail: '',
     clientPhone: '',
@@ -97,6 +101,8 @@ export function QuotationCalculatorPage() {
         endDateTime: quote.end_date ? `${quote.end_date}T18:00` : '',
         hasHalfDay: quote.has_half_day,
         hasChauffeur: quote.has_chauffeur,
+        quoteType: quoteInputs?.quoteType || (quote.has_chauffeur ? 'chauffeur' : 'self_drive'),
+        chauffeurChargePerDay: quoteInputs?.chauffeurChargePerDay || 4000,
         pickupLocation: quote.pickup_location || quoteInputs?.pickupLocation || '',
         dropoffLocation: quote.dropoff_location || quoteInputs?.dropoffLocation || '',
         differentLocationCharge: quoteInputs?.differentLocationCharge || 0,
@@ -415,7 +421,7 @@ export function QuotationCalculatorPage() {
     try {
       const { peakDays, offPeakDays } = splitDaysBySeason();
       const totalRentalDays = calculateRentalDays();
-      const chauffeurFeePerDay = pricingConfig?.chauffeur_fee_per_day || 4000;
+      const chauffeurFeePerDay = inputs.chauffeurChargePerDay || 4000;
       const results: CategoryQuoteResult[] = [];
 
       for (const pricing of categoryPricing) {
@@ -509,6 +515,8 @@ export function QuotationCalculatorPage() {
       endDateTime: '',
       hasHalfDay: false,
       hasChauffeur: false,
+      quoteType: 'self_drive',
+      chauffeurChargePerDay: 4000,
       clientName: '',
       clientEmail: '',
       clientPhone: '',
@@ -549,7 +557,7 @@ export function QuotationCalculatorPage() {
     message += `*Duration:* ${rentalDays} day${rentalDays !== 1 ? 's' : ''}\n`;
     message += `*Pickup:* ${inputs.pickupLocation || 'TBD'}\n`;
     message += `*Drop-off:* ${inputs.dropoffLocation || 'TBD'}\n`;
-    message += `${inputs.hasChauffeur ? '*With Chauffeur*' : '*Self Drive*'}\n\n`;
+    message += `*Type:* ${inputs.quoteType === 'self_drive' ? 'Self Drive' : inputs.quoteType === 'chauffeur' ? 'With Chauffeur' : 'Transfer'}\n\n`;
 
     message += `*Pricing Options:*\n\n`;
 
@@ -615,7 +623,7 @@ export function QuotationCalculatorPage() {
         duration: `${rentalDays} day${rentalDays !== 1 ? 's' : ''}`,
         pickupLocation: inputs.pickupLocation || 'TBD',
         dropoffLocation: inputs.dropoffLocation || 'TBD',
-        rentalType: inputs.hasChauffeur ? 'With Chauffeur' : 'Self Drive',
+        rentalType: inputs.quoteType === 'self_drive' ? 'Self Drive' : inputs.quoteType === 'chauffeur' ? 'With Chauffeur' : 'Transfer',
         categories: filteredResults.map(r => ({
           categoryName: r.categoryName,
           grandTotal: r.grandTotal,
@@ -643,7 +651,7 @@ export function QuotationCalculatorPage() {
         endTime: inputs.endDateTime.split('T')[1],
         duration: `${rentalDays} day${rentalDays !== 1 ? 's' : ''}`,
         pickupLocation: inputs.pickupLocation || 'TBD',
-        rentalType: inputs.hasChauffeur ? 'With Chauffeur' : 'Self Drive',
+        rentalType: inputs.quoteType === 'self_drive' ? 'Self Drive' : inputs.quoteType === 'chauffeur' ? 'With Chauffeur' : 'Transfer',
         pdfBase64,
       };
 
@@ -690,6 +698,11 @@ export function QuotationCalculatorPage() {
   const saveQuote = async () => {
     if (!inputs.clientName) {
       showToast('Please enter client name', 'error');
+      return;
+    }
+
+    if (!inputs.clientPhone && !inputs.clientEmail) {
+      showToast('Please enter either phone number or email address', 'error');
       return;
     }
 
@@ -751,6 +764,11 @@ export function QuotationCalculatorPage() {
       return;
     }
 
+    if (!inputs.clientPhone && !inputs.clientEmail) {
+      showToast('Please enter either phone number or email address', 'error');
+      return;
+    }
+
     try {
       const draftData = {
         user_id: user!.id,
@@ -809,6 +827,8 @@ export function QuotationCalculatorPage() {
           endDateTime: draft.end_date ? `${draft.end_date}T18:00` : '',
           hasHalfDay: draft.has_half_day,
           hasChauffeur: draft.has_chauffeur,
+          quoteType: savedInputs.quoteType || (draft.has_chauffeur ? 'chauffeur' : 'self_drive'),
+          chauffeurChargePerDay: savedInputs.chauffeurChargePerDay || 4000,
           pickupLocation: draft.pickup_location || savedInputs.pickupLocation || '',
           dropoffLocation: draft.dropoff_location || savedInputs.dropoffLocation || '',
           differentLocationCharge: savedInputs.differentLocationCharge || 0,
@@ -892,6 +912,8 @@ export function QuotationCalculatorPage() {
                   endDateTime: '',
                   hasHalfDay: false,
                   hasChauffeur: false,
+                  quoteType: 'self_drive',
+                  chauffeurChargePerDay: 4000,
                   clientName: '',
                   clientEmail: '',
                   clientPhone: '',
@@ -1035,7 +1057,7 @@ export function QuotationCalculatorPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Client Email
+              Client Email {!inputs.clientPhone && <span className="text-red-600">*</span>}
             </label>
             <input
               type="email"
@@ -1044,13 +1066,14 @@ export function QuotationCalculatorPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="client@example.com"
             />
+            <p className="text-xs text-gray-500 mt-1">Required if phone not provided</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Client Phone *
+              Client Phone {!inputs.clientEmail && <span className="text-red-600">*</span>}
             </label>
             <input
               type="tel"
@@ -1059,6 +1082,7 @@ export function QuotationCalculatorPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="+254 XXX XXXXXX"
             />
+            <p className="text-xs text-gray-500 mt-1">Required if email not provided</p>
           </div>
 
           <div>
@@ -1297,35 +1321,84 @@ export function QuotationCalculatorPage() {
             <p className="text-xs text-gray-500 mt-1">Operating hours: 9:00 AM - 6:00 PM (Kenya Time)</p>
           </div>
 
-          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={inputs.hasHalfDay}
-                  onChange={e => setInputs({ ...inputs, hasHalfDay: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-gray-700">
-                  Additional Half Day?
-                </span>
-              </label>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Type of Hire <span className="text-red-600">*</span>
+            </label>
+            <div className="grid grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={() => setInputs({ ...inputs, quoteType: 'self_drive', hasChauffeur: false })}
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
+                  inputs.quoteType === 'self_drive'
+                    ? 'border-blue-600 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 hover:border-blue-300 text-gray-600'
+                }`}
+              >
+                <Car className="w-6 h-6" />
+                <span className="text-sm font-medium">Self-Drive</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputs({ ...inputs, quoteType: 'chauffeur', hasChauffeur: true })}
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
+                  inputs.quoteType === 'chauffeur'
+                    ? 'border-green-600 bg-green-50 text-green-700'
+                    : 'border-gray-200 hover:border-green-300 text-gray-600'
+                }`}
+              >
+                <User className="w-6 h-6" />
+                <span className="text-sm font-medium">Chauffeur</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputs({ ...inputs, quoteType: 'transfer', hasChauffeur: true })}
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
+                  inputs.quoteType === 'transfer'
+                    ? 'border-orange-600 bg-orange-50 text-orange-700'
+                    : 'border-gray-200 hover:border-orange-300 text-gray-600'
+                }`}
+              >
+                <ArrowRightLeft className="w-6 h-6" />
+                <span className="text-sm font-medium">Transfer</span>
+              </button>
             </div>
-
-            <div className="flex items-center">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={inputs.hasChauffeur}
-                  onChange={e => setInputs({ ...inputs, hasChauffeur: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-gray-700">
-                  Chauffeur? (+{formatCurrency(pricingConfig?.chauffeur_fee_per_day || 4000)}/day, no deposit)
-                </span>
-              </label>
-            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              {inputs.quoteType === 'self_drive' && 'Client drives the vehicle themselves. Security deposit required.'}
+              {inputs.quoteType === 'chauffeur' && 'Vehicle comes with a professional driver. No security deposit required.'}
+              {inputs.quoteType === 'transfer' && 'One-way transfer service with driver. No security deposit required.'}
+            </p>
           </div>
+
+          <div className="md:col-span-2 flex items-center">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={inputs.hasHalfDay}
+                onChange={e => setInputs({ ...inputs, hasHalfDay: e.target.checked })}
+                className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                Additional Half Day?
+              </span>
+            </label>
+          </div>
+
+          {inputs.quoteType === 'chauffeur' && (
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Chauffeur Charge Per Day (KES)
+              </label>
+              <input
+                type="number"
+                value={inputs.chauffeurChargePerDay || ''}
+                onChange={e => setInputs({ ...inputs, chauffeurChargePerDay: parseFloat(e.target.value) || 0 })}
+                className="w-full md:w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="4000"
+              />
+              <p className="text-xs text-gray-500 mt-1">Default: KES 4,000 per day</p>
+            </div>
+          )}
 
           {isOutsideOfficeHours() && (
             <div className="md:col-span-2">

@@ -671,7 +671,7 @@ export function BookingListPage() {
                     required
                   >
                     <option value="">Select a vehicle</option>
-                    {vehicles.map(v => (
+                    {vehicles.filter(v => !v.is_personal).map(v => (
                       <option key={v.id} value={v.id}>
                         {v.reg_number}
                       </option>

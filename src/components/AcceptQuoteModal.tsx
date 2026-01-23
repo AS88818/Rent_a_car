@@ -121,7 +121,7 @@ export function AcceptQuoteModal({ quote, onClose, onSuccess }: AcceptQuoteModal
         })
       );
 
-      const validVehicles = vehicles.filter((v): v is VehicleWithBranch => v !== null && v.status === 'Available');
+      const validVehicles = vehicles.filter((v): v is VehicleWithBranch => v !== null && v.status === 'Available' && !v.is_personal);
       setAvailableVehicles(validVehicles);
 
       if (branchAvailability.length === 1) {

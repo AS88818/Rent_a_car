@@ -9,8 +9,6 @@ import { BookingListPage } from './pages/BookingListPage';
 import { BookingCreatePage } from './pages/BookingCreatePage';
 import { VehiclesPage } from './pages/VehiclesPage';
 import { VehicleDetailsPage } from './pages/VehicleDetailsPage';
-import { UpdateMileagePage } from './pages/UpdateMileagePage';
-import { UpdateHealthPage } from './pages/UpdateHealthPage';
 import { QuickActionsPage } from './pages/QuickActionsPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { MaintenancePage } from './pages/MaintenancePage';
@@ -96,28 +94,6 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <VehicleDetailsPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/vehicles/update-mileage"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <UpdateMileagePage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/vehicles/update-health"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <UpdateHealthPage />
             </Layout>
           </ProtectedRoute>
         }

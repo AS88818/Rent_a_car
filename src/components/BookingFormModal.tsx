@@ -1,4 +1,4 @@
-import { X, ChevronLeft, ChevronRight, Calendar, MapPin, User, Phone, Car, Users as UsersIcon, ArrowRightLeft, AlertTriangle } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Calendar, MapPin, User, Phone, Mail, Car, Users as UsersIcon, ArrowRightLeft, AlertTriangle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Vehicle, Booking, Branch, AuthUser } from '../types/database';
 import { userService } from '../services/api';
@@ -11,6 +11,7 @@ interface BookingFormModalProps {
     vehicle_id: string;
     client_name: string;
     contact: string;
+    client_email?: string;
     start_datetime: string;
     end_datetime: string;
     start_location: string;
@@ -49,6 +50,7 @@ export function BookingFormModal({
     vehicle_id: '',
     client_name: '',
     contact: '',
+    client_email: '',
     notes: '',
     booking_type: 'self_drive' as 'self_drive' | 'chauffeur' | 'transfer',
     chauffeur_id: '',
@@ -88,6 +90,7 @@ export function BookingFormModal({
         vehicle_id: editingBooking.vehicle_id,
         client_name: editingBooking.client_name,
         contact: editingBooking.contact,
+        client_email: editingBooking.client_email || '',
         notes: editingBooking.notes || '',
         booking_type: editingBooking.booking_type || 'self_drive',
         chauffeur_id: editingBooking.chauffeur_id || '',
@@ -154,10 +157,12 @@ export function BookingFormModal({
       vehicle_id: '',
       client_name: '',
       contact: '',
+      client_email: '',
       notes: '',
       booking_type: 'self_drive',
       chauffeur_id: '',
       chauffeur_name: '',
+      invoice_number: '',
     });
     setAvailableVehicles([]);
     setStartLocationType('branch');
@@ -195,7 +200,7 @@ export function BookingFormModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!clientData.vehicle_id || !clientData.client_name || !clientData.contact) {
+    if (!clientData.vehicle_id || !clientData.client_name || (!clientData.contact && !clientData.client_email)) {
       return;
     }
 
@@ -568,7 +573,7 @@ export function BookingFormModal({
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         <div className="flex items-center gap-2">
                           <Phone className="w-4 h-4" />
-                          Contact Number <span className="text-red-500">*</span>
+                          Contact Number {!clientData.client_email && <span className="text-red-500">*</span>}
                         </div>
                       </label>
                       <input
@@ -576,11 +581,29 @@ export function BookingFormModal({
                         placeholder="Phone number"
                         value={clientData.contact}
                         onChange={e => setClientData({ ...clientData, contact: e.target.value })}
-                        required
                         disabled={submitting}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                       />
+                      <p className="text-xs text-gray-500 mt-1">Required if email not provided</p>
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4" />
+                        Email Address {!clientData.contact && <span className="text-red-500">*</span>}
+                      </div>
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="Email address"
+                      value={clientData.client_email}
+                      onChange={e => setClientData({ ...clientData, client_email: e.target.value })}
+                      disabled={submitting}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Required if phone not provided. We'll send booking confirmation to this email</p>
                   </div>
 
                   <div>
@@ -648,7 +671,7 @@ export function BookingFormModal({
             ) : (
               <button
                 type="submit"
-                disabled={!clientData.vehicle_id || !clientData.client_name || !clientData.contact || submitting}
+                disabled={!clientData.vehicle_id || !clientData.client_name || (!clientData.contact && !clientData.client_email) || submitting}
                 className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? 'Saving...' : editingBooking ? 'Update Booking' : 'Create Booking'}

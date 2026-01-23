@@ -1,14 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
-import { FileText, Gauge, Activity, Wrench, MapPin, Settings as SettingsIcon } from 'lucide-react';
+import { Zap, Wrench, MapPin, Settings as SettingsIcon } from 'lucide-react';
 
 export function ProfilePage() {
   const navigate = useNavigate();
   const { user, userRole } = useAuth();
 
   const quickActions = [
-    { label: 'Update Mileage', icon: Gauge, path: '/vehicles/update-mileage', color: 'blue' },
-    { label: 'Update Health', icon: Activity, path: '/vehicles/update-health', color: 'green' },
+    { label: 'Quick Actions', icon: Zap, path: '/quick-actions', color: 'blue' },
     { label: 'Create Maintenance Log', icon: Wrench, path: '/maintenance', color: 'yellow' },
     { label: 'Calendar View', icon: MapPin, path: '/calendar', color: 'red' },
   ];

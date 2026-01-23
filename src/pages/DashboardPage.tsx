@@ -10,7 +10,7 @@ import {
   AlertTriangle,
   Calendar,
   Plus,
-  Gauge,
+  Zap,
   List,
   ChevronDown,
   ChevronUp,
@@ -22,7 +22,10 @@ import {
   User,
   Users,
   ArrowRightLeft,
-  BellOff
+  BellOff,
+  Eye,
+  X,
+  Bell
 } from 'lucide-react';
 import { showToast } from '../lib/toast';
 import { BookingDetailsModal } from '../components/BookingDetailsModal';
@@ -70,6 +73,7 @@ export function DashboardPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [snoozedAlerts, setSnoozedAlerts] = useState<any[]>([]);
+  const [showSnoozedModal, setShowSnoozedModal] = useState(false);
 
   const [alertsExpanded, setAlertsExpanded] = useState(() => {
     const saved = localStorage.getItem('dashboard_alerts_expanded');
@@ -322,6 +326,40 @@ export function DashboardPage() {
     }
   };
 
+  const handleUnsnoozeAlert = async (snoozeId: string) => {
+    try {
+      await alertSnoozeService.unsnoozeAlert(snoozeId);
+
+      // Refresh snoozed alerts list
+      const snoozes = await alertSnoozeService.getActiveSnoozedAlerts();
+      setSnoozedAlerts(snoozes);
+
+      showToast('Alert restored', 'success');
+    } catch (error) {
+      console.error('Failed to unsnooze alert:', error);
+      showToast('Failed to restore alert', 'error');
+    }
+  };
+
+  // Helper to get display info for snoozed alerts
+  const getSnoozedAlertInfo = (snooze: any) => {
+    const vehicle = snooze.vehicle_id ? vehicles.find(v => v.id === snooze.vehicle_id) : null;
+    const booking = snooze.booking_id ? bookings.find(b => b.id === snooze.booking_id) : null;
+
+    const alertTypeLabels: Record<string, string> = {
+      'health_flag': 'Grounded Vehicle',
+      'snag': 'Vehicle Snag',
+      'spare_key': 'Missing Spare Key',
+      'driver_allocation': 'Driver Not Assigned',
+    };
+
+    return {
+      label: alertTypeLabels[snooze.alert_type] || snooze.alert_type,
+      identifier: vehicle?.reg_number || booking?.client_name || 'Unknown',
+      expiresAt: new Date(snooze.snoozed_until),
+    };
+  };
+
   const vehiclesWithHealthFlag = vehicles.filter(v => v.health_flag === 'Grounded' && !isAlertSnoozed('health_flag', v.id));
 
   const snagCounts: Map<string, SnagCount> = new Map();
@@ -412,11 +450,11 @@ export function DashboardPage() {
         )}
 
         <button
-          onClick={() => navigate('/vehicles/update-mileage')}
+          onClick={() => navigate('/quick-actions')}
           className="flex items-center justify-center gap-3 bg-white hover:bg-cream-100 text-neutral-900 rounded-xl p-6 transition-all duration-200 min-h-[100px] shadow-card hover:shadow-hover active:scale-95 transform border border-gray-200"
         >
-          <Gauge className="w-8 h-8" />
-          <span className="text-lg font-semibold">Update Mileage</span>
+          <Zap className="w-8 h-8" />
+          <span className="text-lg font-semibold">Quick Actions</span>
         </button>
 
         <button
@@ -781,11 +819,11 @@ export function DashboardPage() {
       </div>
 
       <div className="card overflow-hidden p-0">
-        <button
-          onClick={() => setAlertsExpanded(!alertsExpanded)}
-          className="w-full flex items-center justify-between p-6 hover:bg-cream-50 transition-all duration-200"
-        >
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between p-6">
+          <button
+            onClick={() => setAlertsExpanded(!alertsExpanded)}
+            className="flex-1 flex items-center gap-3 hover:bg-cream-50 -m-2 p-2 rounded-lg transition-all duration-200"
+          >
             <AlertCircle className="w-6 h-6 text-orange-600" />
             <h2 className="text-xl font-bold text-neutral-900">Vehicle Health Alerts</h2>
             {totalAlerts > 0 && (
@@ -793,13 +831,31 @@ export function DashboardPage() {
                 {totalAlerts}
               </span>
             )}
+          </button>
+          <div className="flex items-center gap-2">
+            {snoozedAlerts.length > 0 && (
+              <button
+                onClick={() => setShowSnoozedModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                title="View snoozed alerts"
+              >
+                <Eye className="w-4 h-4" />
+                <span className="hidden sm:inline">{snoozedAlerts.length} snoozed</span>
+                <span className="sm:hidden">{snoozedAlerts.length}</span>
+              </button>
+            )}
+            <button
+              onClick={() => setAlertsExpanded(!alertsExpanded)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              {alertsExpanded ? (
+                <ChevronUp className="w-5 h-5 text-gray-500" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-gray-500" />
+              )}
+            </button>
           </div>
-          {alertsExpanded ? (
-            <ChevronUp className="w-5 h-5 text-gray-500" />
-          ) : (
-            <ChevronDown className="w-5 h-5 text-gray-500" />
-          )}
-        </button>
+        </div>
 
         {alertsExpanded && (
           <div className="p-4 md:p-6 pt-0 grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -1261,6 +1317,84 @@ export function DashboardPage() {
         editingBooking={editingBooking}
         submitting={submitting}
       />
+
+      {/* Snoozed Alerts Modal */}
+      {showSnoozedModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <div className="flex items-center gap-2">
+                <BellOff className="w-5 h-5 text-gray-600" />
+                <h2 className="text-lg font-semibold text-gray-900">Snoozed Alerts</h2>
+                <span className="bg-gray-200 text-gray-700 text-sm font-medium px-2 py-0.5 rounded-full">
+                  {snoozedAlerts.length}
+                </span>
+              </div>
+              <button
+                onClick={() => setShowSnoozedModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto max-h-[60vh]">
+              {snoozedAlerts.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">
+                  <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p>No snoozed alerts</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {snoozedAlerts.map((snooze) => {
+                    const info = getSnoozedAlertInfo(snooze);
+                    const daysRemaining = Math.ceil((info.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+
+                    return (
+                      <div key={snooze.id} className="p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                                snooze.alert_type === 'health_flag' ? 'bg-red-100 text-red-700' :
+                                snooze.alert_type === 'snag' ? 'bg-orange-100 text-orange-700' :
+                                snooze.alert_type === 'spare_key' ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-blue-100 text-blue-700'
+                              }`}>
+                                {info.label}
+                              </span>
+                            </div>
+                            <p className="font-medium text-gray-900">{info.identifier}</p>
+                            <p className="text-sm text-gray-500 mt-1">
+                              Expires in {daysRemaining} day{daysRemaining !== 1 ? 's' : ''}
+                              <span className="text-gray-400 ml-1">
+                                ({info.expiresAt.toLocaleDateString()})
+                              </span>
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleUnsnoozeAlert(snooze.id)}
+                            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                          >
+                            <Bell className="w-4 h-4" />
+                            Restore
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-gray-200 bg-gray-50">
+              <p className="text-xs text-gray-500 text-center">
+                Snoozed alerts will automatically reappear when they expire
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
