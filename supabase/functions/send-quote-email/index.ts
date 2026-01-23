@@ -164,7 +164,7 @@ Deno.serve(async (req: Request) => {
     const encodedMessage = base64UrlEncode(emailMessage);
 
     // Send email via Pica Gmail API
-    const gmailResponse = await fetch('https://api.picaos.com/v1/passthrough/gmail/users/me/messages/send', {
+    const gmailResponse = await fetch('https://api.picaos.com/v1/passthrough/gmail/v1/users/me/messages/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
