@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
-import { bookingService, vehicleService, branchService, categoryService } from '../services/api';
-import { Booking, Vehicle, Branch, VehicleCategory } from '../types/database';
+import { bookingService, vehicleService, branchService, categoryService, bookingDocumentService } from '../services/api';
+import { Booking, Vehicle, Branch, VehicleCategory, BookingDocument } from '../types/database';
 import { formatDateTime } from '../lib/utils';
-import { Plus, X, Car, Calendar, MapPin, Phone, Edit2, XCircle, Eye, Search } from 'lucide-react';
+import { Plus, X, Car, Calendar, MapPin, Phone, Edit2, XCircle, Eye, Search, FileText, Download } from 'lucide-react';
 import { showToast } from '../lib/toast';
 import { ConfirmModal } from '../components/ConfirmModal';
 
@@ -30,6 +30,8 @@ export function BookingListPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [documents, setDocuments] = useState<BookingDocument[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
 
   const [filterBranch, setFilterBranch] = useState<string>('');
   const [filterCategory, setFilterCategory] = useState<string>('');
@@ -88,6 +90,29 @@ export function BookingListPage() {
 
     fetchData();
   }, [branchId]);
+
+  // Load documents when a booking is selected
+  useEffect(() => {
+    const loadDocuments = async () => {
+      if (!selectedBooking) {
+        setDocuments([]);
+        return;
+      }
+
+      setLoadingDocs(true);
+      try {
+        const docs = await bookingDocumentService.getBookingDocuments(selectedBooking.id);
+        setDocuments(docs);
+      } catch (error) {
+        console.error('Failed to load documents:', error);
+        setDocuments([]);
+      } finally {
+        setLoadingDocs(false);
+      }
+    };
+
+    loadDocuments();
+  }, [selectedBooking?.id]);
 
   const handleUpdateBooking = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -631,6 +656,48 @@ export function BookingListPage() {
                     <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3">{selectedBooking.notes}</p>
                   </div>
                 )}
+
+                {/* Documents Section */}
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    Documents
+                  </h3>
+                  {loadingDocs ? (
+                    <p className="text-sm text-gray-500">Loading documents...</p>
+                  ) : documents.length > 0 ? (
+                    <div className="space-y-2">
+                      {documents.map((doc) => (
+                        <div
+                          key={doc.id}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        >
+                          <div className="flex items-center gap-3">
+                            <FileText className="w-5 h-5 text-gray-400" />
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{doc.file_name}</p>
+                              <p className="text-xs text-gray-500">
+                                {doc.document_type} • {(doc.file_size / 1024).toFixed(1)} KB
+                                {doc.description && ` • ${doc.description}`}
+                              </p>
+                            </div>
+                          </div>
+                          <a
+                            href={doc.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Download"
+                          >
+                            <Download className="w-4 h-4" />
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">No documents uploaded</p>
+                  )}
+                </div>
 
                 <div className="flex gap-3 pt-4 border-t border-gray-200">
                   <button
