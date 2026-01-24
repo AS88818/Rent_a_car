@@ -70,7 +70,7 @@ export function VehiclesPage() {
         const vehiclesWithDetails = vehiclesData.map(v => ({
           ...v,
           category_name: categoriesData.find(c => c.id === v.category_id)?.category_name,
-          branch_name: v.on_hire ? 'On Hire' : branchesData.find(b => b.id === v.branch_id)?.branch_name,
+          branch_name: v.on_hire ? 'On Hire' : (branchesData.find(b => b.id === v.branch_id)?.branch_name || 'Not assigned'),
         }));
 
         setVehicles(vehiclesWithDetails);

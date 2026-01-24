@@ -34,7 +34,7 @@ export function LocationUpdateModal({ vehicle, onClose, onConfirm }: LocationUpd
 
   const currentBranch = vehicle.on_hire ? null : branches.find(b => b.id === vehicle.branch_id);
   const newBranch = branches.find(b => b.id === selectedBranchId);
-  const currentLocationText = vehicle.on_hire ? 'On Hire' : (currentBranch?.branch_name || 'Unknown');
+  const currentLocationText = vehicle.on_hire ? 'On Hire' : (currentBranch?.branch_name || 'Not assigned');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
