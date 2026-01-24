@@ -808,8 +808,8 @@ export const quotationService = {
   async convertQuoteToBooking(quoteId: string, categoryName: string, vehicleId: string, branchId: string) {
     const quote = await this.getQuoteById(quoteId);
 
-    if (!quote.client_phone) {
-      throw new Error('Phone number is required to create a booking. Please update the quote first.');
+    if (!quote.client_phone && !quote.client_email) {
+      throw new Error('Phone number or email is required to create a booking. Please update the quote first.');
     }
 
     if (!quote.pickup_location || !quote.dropoff_location) {
@@ -866,7 +866,7 @@ export const quotationService = {
     const bookingData = {
       vehicle_id: vehicleId,
       client_name: quote.client_name,
-      contact: quote.client_phone,
+      contact: quote.client_phone || 'See email',
       client_email: quote.client_email || undefined,
       start_datetime: startDate.toISOString(),
       end_datetime: endDate.toISOString(),

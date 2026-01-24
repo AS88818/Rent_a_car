@@ -8,6 +8,7 @@ interface Quote {
   id: string;
   client_name: string;
   client_phone?: string;
+  client_email?: string;
   pickup_location?: string;
   dropoff_location?: string;
   start_date: string;
@@ -68,7 +69,8 @@ export function AcceptQuoteModal({ quote, onClose, onSuccess }: AcceptQuoteModal
 
   const checkMissingFields = () => {
     const missing: string[] = [];
-    if (!quote.client_phone) missing.push('Phone Number');
+    // Phone OR email is required, not both
+    if (!quote.client_phone && !quote.client_email) missing.push('Phone Number or Email');
     if (!quote.pickup_location) missing.push('Pickup Location');
     if (!quote.dropoff_location) missing.push('Dropoff Location');
     setMissingFields(missing);
@@ -262,6 +264,12 @@ export function AcceptQuoteModal({ quote, onClose, onSuccess }: AcceptQuoteModal
                   <span className="text-gray-600">Phone:</span>{' '}
                   <span className="font-medium">{quote.client_phone || 'Not provided'}</span>
                 </div>
+                {quote.client_email && (
+                  <div>
+                    <span className="text-gray-600">Email:</span>{' '}
+                    <span className="font-medium">{quote.client_email}</span>
+                  </div>
+                )}
               </div>
             </div>
 
