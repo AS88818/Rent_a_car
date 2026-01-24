@@ -261,6 +261,14 @@ export function DashboardPage() {
     };
   }).filter(cat => cat.total > 0);
 
+  // Helper function to check if an alert is snoozed - defined early as it's used below
+  const isAlertSnoozed = (alertType: string, vehicleId?: string, bookingId?: string) => {
+    return snoozedAlerts.some(snooze =>
+      snooze.alert_type === alertType &&
+      (vehicleId ? snooze.vehicle_id === vehicleId : snooze.booking_id === bookingId)
+    );
+  };
+
   const now = new Date();
   const threeDaysFromNow = new Date(now.getTime() + (3 * 24 * 60 * 60 * 1000));
   const fiveDaysFromNow = new Date(now.getTime() + (5 * 24 * 60 * 60 * 1000));
@@ -297,14 +305,6 @@ export function DashboardPage() {
       return aStart.getTime() - bStart.getTime();
     })
     .slice(0, 10);
-
-  // Helper function to check if an alert is snoozed
-  const isAlertSnoozed = (alertType: string, vehicleId?: string, bookingId?: string) => {
-    return snoozedAlerts.some(snooze =>
-      snooze.alert_type === alertType &&
-      (vehicleId ? snooze.vehicle_id === vehicleId : snooze.booking_id === bookingId)
-    );
-  };
 
   // Handler for snoozing an alert
   const handleSnoozeAlert = async (
