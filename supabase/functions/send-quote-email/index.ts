@@ -26,28 +26,39 @@ function buildMimeEmailWithAttachment(
   attachmentFilename: string,
   attachmentBase64: string
 ): string {
-  const boundary = "----=_Part_" + Date.now().toString(36);
-  const plainText = htmlBody.replace(/<[^>]*>/g, '');
+  const mixedBoundary = "----=_Mixed_" + Date.now().toString(36);
+  const altBoundary = "----=_Alt_" + (Date.now() + 1).toString(36);
+  const plainText = htmlBody.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 
   const mime = [
     `To: ${to}`,
     `Subject: ${subject}`,
     `MIME-Version: 1.0`,
-    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    `Content-Type: multipart/mixed; boundary="${mixedBoundary}"`,
     ``,
-    `--${boundary}`,
+    `--${mixedBoundary}`,
+    `Content-Type: multipart/alternative; boundary="${altBoundary}"`,
+    ``,
+    `--${altBoundary}`,
     `Content-Type: text/plain; charset=UTF-8`,
     ``,
     plainText,
     ``,
-    `--${boundary}`,
+    `--${altBoundary}`,
+    `Content-Type: text/html; charset=UTF-8`,
+    ``,
+    htmlBody,
+    ``,
+    `--${altBoundary}--`,
+    ``,
+    `--${mixedBoundary}`,
     `Content-Type: application/pdf; name="${attachmentFilename}"`,
     `Content-Disposition: attachment; filename="${attachmentFilename}"`,
     `Content-Transfer-Encoding: base64`,
     ``,
     attachmentBase64,
     ``,
-    `--${boundary}--`,
+    `--${mixedBoundary}--`,
   ].join('\r\n');
 
   // Base64url encode

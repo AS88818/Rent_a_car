@@ -15,9 +15,37 @@ interface EmailRequest {
 
 // Build MIME email and encode to base64url
 function buildMimeEmail(to: string, subject: string, body: string): string {
-  // Strip HTML tags for plain text
-  const plainText = body.replace(/<[^>]*>/g, '');
-  const mime = `To: ${to}\nSubject: ${subject}\nContent-Type: text/plain; charset=UTF-8\n\n${plainText}`;
+  // Check if body contains HTML tags
+  const isHtml = /<[^>]+>/.test(body);
+
+  let mime: string;
+  if (isHtml) {
+    // Send as HTML with plain text alternative
+    const boundary = "----=_Part_" + Date.now().toString(36);
+    const plainText = body.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+
+    mime = [
+      `To: ${to}`,
+      `Subject: ${subject}`,
+      `MIME-Version: 1.0`,
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      ``,
+      `--${boundary}`,
+      `Content-Type: text/plain; charset=UTF-8`,
+      ``,
+      plainText,
+      ``,
+      `--${boundary}`,
+      `Content-Type: text/html; charset=UTF-8`,
+      ``,
+      body,
+      ``,
+      `--${boundary}--`,
+    ].join('\r\n');
+  } else {
+    mime = `To: ${to}\r\nSubject: ${subject}\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n${body}`;
+  }
+
   // Base64url encode
   const encoder = new TextEncoder();
   const data = encoder.encode(mime);
