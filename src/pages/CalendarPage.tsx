@@ -734,8 +734,8 @@ export function CalendarPage() {
                       <div className={`${booking.categoryColor?.dot} w-3 h-3 rounded-full flex-shrink-0 mt-1`}></div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2 mb-1">
-                          <div className="flex items-center gap-2">
-                            <div className="font-bold text-gray-900">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <div className="font-bold text-gray-900 truncate max-w-[150px] sm:max-w-[200px]">
                               {booking.booking_reference || (booking.vehicle ? booking.vehicle.reg_number : 'Unknown')}
                             </div>
                             {booking.booking_reference && booking.vehicle && (
@@ -744,7 +744,7 @@ export function CalendarPage() {
                                   e.stopPropagation();
                                   navigate(`/vehicles/${booking.vehicle!.id}`);
                                 }}
-                                className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                                className="text-xs text-blue-600 hover:text-blue-800 hover:underline flex-shrink-0"
                               >
                                 ({booking.vehicle.reg_number})
                               </button>

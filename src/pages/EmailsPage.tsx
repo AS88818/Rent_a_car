@@ -601,29 +601,31 @@ export function EmailsPage() {
               const canSubmit = template.approval_status === 'draft' && template.created_by === currentUser?.id;
 
               return (
-                <div key={template.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold text-gray-900">{template.template_name}</h3>
-                        <span
-                          className={`text-xs px-2 py-1 rounded border font-medium ${getApprovalBadge(template.approval_status)}`}
-                        >
-                          {template.approval_status}
-                        </span>
-                        {template.is_system_template && (
-                          <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700 border border-gray-200">
-                            System
+                <div key={template.id} className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start gap-2 mb-2">
+                        <h3 className="font-semibold text-gray-900 text-sm sm:text-base">{template.template_name}</h3>
+                        <div className="flex items-center gap-1 flex-wrap flex-shrink-0">
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded border font-medium ${getApprovalBadge(template.approval_status)}`}
+                          >
+                            {template.approval_status}
                           </span>
-                        )}
-                        <span
-                          className={`text-xs px-2 py-1 rounded ${template.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}
-                        >
-                          {template.is_active ? 'Active' : 'Inactive'}
-                        </span>
+                          {template.is_system_template && (
+                            <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200">
+                              System
+                            </span>
+                          )}
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded ${template.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}
+                          >
+                            {template.is_active ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-600 font-mono mb-1">{template.template_key}</p>
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <p className="text-xs sm:text-sm text-gray-600 font-mono mb-1 truncate">{template.template_key}</p>
+                      <div className="flex items-center gap-2 sm:gap-4 text-xs text-gray-500 flex-wrap">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
                           {getScheduleText(template)}
@@ -638,11 +640,11 @@ export function EmailsPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 ml-4">
+                    <div className="flex items-center gap-1 flex-wrap">
                       {canSubmit && (
                         <button
                           onClick={() => handleSubmitForApproval(template.id)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                          className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
                           title="Submit for Approval"
                         >
                           <Send className="w-4 h-4" />
@@ -652,7 +654,7 @@ export function EmailsPage() {
                         <>
                           <button
                             onClick={() => handleApproveTemplate(template.id)}
-                            className="p-2 text-green-600 hover:bg-green-50 rounded transition-colors"
+                            className="p-1.5 sm:p-2 text-green-600 hover:bg-green-50 rounded transition-colors"
                             title="Approve"
                           >
                             <ThumbsUp className="w-4 h-4" />
@@ -662,7 +664,7 @@ export function EmailsPage() {
                               const reason = prompt('Rejection reason:');
                               if (reason) handleRejectTemplate(template.id, reason);
                             }}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
                             title="Reject"
                           >
                             <ThumbsDown className="w-4 h-4" />
@@ -671,7 +673,7 @@ export function EmailsPage() {
                       )}
                       <button
                         onClick={() => handleDuplicateTemplate(template)}
-                        className="p-2 text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                        className="p-1.5 sm:p-2 text-gray-600 hover:bg-gray-100 rounded transition-colors"
                         title="Duplicate"
                       >
                         <Copy className="w-4 h-4" />
@@ -682,7 +684,7 @@ export function EmailsPage() {
                             setEditingTemplate(template);
                             setShowTemplateModal(true);
                           }}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                          className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
                           title="Edit"
                         >
                           <Edit className="w-4 h-4" />
@@ -696,7 +698,7 @@ export function EmailsPage() {
                               message: 'Are you sure you want to delete this template?',
                             })
                           }
-                          className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                          className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
                           title="Delete"
                         >
                           <Trash2 className="w-4 h-4" />

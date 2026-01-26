@@ -475,13 +475,13 @@ export function BookingListPage() {
               <div className="flex-1">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <Car className="w-5 h-5 text-blue-600" />
-                      <h3 className="text-lg font-bold text-gray-900">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap min-w-0">
+                      <Car className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                      <h3 className="text-base sm:text-lg font-bold text-gray-900 truncate max-w-[180px] sm:max-w-none">
                         {booking.booking_reference || booking.vehicle?.reg_number}
                       </h3>
                       {booking.booking_reference && (
-                        <span className="text-sm text-gray-500">
+                        <span className="text-xs sm:text-sm text-gray-500 flex-shrink-0">
                           ({booking.vehicle?.reg_number})
                         </span>
                       )}

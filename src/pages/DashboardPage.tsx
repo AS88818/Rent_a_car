@@ -1067,11 +1067,11 @@ export function DashboardPage() {
                           setIsDetailsModalOpen(true);
                         }}
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="font-medium text-gray-900">
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <p className="font-medium text-gray-900 truncate max-w-[160px] sm:max-w-[200px]">
                             {booking.booking_reference || vehicle?.reg_number || 'Unknown'}
                           </p>
-                          <span className="bg-orange-600 text-white text-xs font-semibold px-2 py-1 rounded">
+                          <span className="bg-orange-600 text-white text-xs font-semibold px-2 py-1 rounded flex-shrink-0">
                             {booking.booking_type === 'chauffeur' ? 'Chauffeur' : 'Transfer'}
                           </span>
                         </div>
@@ -1179,12 +1179,12 @@ export function DashboardPage() {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2 flex-wrap">
-                            <p className="font-semibold text-gray-900 text-lg">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap min-w-0">
+                            <p className="font-semibold text-gray-900 text-base sm:text-lg truncate max-w-[180px] sm:max-w-[280px]">
                               {booking.booking_reference || vehicle?.reg_number || 'Unknown'}
                             </p>
                             {booking.booking_reference && (
-                              <span className="text-xs text-gray-500">
+                              <span className="text-xs text-gray-500 flex-shrink-0">
                                 ({vehicle?.reg_number})
                               </span>
                             )}
