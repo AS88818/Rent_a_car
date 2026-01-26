@@ -250,6 +250,11 @@ export function BookingCreatePage() {
         outside_hours_charges: outsideHoursCharges.totalExtraCharge,
       });
 
+      // Update vehicle's branch_id if it was null or different
+      if (!selectedVehicle.branch_id || selectedVehicle.branch_id !== vehicleBranchId) {
+        await vehicleService.updateVehicle(selectedVehicle.id, { branch_id: vehicleBranchId });
+      }
+
       setCreatedBookingId(createdBooking.id);
       setBookingCreated(true);
       showToast(saveAsDraft ? 'Draft saved successfully' : 'Booking created successfully', 'success');

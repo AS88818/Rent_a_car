@@ -51,9 +51,13 @@ export function VehicleFormModal({
     on_hire_location: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  // Store the original branch_id to restore when toggling On Hire off
+  const [originalBranchId, setOriginalBranchId] = useState<string>(defaultBranchId || '');
 
   useEffect(() => {
     if (mode === 'edit' && vehicle) {
+      // Store the original branch_id before it might be cleared by On Hire toggle
+      setOriginalBranchId(vehicle.branch_id || '');
       setFormData({
         reg_number: vehicle.reg_number || '',
         category_id: vehicle.category_id || '',
@@ -192,7 +196,19 @@ export function VehicleFormModal({
                   type="checkbox"
                   id="on_hire"
                   checked={formData.on_hire}
-                  onChange={(e) => setFormData({ ...formData, on_hire: e.target.checked, branch_id: e.target.checked ? '' : formData.branch_id })}
+                  onChange={(e) => {
+                    const isOnHire = e.target.checked;
+                    if (isOnHire) {
+                      // Store current branch_id before clearing it
+                      setOriginalBranchId(formData.branch_id || originalBranchId);
+                    }
+                    setFormData({
+                      ...formData,
+                      on_hire: isOnHire,
+                      // When unchecking On Hire, restore the original branch_id
+                      branch_id: isOnHire ? '' : (originalBranchId || formData.branch_id)
+                    });
+                  }}
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                 />
                 <label htmlFor="on_hire" className="text-sm font-medium text-gray-700">

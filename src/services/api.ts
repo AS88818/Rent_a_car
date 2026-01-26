@@ -198,7 +198,7 @@ export const vehicleService = {
       .from('bookings')
       .select('id')
       .eq('vehicle_id', id)
-      .in('status', ['Active', 'Deposit Not Paid'])
+      .in('status', ['Active', 'Advance Payment Not Paid', 'Draft'])
       .maybeSingle();
 
     if (activeBookings.data) {
@@ -210,6 +210,7 @@ export const vehicleService = {
       .select('id')
       .eq('vehicle_id', id)
       .gte('start_datetime', new Date().toISOString())
+      .not('status', 'in', '("Cancelled","Completed")')
       .maybeSingle();
 
     if (futureBookings.data) {
