@@ -1157,9 +1157,9 @@ export function DashboardPage() {
                     booking.start_location.toLowerCase().includes(b.branch_name.toLowerCase())
                   );
 
+                  // Show warning if vehicle location doesn't match pickup location
                   const hasLocationMismatch = vehicleBranch && startLocationBranch &&
-                    vehicleBranch.id !== startLocationBranch.id &&
-                    vehicle?.status !== 'On Hire';
+                    vehicleBranch.id !== startLocationBranch.id;
 
                   const daysUntilStart = Math.ceil(
                     (new Date(booking.start_datetime).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
