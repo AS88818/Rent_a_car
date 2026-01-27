@@ -293,6 +293,7 @@ export interface AuthUser {
   role: UserRole;
   branch_id?: string;
   status: string;
+  deleted_at?: string;
 }
 
 export interface AppSettings {

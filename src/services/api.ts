@@ -1000,6 +1000,7 @@ export const userService = {
     const { data, error } = await supabase
       .from('users')
       .select('*')
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data as AuthUser[];
@@ -1017,6 +1018,7 @@ export const userService = {
       .from('users')
       .select('*')
       .eq('branch_id', branchId)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data as AuthUser[];
@@ -1057,13 +1059,16 @@ export const userService = {
   },
 
   async deleteUser(id: string) {
-    const { error: authError } = await supabase.auth.admin.deleteUser(id);
-    if (authError) throw authError;
-
+    // Use soft delete - set deleted_at timestamp instead of actually deleting
+    // This avoids needing service role key for auth.admin.deleteUser
     const { error } = await supabase
       .from('users')
-      .delete()
+      .update({
+        deleted_at: new Date().toISOString(),
+        status: 'inactive'
+      })
       .eq('id', id);
+
     if (error) throw error;
   },
 
