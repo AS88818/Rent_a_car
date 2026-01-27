@@ -1187,28 +1187,30 @@ export function DashboardPage() {
                   }) : null;
 
                   // Show warning if vehicle location doesn't match pickup location
-                  // Primary check: compare branch IDs if both branches are found
-                  // Fallback check: compare strings directly if branch lookup fails
+                  // Compare vehicle's location with booking's start location
                   let hasLocationMismatch = false;
-                  let vehicleLocationName = vehicleBranch?.branch_name || vehicle?.branch_name || '';
-                  let pickupLocationName = booking.start_location || '';
+                  const vehicleLocationName = vehicleBranch?.branch_name || vehicle?.branch_name || '';
+                  const pickupLocationName = booking.start_location || '';
 
-                  if (vehicleBranch && startLocationBranch) {
-                    // Both branches found - compare IDs
-                    hasLocationMismatch = vehicleBranch.id !== startLocationBranch.id;
-                  } else if (vehicleLocationName && pickupLocationName) {
-                    // Fallback: compare location strings directly
+                  if (vehicleLocationName && pickupLocationName) {
                     const vehicleLoc = vehicleLocationName.toLowerCase().trim();
                     const pickupLoc = pickupLocationName.toLowerCase().trim();
 
-                    // They mismatch if neither contains the other and first words differ
-                    const vehicleFirstWord = vehicleLoc.split(' ')[0];
-                    const pickupFirstWord = pickupLoc.split(' ')[0];
+                    // Check if locations are different
+                    // First, try exact or contains match
+                    const locationsMatch = vehicleLoc === pickupLoc ||
+                      vehicleLoc.includes(pickupLoc) ||
+                      pickupLoc.includes(vehicleLoc);
 
-                    if (vehicleFirstWord.length >= 3 && pickupFirstWord.length >= 3) {
-                      hasLocationMismatch = vehicleFirstWord !== pickupFirstWord &&
-                        !vehicleLoc.includes(pickupLoc) &&
-                        !pickupLoc.includes(vehicleLoc);
+                    if (!locationsMatch) {
+                      // Locations don't match directly, check first words
+                      const vehicleFirstWord = vehicleLoc.split(' ')[0];
+                      const pickupFirstWord = pickupLoc.split(' ')[0];
+
+                      // Mismatch if first words are different (e.g., "nairobi" vs "nanyuki")
+                      if (vehicleFirstWord.length >= 3 && pickupFirstWord.length >= 3) {
+                        hasLocationMismatch = vehicleFirstWord !== pickupFirstWord;
+                      }
                     }
                   }
 
