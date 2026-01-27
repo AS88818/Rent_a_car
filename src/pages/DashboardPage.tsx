@@ -1151,11 +1151,40 @@ export function DashboardPage() {
               <div className="space-y-3">
                 {upcomingBookings.map(booking => {
                   const vehicle = vehicles.find(v => v.id === booking.vehicle_id);
-                  const vehicleBranch = branches.find(b => b.id === vehicle?.branch_id);
-                  const startLocationBranch = branches.find(b =>
-                    b.branch_name.toLowerCase().includes(booking.start_location.toLowerCase()) ||
-                    booking.start_location.toLowerCase().includes(b.branch_name.toLowerCase())
-                  );
+
+                  // Find vehicle's branch - first by branch_id, then fallback to branch_name matching
+                  let vehicleBranch = branches.find(b => b.id === vehicle?.branch_id);
+
+                  // Fallback: if branch_id lookup failed but vehicle has a valid branch_name, match by name
+                  if (!vehicleBranch && vehicle?.branch_name &&
+                      !['On Hire', 'Not assigned', 'Unknown'].includes(vehicle.branch_name)) {
+                    vehicleBranch = branches.find(b =>
+                      b.branch_name.toLowerCase().trim() === vehicle.branch_name!.toLowerCase().trim() ||
+                      b.branch_name.toLowerCase().includes(vehicle.branch_name!.toLowerCase()) ||
+                      vehicle.branch_name!.toLowerCase().includes(b.branch_name.toLowerCase())
+                    );
+                  }
+
+                  // Find the branch matching the booking's start location
+                  // Handle various formats: full name, partial name, abbreviations
+                  const startLocationBranch = booking.start_location ? branches.find(b => {
+                    const branchName = b.branch_name.toLowerCase().trim();
+                    const startLoc = booking.start_location.toLowerCase().trim();
+
+                    // Direct match
+                    if (branchName === startLoc) return true;
+
+                    // Partial match (one contains the other)
+                    if (branchName.includes(startLoc) || startLoc.includes(branchName)) return true;
+
+                    // First word match (e.g., "Nanyuki" matches "Nanyuki Branch")
+                    const branchFirstWord = branchName.split(' ')[0];
+                    const locationFirstWord = startLoc.split(' ')[0];
+                    if (branchFirstWord.length >= 3 && locationFirstWord.length >= 3 &&
+                        branchFirstWord === locationFirstWord) return true;
+
+                    return false;
+                  }) : null;
 
                   // Show warning if vehicle location doesn't match pickup location
                   const hasLocationMismatch = vehicleBranch && startLocationBranch &&
