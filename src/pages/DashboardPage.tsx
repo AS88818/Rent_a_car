@@ -1187,8 +1187,30 @@ export function DashboardPage() {
                   }) : null;
 
                   // Show warning if vehicle location doesn't match pickup location
-                  const hasLocationMismatch = vehicleBranch && startLocationBranch &&
-                    vehicleBranch.id !== startLocationBranch.id;
+                  // Primary check: compare branch IDs if both branches are found
+                  // Fallback check: compare strings directly if branch lookup fails
+                  let hasLocationMismatch = false;
+                  let vehicleLocationName = vehicleBranch?.branch_name || vehicle?.branch_name || '';
+                  let pickupLocationName = booking.start_location || '';
+
+                  if (vehicleBranch && startLocationBranch) {
+                    // Both branches found - compare IDs
+                    hasLocationMismatch = vehicleBranch.id !== startLocationBranch.id;
+                  } else if (vehicleLocationName && pickupLocationName) {
+                    // Fallback: compare location strings directly
+                    const vehicleLoc = vehicleLocationName.toLowerCase().trim();
+                    const pickupLoc = pickupLocationName.toLowerCase().trim();
+
+                    // They mismatch if neither contains the other and first words differ
+                    const vehicleFirstWord = vehicleLoc.split(' ')[0];
+                    const pickupFirstWord = pickupLoc.split(' ')[0];
+
+                    if (vehicleFirstWord.length >= 3 && pickupFirstWord.length >= 3) {
+                      hasLocationMismatch = vehicleFirstWord !== pickupFirstWord &&
+                        !vehicleLoc.includes(pickupLoc) &&
+                        !pickupLoc.includes(vehicleLoc);
+                    }
+                  }
 
                   const daysUntilStart = Math.ceil(
                     (new Date(booking.start_datetime).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
@@ -1261,7 +1283,7 @@ export function DashboardPage() {
                               <div>
                                 <p className="font-semibold text-orange-900">Location Mismatch</p>
                                 <p className="text-orange-700">
-                                  Vehicle at {vehicleBranch?.branch_name}, pickup at {booking.start_location}
+                                  Vehicle at {vehicleLocationName}, pickup at {pickupLocationName}
                                   {daysUntilStart > 0 && ` (${daysUntilStart} days)`}
                                 </p>
                               </div>
