@@ -224,14 +224,16 @@ export function DashboardPage() {
   const branchBreakdown = branches
     .filter(branch => branch.branch_name !== 'On Hire')
     .map(branch => {
-      const branchVehicles = businessVehicles.filter(v => v.branch_id === branch.id && !v.on_hire);
+      // All vehicles belonging to this branch (including on-hire)
+      const branchVehicles = businessVehicles.filter(v => v.branch_id === branch.id);
+
       return {
         id: branch.id,
         name: branch.branch_name,
         shortName: branch.branch_name.includes('Nairobi') ? 'NRB' : 'NYK',
         total: branchVehicles.length,
-        available: branchVehicles.filter(v => v.status === 'Available').length,
-        onHire: 0,
+        available: branchVehicles.filter(v => v.status === 'Available' && !v.on_hire).length,
+        onHire: branchVehicles.filter(v => v.on_hire).length,
         grounded: branchVehicles.filter(v => v.status === 'Grounded').length,
       };
     });
@@ -241,11 +243,13 @@ export function DashboardPage() {
 
     const byBranch: Record<string, { total: number; available: number; onHire: number; grounded: number }> = {};
     branches.filter(b => b.branch_name !== 'On Hire').forEach(branch => {
-      const branchCategoryVehicles = categoryVehicles.filter(v => v.branch_id === branch.id && !v.on_hire);
+      // All vehicles in this category belonging to this branch
+      const branchCategoryVehicles = categoryVehicles.filter(v => v.branch_id === branch.id);
+
       byBranch[branch.id] = {
         total: branchCategoryVehicles.length,
-        available: branchCategoryVehicles.filter(v => v.status === 'Available').length,
-        onHire: 0,
+        available: branchCategoryVehicles.filter(v => v.status === 'Available' && !v.on_hire).length,
+        onHire: branchCategoryVehicles.filter(v => v.on_hire).length,
         grounded: branchCategoryVehicles.filter(v => v.status === 'Grounded').length,
       };
     });

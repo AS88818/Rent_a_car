@@ -96,7 +96,7 @@ export function VehicleFormModal({
       const vehicleData = {
         reg_number: formData.reg_number,
         category_id: formData.category_id,
-        branch_id: formData.on_hire ? null : (formData.branch_id || null),
+        branch_id: formData.branch_id || null,
         status: mode === 'add' ? 'Available' : vehicle?.status,
         health_flag: formData.status as 'Excellent' | 'OK' | 'Grounded',
         insurance_expiry: formData.insurance_expiry,

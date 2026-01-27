@@ -104,6 +104,8 @@ export function BookingCreatePage() {
     } else if (selectedCategory) {
       const filtered = vehicles.filter(v =>
         v.category_id === selectedCategory &&
+        !v.on_hire &&
+        !v.is_personal &&
         v.status !== 'Grounded' &&
         v.health_flag !== 'Grounded'
       );

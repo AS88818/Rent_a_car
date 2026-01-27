@@ -151,6 +151,11 @@ export function getAvailableVehicles(
       return false;
     }
 
+    // Exclude vehicles currently on hire
+    if (vehicle.on_hire) {
+      return false;
+    }
+
     if (vehicle.status === 'Grounded' || vehicle.health_flag === 'Grounded') {
       return false;
     }
@@ -158,6 +163,7 @@ export function getAvailableVehicles(
     const vehicleBookings = bookings.filter(b =>
       b.vehicle_id === vehicle.id &&
       b.status !== 'Cancelled' &&
+      b.status !== 'Completed' &&
       (!excludeBookingId || b.id !== excludeBookingId)
     );
 
