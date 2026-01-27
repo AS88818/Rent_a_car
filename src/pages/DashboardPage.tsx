@@ -1291,10 +1291,6 @@ export function DashboardPage() {
                               </div>
                             </div>
                           )}
-                          {/* Debug: show location comparison for troubleshooting - REMOVE AFTER FIX */}
-                          <div className="text-xs text-gray-400 mb-1">
-                            [vLoc="{vehicleLocationName}" pLoc="{pickupLocationName}" {hasLocationMismatch ? '⚠️MISMATCH' : '✓'}]
-                          </div>
 
                           <p className="text-sm font-medium text-gray-700 mb-1">{booking.client_name}</p>
 
