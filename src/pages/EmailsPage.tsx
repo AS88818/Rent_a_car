@@ -31,6 +31,7 @@ export function EmailsPage() {
   const [emailQueue, setEmailQueue] = useState<EmailQueue[]>([]);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [processingEmails, setProcessingEmails] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -64,6 +65,18 @@ export function EmailsPage() {
       showToast('Failed to fetch email data', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchData();
+      showToast('Data refreshed', 'success');
+    } catch (error) {
+      showToast('Failed to refresh data', 'error');
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -349,7 +362,17 @@ export function EmailsPage() {
 
   return (
     <div className="p-4 md:p-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Email Management</h1>
+      <div className="flex items-center gap-3 mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Email Management</h1>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          title="Refresh data"
+        >
+          <RefreshCw className={`w-5 h-5 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
+        </button>
+      </div>
 
       <div className="space-y-8">
         {/* Email Queue Monitor */}

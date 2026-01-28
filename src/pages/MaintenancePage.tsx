@@ -4,7 +4,7 @@ import { useAuth } from '../lib/auth-context';
 import { maintenanceService, vehicleService, userService } from '../services/api';
 import { MaintenanceLog, Vehicle, AuthUser } from '../types/database';
 import { formatDate } from '../lib/utils';
-import { Plus, Filter, X, Upload, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { Plus, Filter, X, Upload, Image as ImageIcon, Trash2, RefreshCw } from 'lucide-react';
 import { showToast } from '../lib/toast';
 import { PhotoUpload } from '../components/PhotoUpload';
 
@@ -29,6 +29,7 @@ export function MaintenancePage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [mechanics, setMechanics] = useState<AuthUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState('');
   const [selectedLog, setSelectedLog] = useState<MaintenanceLog | null>(null);
@@ -92,6 +93,35 @@ export function MaintenancePage() {
 
     fetchData();
   }, [branchId, userRole, vehicleIdFromUrl]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+      const vehiclesData = await vehicleService.getVehicles(vehicleBranchFilter);
+      setVehicles(vehiclesData);
+
+      const userBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+      const usersData = await userService.getUsers(userBranchFilter);
+      const mechanicsOnly = usersData.filter(u => {
+        const isActive = u.status === 'active' || !u.status;
+        const isMechanic = u.role === 'mechanic';
+        return isActive && isMechanic;
+      });
+      setMechanics(mechanicsOnly);
+
+      if (selectedVehicle) {
+        const logsData = await maintenanceService.getMaintenanceLog(selectedVehicle);
+        setLogs(logsData);
+      }
+
+      showToast('Data refreshed', 'success');
+    } catch (error: any) {
+      showToast('Failed to refresh data', 'error');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleVehicleChange = async (vehicleId: string) => {
     setSelectedVehicle(vehicleId);
@@ -273,7 +303,17 @@ export function MaintenancePage() {
   return (
     <div className="p-4 md:p-8 pb-24 md:pb-8">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Maintenance</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold text-gray-900">Maintenance</h1>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Refresh data"
+          >
+            <RefreshCw className={`w-5 h-5 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
         <button
           onClick={() => setShowForm(!showForm)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

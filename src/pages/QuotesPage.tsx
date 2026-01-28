@@ -10,6 +10,7 @@ import {
   CheckCircle,
   XCircle,
   Trash2,
+  RefreshCw,
 } from 'lucide-react';
 import { quotationService } from '../services/api';
 import { showToast } from '../lib/toast';
@@ -177,6 +178,7 @@ export default function QuotesPage() {
   const navigate = useNavigate();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'Draft' | 'Active' | 'Accepted' | 'Converted' | 'Expired'>('all');
   const [convertingQuote, setConvertingQuote] = useState<Quote | null>(null);
   const [acceptingQuote, setAcceptingQuote] = useState<Quote | null>(null);
@@ -198,6 +200,18 @@ export default function QuotesPage() {
       showToast('Failed to load quotes', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadQuotes();
+      showToast('Data refreshed', 'success');
+    } catch (error) {
+      showToast('Failed to refresh data', 'error');
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -294,7 +308,17 @@ export default function QuotesPage() {
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Quotes</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-900">Quotes</h1>
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Refresh data"
+              >
+                <RefreshCw className={`w-5 h-5 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
             <p className="text-gray-600 mt-1">Manage and track all your quotes</p>
           </div>
           <button

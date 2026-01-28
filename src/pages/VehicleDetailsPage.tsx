@@ -21,6 +21,7 @@ import {
   Image as ImageIcon,
   Plus,
   ChevronDown,
+  RefreshCw,
 } from 'lucide-react';
 import {
   vehicleService,
@@ -79,6 +80,7 @@ export function VehicleDetailsPage() {
   const [deleting, setDeleting] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [showImages, setShowImages] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadUser();
@@ -281,6 +283,18 @@ export function VehicleDetailsPage() {
     return 'text-green-600';
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchData();
+      showToast('Data refreshed', 'success');
+    } catch (error) {
+      showToast('Failed to refresh data', 'error');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-4 md:p-8">
@@ -395,6 +409,14 @@ export function VehicleDetailsPage() {
                   <h1 className="text-4xl font-bold text-gray-900">
                     {vehicle.reg_number}
                   </h1>
+                  <button
+                    onClick={handleRefresh}
+                    disabled={refreshing}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    title="Refresh data"
+                  >
+                    <RefreshCw className={`w-5 h-5 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
+                  </button>
                   {vehicle.is_draft && (
                     <span className="px-3 py-1 text-sm font-medium bg-orange-100 text-orange-800 border border-orange-300 rounded-lg">
                       Draft

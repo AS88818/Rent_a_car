@@ -6,7 +6,7 @@ import { exchangeCodeForTokens } from '../lib/google-oauth';
 import { calendarSettingsService } from '../services/calendar-service';
 import { VehicleCategory, Vehicle, Booking } from '../types/database';
 import { showToast } from '../lib/toast';
-import { ChevronLeft, ChevronRight, Settings, Printer, Download, Filter, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Settings, Printer, Download, Filter, X, RefreshCw } from 'lucide-react';
 import {
   getMonthCalendar,
   getMonthName,
@@ -39,6 +39,7 @@ export function CalendarPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [showFilters, setShowFilters] = useState(false);
@@ -128,6 +129,28 @@ export function CalendarPage() {
 
     fetchData();
   }, [branchId, userRole]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+      const [categoriesData, vehiclesData, bookingsData, branchesData] = await Promise.all([
+        categoryService.getCategories(),
+        vehicleService.getVehicles(vehicleBranchFilter),
+        bookingService.getBookings(branchId || undefined),
+        branchService.getBranches(),
+      ]);
+      setCategories(categoriesData);
+      setVehicles(vehiclesData);
+      setBookings(bookingsData);
+      setBranches(branchesData);
+      showToast('Data refreshed', 'success');
+    } catch (error) {
+      showToast('Failed to refresh data', 'error');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     const weeks = getMonthCalendar(currentYear, currentMonth);
@@ -376,7 +399,17 @@ export function CalendarPage() {
   return (
     <div className="p-4 md:p-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Calendar</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold text-gray-900">Calendar</h1>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Refresh data"
+          >
+            <RefreshCw className={`w-5 h-5 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
 
         <div className="flex gap-2">
           <button

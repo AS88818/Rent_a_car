@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth-context';
 import { snagService, userService, vehicleService, snagAssignmentService, snagResolutionService } from '../services/api';
 import { Snag, VehicleWithSnagCount, AuthUser } from '../types/database';
 import { showToast } from '../lib/toast';
-import { Plus, Filter, ArrowUpDown } from 'lucide-react';
+import { Plus, Filter, ArrowUpDown, RefreshCw } from 'lucide-react';
 import { VehicleSnagCard } from '../components/VehicleSnagCard';
 import { SnagFormModal } from '../components/SnagFormModal';
 import { SnagEditModal } from '../components/SnagEditModal';
@@ -26,6 +26,7 @@ export function SnagsPage() {
   const [users, setUsers] = useState<AuthUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editSnag, setEditSnag] = useState<Snag | null>(null);
@@ -66,6 +67,18 @@ export function SnagsPage() {
       showToast(error.message || 'Failed to fetch data', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchData();
+      showToast('Data refreshed', 'success');
+    } catch (error) {
+      showToast('Failed to refresh data', 'error');
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -270,7 +283,17 @@ export function SnagsPage() {
   return (
     <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Snags</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold text-gray-900">Snags</h1>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Refresh data"
+          >
+            <RefreshCw className={`w-5 h-5 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
         <button
           onClick={() => setShowAddModal(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

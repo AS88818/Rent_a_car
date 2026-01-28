@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, UserPlus, Edit2, Trash2, Search, Shield, Briefcase, User, Wrench, Car } from 'lucide-react';
+import { Users, UserPlus, Edit2, Trash2, Search, Shield, Briefcase, User, Wrench, Car, RefreshCw } from 'lucide-react';
 import { userService, branchService } from '../services/api';
 import { AuthUser, Branch } from '../types/database';
 import { showToast } from '../lib/toast';
@@ -12,6 +12,7 @@ export function UserManagementPage() {
   const [users, setUsers] = useState<AuthUser[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [branchFilter, setBranchFilter] = useState<string>('all');
@@ -47,6 +48,18 @@ export function UserManagementPage() {
       showToast('Failed to load user data', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadData();
+      showToast('Data refreshed', 'success');
+    } catch (error) {
+      showToast('Failed to refresh data', 'error');
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -125,10 +138,20 @@ export function UserManagementPage() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <Users className="w-8 h-8 text-blue-600" />
-              User Management
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                <Users className="w-8 h-8 text-blue-600" />
+                User Management
+              </h1>
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Refresh data"
+              >
+                <RefreshCw className={`w-5 h-5 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
             <p className="text-gray-600 mt-1">Manage user accounts and permissions</p>
           </div>
           <button

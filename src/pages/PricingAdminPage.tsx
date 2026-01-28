@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { quotationService } from '../services/api';
 import { CategoryPricing, PricingConfig } from '../types/database';
 import { showToast } from '../lib/toast';
-import { DollarSign, Save, Edit, X, TrendingUp, Percent } from 'lucide-react';
+import { DollarSign, Save, Edit, X, TrendingUp, Percent, RefreshCw } from 'lucide-react';
 
 export function PricingAdminPage() {
   const [pricingConfig, setPricingConfig] = useState<PricingConfig | null>(null);
   const [categoryPricing, setCategoryPricing] = useState<CategoryPricing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [editingGlobal, setEditingGlobal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -43,6 +44,18 @@ export function PricingAdminPage() {
       showToast('Failed to fetch pricing data', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchData();
+      showToast('Data refreshed', 'success');
+    } catch (error) {
+      showToast('Failed to refresh data', 'error');
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -182,7 +195,17 @@ export function PricingAdminPage() {
 
   return (
     <div className="p-4 md:p-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Pricing Administration</h1>
+      <div className="flex items-center gap-3 mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Pricing Administration</h1>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          title="Refresh data"
+        >
+          <RefreshCw className={`w-5 h-5 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
+        </button>
+      </div>
 
       <div className="space-y-8">
         <div className="bg-white rounded-lg shadow p-6">

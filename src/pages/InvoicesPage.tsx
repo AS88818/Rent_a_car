@@ -18,6 +18,7 @@ import {
   Download,
   X,
   Mail,
+  RefreshCw,
 } from 'lucide-react';
 
 export function InvoicesPage() {
@@ -26,6 +27,7 @@ export function InvoicesPage() {
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<PaymentStatus | 'all'>('all');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<PaymentMethod | 'all'>('all');
@@ -66,6 +68,18 @@ export function InvoicesPage() {
       showToast(error.message || 'Failed to fetch invoices', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchInvoices();
+      showToast('Data refreshed', 'success');
+    } catch (error) {
+      showToast('Failed to refresh data', 'error');
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -193,7 +207,17 @@ export function InvoicesPage() {
 
   return (
     <div className="p-4 md:p-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Invoice Management</h1>
+      <div className="flex items-center gap-3 mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Invoice Management</h1>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          title="Refresh data"
+        >
+          <RefreshCw className={`w-5 h-5 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-blue-50 rounded-lg p-4">

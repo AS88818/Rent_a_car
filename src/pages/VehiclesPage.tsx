@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { vehicleService, categoryService, branchService, imageService } from '../services/api';
 import { Vehicle, VehicleCategory, Branch, VehicleImage } from '../types/database';
-import { Search, Car, Gauge, Plus, X, ArrowUpDown } from 'lucide-react';
+import { Search, Car, Gauge, Plus, X, ArrowUpDown, RefreshCw } from 'lucide-react';
 import { showToast } from '../lib/toast';
 import { VehicleTypeBadge } from '../components/VehicleTypeBadge';
 
@@ -20,6 +20,7 @@ export function VehiclesPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [vehicleImages, setVehicleImages] = useState<Map<string, VehicleImage[]>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
@@ -55,51 +56,63 @@ export function VehiclesPage() {
     mot_not_applicable: false,
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Mechanics should see ALL vehicles across all branches
-        const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+  const fetchData = async () => {
+    try {
+      // Mechanics should see ALL vehicles across all branches
+      const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
 
-        const [vehiclesData, categoriesData, branchesData] = await Promise.all([
-          vehicleService.getVehicles(vehicleBranchFilter),
-          categoryService.getCategories(),
-          branchService.getBranches(),
-        ]);
+      const [vehiclesData, categoriesData, branchesData] = await Promise.all([
+        vehicleService.getVehicles(vehicleBranchFilter),
+        categoryService.getCategories(),
+        branchService.getBranches(),
+      ]);
 
-        const vehiclesWithDetails = vehiclesData.map(v => ({
-          ...v,
-          category_name: categoriesData.find(c => c.id === v.category_id)?.category_name,
-          branch_name: v.on_hire ? 'On Hire' : (branchesData.find(b => b.id === v.branch_id)?.branch_name || 'Not assigned'),
-        }));
+      const vehiclesWithDetails = vehiclesData.map(v => ({
+        ...v,
+        category_name: categoriesData.find(c => c.id === v.category_id)?.category_name,
+        branch_name: v.on_hire ? 'On Hire' : (branchesData.find(b => b.id === v.branch_id)?.branch_name || 'Not assigned'),
+      }));
 
-        setVehicles(vehiclesWithDetails);
-        setCategories(categoriesData);
-        setBranches(branchesData);
+      setVehicles(vehiclesWithDetails);
+      setCategories(categoriesData);
+      setBranches(branchesData);
 
-        const imagesMap = new Map<string, VehicleImage[]>();
-        await Promise.all(
-          vehiclesData.map(async (vehicle) => {
-            try {
-              const images = await imageService.getVehicleImages(vehicle.id);
-              if (images.length > 0) {
-                imagesMap.set(vehicle.id, images);
-              }
-            } catch (error) {
-              console.error(`Failed to fetch images for vehicle ${vehicle.id}`);
+      const imagesMap = new Map<string, VehicleImage[]>();
+      await Promise.all(
+        vehiclesData.map(async (vehicle) => {
+          try {
+            const images = await imageService.getVehicleImages(vehicle.id);
+            if (images.length > 0) {
+              imagesMap.set(vehicle.id, images);
             }
-          })
-        );
-        setVehicleImages(imagesMap);
-      } catch (error) {
-        showToast('Failed to fetch data', 'error');
-      } finally {
-        setLoading(false);
-      }
-    };
+          } catch (error) {
+            console.error(`Failed to fetch images for vehicle ${vehicle.id}`);
+          }
+        })
+      );
+      setVehicleImages(imagesMap);
+    } catch (error) {
+      showToast('Failed to fetch data', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, [branchId, userRole]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchData();
+      showToast('Data refreshed', 'success');
+    } catch (error) {
+      showToast('Failed to refresh data', 'error');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const getHealthBadgeColor = (health: string) => {
     switch (health) {
@@ -269,7 +282,17 @@ export function VehiclesPage() {
     <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Vehicle Directory</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Vehicle Directory</h1>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Refresh data"
+            >
+              <RefreshCw className={`w-5 h-5 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
           <p className="text-sm text-gray-600 mt-1">{vehicles.length} vehicles total</p>
         </div>
         {userRole && ['admin', 'fleet_manager'].includes(userRole) && (

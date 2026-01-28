@@ -4,7 +4,7 @@ import { useAuth } from '../lib/auth-context';
 import { bookingService, vehicleService, branchService, categoryService, bookingDocumentService } from '../services/api';
 import { Booking, Vehicle, Branch, VehicleCategory, BookingDocument } from '../types/database';
 import { formatDateTime } from '../lib/utils';
-import { Plus, X, Car, Calendar, MapPin, Phone, Edit2, XCircle, Eye, Search, FileText, Download } from 'lucide-react';
+import { Plus, X, Car, Calendar, MapPin, Phone, Edit2, XCircle, Eye, Search, FileText, Download, RefreshCw } from 'lucide-react';
 import { showToast } from '../lib/toast';
 import { ConfirmModal } from '../components/ConfirmModal';
 
@@ -32,6 +32,7 @@ export function BookingListPage() {
   const [cancelling, setCancelling] = useState(false);
   const [documents, setDocuments] = useState<BookingDocument[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [filterBranch, setFilterBranch] = useState<string>('');
   const [filterCategory, setFilterCategory] = useState<string>('');
@@ -52,44 +53,56 @@ export function BookingListPage() {
     notes: '',
   });
 
+  const fetchData = async () => {
+    try {
+      const [bookingsData, vehiclesData, branchesData, categoriesData] = await Promise.all([
+        bookingService.getBookings(branchId || undefined),
+        vehicleService.getVehicles(branchId || undefined),
+        branchService.getBranches(),
+        categoryService.getCategories(),
+      ]);
+
+      const bookingsWithDetails = bookingsData.map(booking => {
+        const vehicle = vehiclesData.find(v => v.id === booking.vehicle_id);
+        const vehicleBranch = branchesData.find(b => b.id === vehicle?.branch_id);
+        return {
+          ...booking,
+          vehicle,
+          branch_name: booking.branch_name || vehicleBranch?.branch_name,
+          category_id: vehicle?.category_id,
+        };
+      });
+
+      bookingsWithDetails.sort((a, b) =>
+        new Date(b.start_datetime).getTime() - new Date(a.start_datetime).getTime()
+      );
+
+      setBookings(bookingsWithDetails);
+      setVehicles(vehiclesData);
+      setBranches(branchesData);
+      setCategories(categoriesData);
+    } catch (error) {
+      showToast('Failed to fetch bookings', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [bookingsData, vehiclesData, branchesData, categoriesData] = await Promise.all([
-          bookingService.getBookings(branchId || undefined),
-          vehicleService.getVehicles(branchId || undefined),
-          branchService.getBranches(),
-          categoryService.getCategories(),
-        ]);
-
-        const bookingsWithDetails = bookingsData.map(booking => {
-          const vehicle = vehiclesData.find(v => v.id === booking.vehicle_id);
-          const vehicleBranch = branchesData.find(b => b.id === vehicle?.branch_id);
-          return {
-            ...booking,
-            vehicle,
-            branch_name: booking.branch_name || vehicleBranch?.branch_name,
-            category_id: vehicle?.category_id,
-          };
-        });
-
-        bookingsWithDetails.sort((a, b) =>
-          new Date(b.start_datetime).getTime() - new Date(a.start_datetime).getTime()
-        );
-
-        setBookings(bookingsWithDetails);
-        setVehicles(vehiclesData);
-        setBranches(branchesData);
-        setCategories(categoriesData);
-      } catch (error) {
-        showToast('Failed to fetch bookings', 'error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
   }, [branchId]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchData();
+      showToast('Data refreshed', 'success');
+    } catch (error) {
+      showToast('Failed to refresh data', 'error');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Load documents when a booking is selected
   useEffect(() => {
@@ -279,7 +292,17 @@ export function BookingListPage() {
     <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Bookings</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Bookings</h1>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Refresh data"
+            >
+              <RefreshCw className={`w-5 h-5 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
           <p className="text-sm text-gray-600 mt-1">
             {timeFilter === 'upcoming' && 'Current and upcoming bookings'}
             {timeFilter === 'past' && 'Past and cancelled bookings'}
