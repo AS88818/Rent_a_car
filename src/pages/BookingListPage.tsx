@@ -3,8 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { bookingService, vehicleService, branchService, categoryService, bookingDocumentService } from '../services/api';
 import { Booking, Vehicle, Branch, VehicleCategory, BookingDocument } from '../types/database';
-import { formatDateTime } from '../lib/utils';
-import { Plus, X, Car, Calendar, MapPin, Phone, Edit2, XCircle, Eye, Search, FileText, Download, RefreshCw } from 'lucide-react';
+import { formatDateTime, checkInsuranceExpiryDuringBooking } from '../lib/utils';
+import { Plus, X, Car, Calendar, MapPin, Phone, Edit2, XCircle, Eye, Search, FileText, Download, RefreshCw, AlertCircle, AlertTriangle, User } from 'lucide-react';
 import { showToast } from '../lib/toast';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { BookingDetailsModal } from '../components/BookingDetailsModal';
@@ -528,7 +528,32 @@ export function BookingListPage() {
       )}
 
       <div className="space-y-4">
-        {filteredBookings.map(booking => (
+        {filteredBookings.map(booking => {
+          // Check for location mismatch between vehicle and pickup
+          const vehicleBranch = branches.find(b => b.id === booking.vehicle?.branch_id);
+          const vehicleLocationName = booking.vehicle?.on_hire ? 'On Hire' : (vehicleBranch?.branch_name || '');
+          const pickupLocationName = booking.start_location || '';
+          let hasLocationMismatch = false;
+          if (vehicleLocationName && pickupLocationName && !booking.vehicle?.on_hire &&
+              booking.status !== 'Completed' && booking.status !== 'Cancelled') {
+            const vehicleLoc = vehicleLocationName.toLowerCase().trim();
+            const pickupLoc = pickupLocationName.toLowerCase().trim();
+            const locationsMatch = vehicleLoc === pickupLoc ||
+              vehicleLoc.includes(pickupLoc) ||
+              pickupLoc.includes(vehicleLoc);
+            if (!locationsMatch) {
+              const vehicleFirstWord = vehicleLoc.split(' ')[0];
+              const pickupFirstWord = pickupLoc.split(' ')[0];
+              if (vehicleFirstWord.length >= 3 && pickupFirstWord.length >= 3) {
+                hasLocationMismatch = vehicleFirstWord !== pickupFirstWord;
+              }
+            }
+          }
+          const daysUntilStart = Math.ceil(
+            (new Date(booking.start_datetime).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+          );
+
+          return (
           <div
             key={booking.id}
             onClick={() => openBookingDetails(booking)}
@@ -560,10 +585,51 @@ export function BookingListPage() {
                       }`}>
                         {booking.status}
                       </span>
+                      {booking.vehicle?.insurance_expiry &&
+                        (booking.status === 'Active' || booking.status === 'Confirmed') &&
+                        checkInsuranceExpiryDuringBooking(
+                          booking.vehicle.insurance_expiry,
+                          booking.start_datetime,
+                          booking.end_datetime
+                        ) && (
+                        <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-red-100 text-red-800">
+                          <AlertCircle className="w-3 h-3" />
+                          <span className="hidden sm:inline">Insurance Expiry</span>
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-gray-600">{booking.client_name}</p>
+
+                    {(booking.booking_type === 'chauffeur' || booking.booking_type === 'transfer') && (
+                      <div className="flex items-center gap-1.5 text-xs text-gray-600 mt-1">
+                        {booking.chauffeur_name ? (
+                          <>
+                            <User className="w-3.5 h-3.5 text-green-600" />
+                            <span className="text-green-700 font-medium">{booking.chauffeur_name}</span>
+                          </>
+                        ) : (
+                          <>
+                            <AlertTriangle className="w-3.5 h-3.5 text-orange-600" />
+                            <span className="text-orange-700 font-medium">No chauffeur assigned</span>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {hasLocationMismatch && (
+                  <div className="flex items-start gap-2 mb-3 p-2 bg-orange-50 border border-orange-200 rounded text-xs">
+                    <AlertTriangle className="w-4 h-4 text-orange-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-orange-900">Location Mismatch</p>
+                      <p className="text-orange-700">
+                        Vehicle at {vehicleLocationName}, pickup at {pickupLocationName}
+                        {daysUntilStart > 0 && ` (${daysUntilStart} days)`}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   <div className="flex items-start gap-2">
@@ -609,7 +675,8 @@ export function BookingListPage() {
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {filteredBookings.length === 0 && (
