@@ -780,9 +780,11 @@ export function DashboardPage() {
                         {nextBooking ? formatDate(nextBooking.start_datetime) : '-'}
                       </td>
                       <td className="p-3 text-right text-gray-700">
-                        {daysToNextRental !== null
-                          ? (isCurrentlyOnHire ? <span className="text-blue-600 font-medium">On Hire</span> : daysToNextRental)
-                          : '-'}
+                        {isCurrentlyOnHire
+                          ? <span className="text-blue-600 font-medium">On Hire</span>
+                          : daysToNextRental !== null
+                            ? daysToNextRental
+                            : '-'}
                       </td>
                     </tr>
                   );
@@ -846,9 +848,11 @@ export function DashboardPage() {
                         {nextBooking ? formatDate(nextBooking.start_datetime) : '-'}
                       </td>
                       <td className="p-3 text-right text-gray-700">
-                        {daysToNextRental !== null
-                          ? (isCurrentlyOnHire ? <span className="text-blue-600 font-medium">On Hire</span> : daysToNextRental)
-                          : '-'}
+                        {isCurrentlyOnHire
+                          ? <span className="text-blue-600 font-medium">On Hire</span>
+                          : daysToNextRental !== null
+                            ? daysToNextRental
+                            : '-'}
                       </td>
                     </tr>
                   );
