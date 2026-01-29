@@ -53,6 +53,14 @@ export function BookingListPage() {
     notes: '',
   });
 
+  // Location type state for edit form
+  const [startLocationType, setStartLocationType] = useState<'branch' | 'other'>('branch');
+  const [endLocationType, setEndLocationType] = useState<'branch' | 'other'>('branch');
+  const [selectedStartBranchId, setSelectedStartBranchId] = useState('');
+  const [selectedEndBranchId, setSelectedEndBranchId] = useState('');
+  const [customStartLocation, setCustomStartLocation] = useState('');
+  const [customEndLocation, setCustomEndLocation] = useState('');
+
   const fetchData = async () => {
     try {
       const [bookingsData, vehiclesData, branchesData, categoriesData] = await Promise.all([
@@ -194,6 +202,30 @@ export function BookingListPage() {
       return `${year}-${month}-${day}T${hours}:${minutes}`;
     };
 
+    // Check if start location matches a branch
+    const startBranch = branches.find(b => b.branch_name === booking.start_location);
+    if (startBranch) {
+      setStartLocationType('branch');
+      setSelectedStartBranchId(startBranch.id);
+      setCustomStartLocation('');
+    } else {
+      setStartLocationType('other');
+      setSelectedStartBranchId('');
+      setCustomStartLocation(booking.start_location);
+    }
+
+    // Check if end location matches a branch
+    const endBranch = branches.find(b => b.branch_name === booking.end_location);
+    if (endBranch) {
+      setEndLocationType('branch');
+      setSelectedEndBranchId(endBranch.id);
+      setCustomEndLocation('');
+    } else {
+      setEndLocationType('other');
+      setSelectedEndBranchId('');
+      setCustomEndLocation(booking.end_location);
+    }
+
     setFormData({
       vehicle_id: booking.vehicle_id,
       client_name: booking.client_name,
@@ -219,6 +251,13 @@ export function BookingListPage() {
       end_location: '',
       notes: '',
     });
+    // Reset location state
+    setStartLocationType('branch');
+    setEndLocationType('branch');
+    setSelectedStartBranchId('');
+    setSelectedEndBranchId('');
+    setCustomStartLocation('');
+    setCustomEndLocation('');
   };
 
   const getHealthBadgeColor = (health?: string) => {
@@ -820,24 +859,82 @@ export function BookingListPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Start Location</label>
-                    <input
-                      type="text"
-                      value={formData.start_location}
-                      onChange={(e) => setFormData({ ...formData, start_location: e.target.value })}
+                    <select
+                      value={startLocationType === 'other' ? 'other' : selectedStartBranchId}
+                      onChange={(e) => {
+                        if (e.target.value === 'other') {
+                          setStartLocationType('other');
+                          setSelectedStartBranchId('');
+                          setFormData({ ...formData, start_location: customStartLocation });
+                        } else {
+                          setStartLocationType('branch');
+                          setSelectedStartBranchId(e.target.value);
+                          const branch = branches.find(b => b.id === e.target.value);
+                          setFormData({ ...formData, start_location: branch?.branch_name || '' });
+                        }
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       required
-                    />
+                    >
+                      <option value="">Select start location</option>
+                      {branches.filter(branch => branch.branch_name !== 'On Hire').map(branch => (
+                        <option key={branch.id} value={branch.id}>{branch.branch_name}</option>
+                      ))}
+                      <option value="other">Other</option>
+                    </select>
+                    {startLocationType === 'other' && (
+                      <input
+                        type="text"
+                        value={customStartLocation}
+                        onChange={(e) => {
+                          setCustomStartLocation(e.target.value);
+                          setFormData({ ...formData, start_location: e.target.value });
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mt-2"
+                        placeholder="Enter custom start location"
+                        required
+                      />
+                    )}
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">End Location</label>
-                    <input
-                      type="text"
-                      value={formData.end_location}
-                      onChange={(e) => setFormData({ ...formData, end_location: e.target.value })}
+                    <select
+                      value={endLocationType === 'other' ? 'other' : selectedEndBranchId}
+                      onChange={(e) => {
+                        if (e.target.value === 'other') {
+                          setEndLocationType('other');
+                          setSelectedEndBranchId('');
+                          setFormData({ ...formData, end_location: customEndLocation });
+                        } else {
+                          setEndLocationType('branch');
+                          setSelectedEndBranchId(e.target.value);
+                          const branch = branches.find(b => b.id === e.target.value);
+                          setFormData({ ...formData, end_location: branch?.branch_name || '' });
+                        }
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       required
-                    />
+                    >
+                      <option value="">Select end location</option>
+                      {branches.filter(branch => branch.branch_name !== 'On Hire').map(branch => (
+                        <option key={branch.id} value={branch.id}>{branch.branch_name}</option>
+                      ))}
+                      <option value="other">Other</option>
+                    </select>
+                    {endLocationType === 'other' && (
+                      <input
+                        type="text"
+                        value={customEndLocation}
+                        onChange={(e) => {
+                          setCustomEndLocation(e.target.value);
+                          setFormData({ ...formData, end_location: e.target.value });
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mt-2"
+                        placeholder="Enter custom end location"
+                        required
+                      />
+                    )}
                   </div>
                 </div>
 

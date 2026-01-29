@@ -59,40 +59,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (identifier: string, password: string, fullName: string, role: UserRole, branchId?: string, contactType: 'email' | 'phone' = 'email') => {
-    const signUpData = contactType === 'phone'
-      ? {
-          phone: identifier,
-          password,
-          options: {
-            data: {
-              full_name: fullName,
-              role,
-              branch_id: branchId || null,
-            },
-          },
-        }
-      : {
-          email: identifier,
-          password,
-          options: {
-            data: {
-              full_name: fullName,
-              role,
-              branch_id: branchId || null,
-            },
-          },
-        };
+    // For phone auth, convert phone to email format (phone@phone.local)
+    // This allows using phone as identifier without requiring SMS verification
+    const email = contactType === 'phone'
+      ? `${identifier.replace(/[^0-9+]/g, '')}@phone.local`
+      : identifier;
+
+    const signUpData = {
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+          role,
+          branch_id: branchId || null,
+          phone_number: contactType === 'phone' ? identifier : null,
+          login_type: contactType,
+        },
+      },
+    };
 
     const { error } = await supabase.auth.signUp(signUpData);
     if (error) throw error;
   };
 
   const signIn = async (identifier: string, password: string, contactType: 'email' | 'phone' = 'email') => {
-    const signInData = contactType === 'phone'
-      ? { phone: identifier, password }
-      : { email: identifier, password };
+    // For phone auth, convert phone to email format to match signup
+    const email = contactType === 'phone'
+      ? `${identifier.replace(/[^0-9+]/g, '')}@phone.local`
+      : identifier;
 
-    const { error } = await supabase.auth.signInWithPassword(signInData);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
   };
 
