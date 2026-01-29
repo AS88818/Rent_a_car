@@ -7,6 +7,7 @@ import { formatDateTime } from '../lib/utils';
 import { Plus, X, Car, Calendar, MapPin, Phone, Edit2, XCircle, Eye, Search, FileText, Download, RefreshCw } from 'lucide-react';
 import { showToast } from '../lib/toast';
 import { ConfirmModal } from '../components/ConfirmModal';
+import { BookingDetailsModal } from '../components/BookingDetailsModal';
 
 type BookingTimeFilter = 'upcoming' | 'past' | 'all';
 
@@ -635,162 +636,30 @@ export function BookingListPage() {
         </div>
       )}
 
-      {selectedBooking && (
+      <BookingDetailsModal
+        isOpen={!!selectedBooking && !isEditing}
+        onClose={closeModal}
+        booking={selectedBooking}
+        vehicle={selectedBooking?.vehicle || null}
+        branches={branches}
+        onEdit={() => setIsEditing(true)}
+        onCancel={() => selectedBooking && setConfirmCancel(selectedBooking.id)}
+        userRole={userRole}
+      />
+
+      {selectedBooking && isEditing && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">Booking Details</h2>
+              <h2 className="text-xl font-bold text-gray-900">Edit Booking</h2>
               <button
-                onClick={closeModal}
+                onClick={() => setIsEditing(false)}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-
-            {!isEditing ? (
-              <div className="p-6 space-y-6">
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-600 mb-1">Vehicle</p>
-                      {selectedBooking.vehicle ? (
-                        <button
-                          onClick={() => navigate(`/vehicles/${selectedBooking.vehicle!.id}`)}
-                          className="font-semibold text-blue-600 hover:text-blue-800 hover:underline"
-                        >
-                          {selectedBooking.vehicle.reg_number}
-                        </button>
-                      ) : (
-                        <p className="font-semibold text-gray-900">Unknown</p>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-gray-600 mb-1">Health at Booking</p>
-                      {selectedBooking.health_at_booking ? (
-                        <span className={`text-xs font-semibold px-2 py-1 rounded border inline-block ${getHealthBadgeColor(selectedBooking.health_at_booking)}`}>
-                          {selectedBooking.health_at_booking}
-                        </span>
-                      ) : (
-                        <p className="text-sm text-gray-500">Not recorded</p>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-gray-600 mb-1">Branch</p>
-                      <p className="font-medium text-gray-900">{selectedBooking.branch_name || 'Not assigned'}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-600 mb-1">Client</p>
-                      <p className="font-medium text-gray-900">{selectedBooking.client_name}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-600 mb-1">Contact</p>
-                      <p className="font-medium text-gray-900">{selectedBooking.contact}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">Trip Details</h3>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex items-start gap-3">
-                      <Calendar className="w-5 h-5 text-blue-600 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">Start</p>
-                        <p className="text-gray-700">{formatDateTime(selectedBooking.start_datetime)}</p>
-                        <p className="text-gray-600 text-xs mt-1">{selectedBooking.start_location}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Calendar className="w-5 h-5 text-orange-600 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">End</p>
-                        <p className="text-gray-700">{formatDateTime(selectedBooking.end_datetime)}</p>
-                        <p className="text-gray-600 text-xs mt-1">{selectedBooking.end_location}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {selectedBooking.notes && (
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-2">Notes</h3>
-                    <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3">{selectedBooking.notes}</p>
-                  </div>
-                )}
-
-                {/* Documents Section */}
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    Documents
-                  </h3>
-                  {loadingDocs ? (
-                    <p className="text-sm text-gray-500">Loading documents...</p>
-                  ) : documents.length > 0 ? (
-                    <div className="space-y-2">
-                      {documents.map((doc) => (
-                        <div
-                          key={doc.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                        >
-                          <div className="flex items-center gap-3">
-                            <FileText className="w-5 h-5 text-gray-400" />
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">{doc.file_name}</p>
-                              <p className="text-xs text-gray-500">
-                                {doc.document_type} • {(doc.file_size / 1024).toFixed(1)} KB
-                                {doc.description && ` • ${doc.description}`}
-                              </p>
-                            </div>
-                          </div>
-                          <a
-                            href={doc.file_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Download"
-                          >
-                            <Download className="w-4 h-4" />
-                          </a>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500">No documents uploaded</p>
-                  )}
-                </div>
-
-                <div className="flex gap-3 pt-4 border-t border-gray-200">
-                  <button
-                    onClick={() => navigate(`/vehicles/${selectedBooking.vehicle_id}`)}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    <Eye className="w-4 h-4" />
-                    View Vehicle
-                  </button>
-                  {userRole && ['admin', 'fleet_manager', 'basic_user'].includes(userRole) && (
-                    <>
-                      <button
-                        onClick={() => setIsEditing(true)}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                        Edit Booking
-                      </button>
-                      <button
-                        onClick={() => setConfirmCancel(selectedBooking.id)}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                      >
-                        <XCircle className="w-4 h-4" />
-                        Cancel Booking
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={handleUpdateBooking} className="p-6 space-y-4">
+            <form onSubmit={handleUpdateBooking} className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle</label>
                   <select
@@ -963,8 +832,7 @@ export function BookingListPage() {
                     Cancel
                   </button>
                 </div>
-              </form>
-            )}
+            </form>
           </div>
         </div>
       )}

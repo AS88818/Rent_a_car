@@ -100,10 +100,12 @@ export function DashboardPage() {
 
       // Mechanics should see ALL vehicles across all branches
       const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+      // Mechanics need all bookings to correctly attribute on-hire vehicles to branches
+      const bookingBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
 
       const [vehiclesData, bookingsData, snagsData, branchesData, categoriesData] = await Promise.all([
         vehicleService.getVehicles(vehicleBranchFilter),
-        bookingService.getBookings(branchId || undefined),
+        bookingService.getBookings(bookingBranchFilter),
         snagService.getSnags(undefined, snagBranchFilter),
         branchService.getBranches(),
         categoryService.getCategories(),

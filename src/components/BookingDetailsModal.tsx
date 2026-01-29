@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, User, Phone, Mail, Car, AlertTriangle, FileText, Edit, Download } from 'lucide-react';
+import { X, Calendar, MapPin, User, Phone, Mail, Car, AlertTriangle, FileText, Edit, Download, Eye, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Booking, Vehicle, Branch, BookingDocument } from '../types/database';
 import { formatDate, checkInsuranceExpiryDuringBooking } from '../lib/utils';
@@ -12,6 +12,8 @@ interface BookingDetailsModalProps {
   vehicle: Vehicle | null;
   branches: Branch[];
   onEdit?: () => void;
+  onCancel?: () => void;
+  userRole?: string | null;
 }
 
 export function BookingDetailsModal({
@@ -21,6 +23,8 @@ export function BookingDetailsModal({
   vehicle,
   branches,
   onEdit,
+  onCancel,
+  userRole,
 }: BookingDetailsModalProps) {
   const navigate = useNavigate();
   const [documents, setDocuments] = useState<BookingDocument[]>([]);
@@ -416,19 +420,40 @@ export function BookingDetailsModal({
         </div>
 
         <div className="flex gap-3 p-6 border-t border-gray-200 bg-gray-50">
-          <button
-            onClick={onClose}
-            className="flex-1 px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-          >
-            Close
-          </button>
-          {onEdit && (
+          {vehicle && (
+            <button
+              onClick={() => navigate(`/vehicles/${vehicle.id}`)}
+              className="flex-1 px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center justify-center gap-2"
+            >
+              <Eye className="w-4 h-4" />
+              View Vehicle
+            </button>
+          )}
+          {!vehicle && (
+            <button
+              onClick={onClose}
+              className="flex-1 px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            >
+              Close
+            </button>
+          )}
+          {onEdit && (!userRole || ['admin', 'fleet_manager', 'basic_user'].includes(userRole)) && (
             <button
               onClick={onEdit}
               className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
             >
               <Edit className="w-4 h-4" />
               Edit Booking
+            </button>
+          )}
+          {onCancel && (!userRole || ['admin', 'fleet_manager', 'basic_user'].includes(userRole)) &&
+            booking?.status !== 'Cancelled' && booking?.status !== 'Completed' && (
+            <button
+              onClick={onCancel}
+              className="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center justify-center gap-2"
+            >
+              <XCircle className="w-4 h-4" />
+              Cancel Booking
             </button>
           )}
         </div>
