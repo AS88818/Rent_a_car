@@ -238,11 +238,46 @@ export function DashboardPage() {
     v.status === 'Available' && !v.on_hire && v.health_flag !== 'Grounded'
   ).length;
 
+  // Map on-hire vehicles back to their pickup branch using booking data
+  const onHireVehicleBranchMap = new Map<string, string>();
+  const nowForBranch = new Date();
+  businessVehicles
+    .filter(v => v.on_hire)
+    .forEach(v => {
+      const activeBooking = bookings.find(b =>
+        b.vehicle_id === v.id &&
+        b.status !== 'Completed' &&
+        b.status !== 'Cancelled' &&
+        new Date(b.start_datetime) <= nowForBranch &&
+        new Date(b.end_datetime) >= nowForBranch
+      );
+      if (activeBooking?.branch_id) {
+        onHireVehicleBranchMap.set(v.id, activeBooking.branch_id);
+      } else {
+        // Fallback: most recent non-completed/cancelled booking
+        const recentBooking = bookings.find(b =>
+          b.vehicle_id === v.id &&
+          b.status !== 'Completed' &&
+          b.status !== 'Cancelled'
+        );
+        if (recentBooking?.branch_id) {
+          onHireVehicleBranchMap.set(v.id, recentBooking.branch_id);
+        }
+      }
+    });
+
+  const getEffectiveBranchId = (vehicle: typeof businessVehicles[number]): string | null | undefined => {
+    if (vehicle.on_hire) {
+      return onHireVehicleBranchMap.get(vehicle.id) || null;
+    }
+    return vehicle.branch_id;
+  };
+
   const branchBreakdown = branches
     .filter(branch => branch.branch_name !== 'On Hire')
     .map(branch => {
-      // All vehicles belonging to this branch (including on-hire)
-      const branchVehicles = businessVehicles.filter(v => v.branch_id === branch.id);
+      // All vehicles belonging to this branch (including on-hire via booking attribution)
+      const branchVehicles = businessVehicles.filter(v => getEffectiveBranchId(v) === branch.id);
 
       return {
         id: branch.id,
@@ -260,8 +295,8 @@ export function DashboardPage() {
 
     const byBranch: Record<string, { total: number; available: number; onHire: number; grounded: number }> = {};
     branches.filter(b => b.branch_name !== 'On Hire').forEach(branch => {
-      // All vehicles in this category belonging to this branch
-      const branchCategoryVehicles = categoryVehicles.filter(v => v.branch_id === branch.id);
+      // All vehicles in this category belonging to this branch (including on-hire via booking attribution)
+      const branchCategoryVehicles = categoryVehicles.filter(v => getEffectiveBranchId(v) === branch.id);
 
       byBranch[branch.id] = {
         total: branchCategoryVehicles.length,
