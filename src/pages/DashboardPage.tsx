@@ -753,8 +753,12 @@ export function DashboardPage() {
               <tbody>
                 {vehiclesDueForService.map(vehicle => {
                   const nextBooking = upcomingBookings.find(b => b.vehicle_id === vehicle.id);
-                  const daysToNextRental = nextBooking
-                    ? Math.ceil((new Date(nextBooking.start_datetime).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+                  const now = new Date();
+                  const bookingStarted = nextBooking && new Date(nextBooking.start_datetime) <= now;
+                  const bookingEnded = nextBooking && new Date(nextBooking.end_datetime) < now;
+                  const isCurrentlyOnHire = bookingStarted && !bookingEnded;
+                  const daysToNextRental = nextBooking && !bookingStarted
+                    ? Math.ceil((new Date(nextBooking.start_datetime).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
                     : null;
 
                   return (
@@ -776,7 +780,9 @@ export function DashboardPage() {
                         {nextBooking ? formatDate(nextBooking.start_datetime) : '-'}
                       </td>
                       <td className="p-3 text-right text-gray-700">
-                        {daysToNextRental !== null ? daysToNextRental : '-'}
+                        {daysToNextRental !== null
+                          ? (isCurrentlyOnHire ? <span className="text-blue-600 font-medium">On Hire</span> : daysToNextRental)
+                          : '-'}
                       </td>
                     </tr>
                   );
@@ -813,8 +819,12 @@ export function DashboardPage() {
               <tbody>
                 {insuranceExpiringSoon.map(vehicle => {
                   const nextBooking = upcomingBookings.find(b => b.vehicle_id === vehicle.id);
-                  const daysToNextRental = nextBooking
-                    ? Math.ceil((new Date(nextBooking.start_datetime).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+                  const now = new Date();
+                  const bookingStarted = nextBooking && new Date(nextBooking.start_datetime) <= now;
+                  const bookingEnded = nextBooking && new Date(nextBooking.end_datetime) < now;
+                  const isCurrentlyOnHire = bookingStarted && !bookingEnded;
+                  const daysToNextRental = nextBooking && !bookingStarted
+                    ? Math.ceil((new Date(nextBooking.start_datetime).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
                     : null;
 
                   return (
@@ -836,7 +846,9 @@ export function DashboardPage() {
                         {nextBooking ? formatDate(nextBooking.start_datetime) : '-'}
                       </td>
                       <td className="p-3 text-right text-gray-700">
-                        {daysToNextRental !== null ? daysToNextRental : '-'}
+                        {daysToNextRental !== null
+                          ? (isCurrentlyOnHire ? <span className="text-blue-600 font-medium">On Hire</span> : daysToNextRental)
+                          : '-'}
                       </td>
                     </tr>
                   );
