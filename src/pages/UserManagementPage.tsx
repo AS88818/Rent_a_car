@@ -126,7 +126,8 @@ export function UserManagementPage() {
 
   const filteredUsers = users.filter(user => {
     const matchesSearch =
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (user.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (user.phone?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
       user.full_name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     const matchesBranch = branchFilter === 'all' || user.branch_id === branchFilter;
@@ -299,7 +300,7 @@ export function UserManagementPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="font-medium text-gray-900">{user.full_name}</div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
+                        <div className="text-sm text-gray-500">{user.email || user.phone || 'No contact'}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

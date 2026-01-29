@@ -13,7 +13,7 @@ interface UserCreateModalProps {
 }
 
 export function UserCreateModal({ isOpen, onClose, onSuccess }: UserCreateModalProps) {
-  const { signUp } = useAuth();
+  const { createUser } = useAuth();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(false);
   const [contactType, setContactType] = useState<'email' | 'phone'>('email');
@@ -71,7 +71,7 @@ export function UserCreateModal({ isOpen, onClose, onSuccess }: UserCreateModalP
     setLoading(true);
     try {
       const branchId = formData.role === 'admin' ? undefined : formData.branchId;
-      await signUp(
+      await createUser(
         contactType === 'email' ? formData.email : formData.phone,
         formData.password,
         formData.fullName,

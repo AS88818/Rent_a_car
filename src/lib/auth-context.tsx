@@ -9,6 +9,7 @@ interface AuthContextType {
   branchId: string | null;
   loading: boolean;
   signUp: (identifier: string, password: string, fullName: string, role: UserRole, branchId?: string, contactType?: 'email' | 'phone') => Promise<void>;
+  createUser: (identifier: string, password: string, fullName: string, role: UserRole, branchId?: string, contactType?: 'email' | 'phone') => Promise<void>;
   signIn: (identifier: string, password: string, contactType?: 'email' | 'phone') => Promise<void>;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
@@ -83,6 +84,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
+  // Create a new user without switching the current session (for admin use)
+  const createUser = async (identifier: string, password: string, fullName: string, role: UserRole, branchId?: string, contactType: 'email' | 'phone' = 'email') => {
+    // Save the current session before creating the new user
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+
+    // For phone auth, convert phone to email format (phone@phone.local)
+    const email = contactType === 'phone'
+      ? `${identifier.replace(/[^0-9+]/g, '')}@phone.local`
+      : identifier;
+
+    const signUpData = {
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+          role,
+          branch_id: branchId || null,
+          phone_number: contactType === 'phone' ? identifier : null,
+          login_type: contactType,
+        },
+      },
+    };
+
+    const { error } = await supabase.auth.signUp(signUpData);
+    if (error) throw error;
+
+    // Restore the original admin session
+    if (currentSession) {
+      await supabase.auth.setSession({
+        access_token: currentSession.access_token,
+        refresh_token: currentSession.refresh_token,
+      });
+    }
+  };
+
   const signIn = async (identifier: string, password: string, contactType: 'email' | 'phone' = 'email') => {
     // For phone auth, convert phone to email format to match signup
     const email = contactType === 'phone'
@@ -130,6 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     branchId,
     loading,
     signUp,
+    createUser,
     signIn,
     signOut,
     refreshSession,
