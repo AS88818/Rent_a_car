@@ -193,6 +193,8 @@ export default function QuotesPage() {
   const loadQuotes = async () => {
     try {
       setLoading(true);
+      // Update expired quotes before fetching
+      await quotationService.updateExpiredQuotes();
       const data = await quotationService.getQuotes();
       setQuotes(data);
     } catch (error) {

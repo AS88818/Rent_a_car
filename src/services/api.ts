@@ -709,6 +709,16 @@ export const quotationService = {
     return data as Quote[];
   },
 
+  async updateExpiredQuotes() {
+    // Update all Active quotes that have passed their expiration date to Expired status
+    const { error } = await supabase
+      .from('quotes')
+      .update({ status: 'Expired' })
+      .eq('status', 'Active')
+      .lt('expiration_date', new Date().toISOString());
+    if (error) throw error;
+  },
+
   async getDraftQuotes(userId: string) {
     const { data, error } = await supabase
       .from('quotes')
