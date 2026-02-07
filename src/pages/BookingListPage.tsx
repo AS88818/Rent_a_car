@@ -612,7 +612,7 @@ export function BookingListPage() {
                     <div>
                       <p className="font-semibold text-orange-900">Location Mismatch</p>
                       <p className="text-orange-700">
-                        Vehicle at {vehicleLocationName}, pickup at {pickupLocationName}
+                        Vehicle at {vehicleLocationName}, pickup at {booking.start_location || 'unknown'}
                         {daysUntilStart > 0 && ` (${daysUntilStart} days)`}
                       </p>
                     </div>
