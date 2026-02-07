@@ -12,7 +12,7 @@ interface EmailTemplateFormModalProps {
   submitting?: boolean;
 }
 
-const AVAILABLE_VARIABLES = [
+const BOOKING_VARIABLES = [
   '{{client_name}}',
   '{{vehicle_reg}}',
   '{{start_date}}',
@@ -23,6 +23,35 @@ const AVAILABLE_VARIABLES = [
   '{{end_location}}',
   '{{duration}}',
   '{{contact_number}}',
+];
+
+const INVOICE_VARIABLES = [
+  '{{client_name}}',
+  '{{invoice_reference}}',
+  '{{total_amount}}',
+  '{{payment_date}}',
+  '{{payment_method}}',
+];
+
+const QUOTE_VARIABLES = [
+  '{{client_name}}',
+  '{{quote_reference}}',
+  '{{start_date}}',
+  '{{end_date}}',
+  '{{duration}}',
+  '{{pickup_location}}',
+  '{{rental_type}}',
+];
+
+const COMPANY_VARIABLES = [
+  '{{company_name}}',
+  '{{company_tagline}}',
+  '{{company_email}}',
+  '{{company_phone_nanyuki}}',
+  '{{company_phone_nairobi}}',
+  '{{company_website}}',
+  '{{company_address}}',
+  '{{email_signature}}',
 ];
 
 export function EmailTemplateFormModal({
@@ -179,12 +208,23 @@ export function EmailTemplateFormModal({
     });
   };
 
+  const getVariablesForCategory = (category: TemplateCategory) => {
+    const categorySpecific = category === 'invoice'
+      ? INVOICE_VARIABLES
+      : category === 'quote'
+      ? QUOTE_VARIABLES
+      : BOOKING_VARIABLES;
+    return [...categorySpecific, ...COMPANY_VARIABLES];
+  };
+
+  const currentVariables = getVariablesForCategory(formData.template_category);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     await onSubmit({
       ...formData,
-      available_variables: AVAILABLE_VARIABLES,
+      available_variables: currentVariables,
     });
 
     onClose();
@@ -425,7 +465,7 @@ export function EmailTemplateFormModal({
                 placeholder="Your booking confirmation"
               />
               <div className="flex flex-wrap gap-1 mt-2">
-                {AVAILABLE_VARIABLES.map((variable) => (
+                {currentVariables.map((variable) => (
                   <button
                     key={variable}
                     type="button"
@@ -454,7 +494,7 @@ export function EmailTemplateFormModal({
                 placeholder="Dear {{client_name}},&#10;&#10;This is a reminder about your booking...&#10;&#10;Vehicle: {{vehicle_reg}}&#10;Pickup: {{start_date}} at {{start_time}}&#10;&#10;Best regards"
               />
               <div className="flex flex-wrap gap-1 mt-2">
-                {AVAILABLE_VARIABLES.map((variable) => (
+                {currentVariables.map((variable) => (
                   <button
                     key={variable}
                     type="button"

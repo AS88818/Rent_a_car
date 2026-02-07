@@ -1,5 +1,18 @@
 import jsPDF from 'jspdf';
-import { EmailQueue, Invoice } from '../types/database';
+import { EmailQueue, Invoice, CompanySettings } from '../types/database';
+
+export interface PDFCompanyInfo {
+  companyName: string;
+  tagline: string;
+  email: string;
+  phoneNanyuki: string;
+  phoneNairobi: string;
+  bankName: string;
+  bankAccount: string;
+  mpesaTill: string;
+  currencyCode: string;
+  currencyLocale: string;
+}
 
 interface QuoteCategory {
   categoryName: string;
@@ -258,7 +271,8 @@ export function generateBulkEmailsPDF(emails: EmailQueue[]): void {
   doc.save(fileName);
 }
 
-export function generateQuotePDFBase64(data: QuotePDFData): string {
+export function generateQuotePDFBase64(data: QuotePDFData, company?: PDFCompanyInfo): string {
+  const c = company || getDefaultCompanyInfo();
   const doc = new jsPDF();
 
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -267,7 +281,7 @@ export function generateQuotePDFBase64(data: QuotePDFData): string {
   let yPosition = margin;
 
   const formatCurrency = (amount: number) => {
-    return `KES ${amount.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    return `${c.currencyCode} ${amount.toLocaleString(c.currencyLocale, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
   doc.setFillColor(30, 64, 175);
@@ -276,7 +290,7 @@ export function generateQuotePDFBase64(data: QuotePDFData): string {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(24);
   doc.setFont('helvetica', 'bold');
-  doc.text('Rent A Car In Kenya', margin, 20);
+  doc.text(c.companyName, margin, 20);
 
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
@@ -392,13 +406,14 @@ export function generateQuotePDFBase64(data: QuotePDFData): string {
   doc.setFontSize(8);
   doc.setTextColor(100, 100, 100);
   doc.setFont('helvetica', 'normal');
-  doc.text('Rent A Car In Kenya | Premium Vehicle Rentals', margin, yPosition);
+  doc.text(`${c.companyName} | ${c.tagline}`, margin, yPosition);
   doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - margin - 50, yPosition);
 
   return doc.output('datauristring').split(',')[1];
 }
 
-export function generateInvoicePDF(invoice: Invoice): void {
+export function generateInvoicePDF(invoice: Invoice, company?: PDFCompanyInfo): void {
+  const c = company || getDefaultCompanyInfo();
   const doc = new jsPDF();
 
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -407,7 +422,7 @@ export function generateInvoicePDF(invoice: Invoice): void {
   let yPosition = margin;
 
   const formatCurrency = (amount: number) => {
-    return `KES ${amount.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    return `${c.currencyCode} ${amount.toLocaleString(c.currencyLocale, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
   doc.setFillColor(37, 99, 235);
@@ -420,8 +435,8 @@ export function generateInvoicePDF(invoice: Invoice): void {
 
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text('Rent A Car In Kenya', margin, yPosition + 22);
-  doc.text('Premium Vehicle Rentals', margin, yPosition + 28);
+  doc.text(c.companyName, margin, yPosition + 22);
+  doc.text(c.tagline, margin, yPosition + 28);
 
   yPosition = 50;
 
@@ -592,11 +607,11 @@ export function generateInvoicePDF(invoice: Invoice): void {
   yPosition += 6;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text('Bank: Example Bank Kenya', margin + 5, yPosition);
+  doc.text(`Bank: ${c.bankName}`, margin + 5, yPosition);
   yPosition += 5;
-  doc.text('Account: 1234567890', margin + 5, yPosition);
+  doc.text(`Account: ${c.bankAccount}`, margin + 5, yPosition);
   yPosition += 5;
-  doc.text('M-Pesa Till: 123456', margin + 5, yPosition);
+  doc.text(`M-Pesa Till: ${c.mpesaTill}`, margin + 5, yPosition);
   yPosition += 5;
   doc.text('Reference: ' + invoice.invoice_reference, margin + 5, yPosition);
 
@@ -604,14 +619,15 @@ export function generateInvoicePDF(invoice: Invoice): void {
   doc.setFontSize(8);
   doc.setTextColor(100, 100, 100);
   doc.setFont('helvetica', 'normal');
-  doc.text('Rent A Car In Kenya | Premium Vehicle Rentals', margin, footerY);
-  doc.text('Email: info@rentacarinkenya.com | Tel: +254 XXX XXX XXX', margin, footerY + 5);
+  doc.text(`${c.companyName} | ${c.tagline}`, margin, footerY);
+  doc.text(`Email: ${c.email} | Tel: ${c.phoneNanyuki}`, margin, footerY + 5);
   doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - margin - 50, footerY);
 
   doc.save(`Invoice_${invoice.invoice_reference}.pdf`);
 }
 
-export function generateInvoicePDFBase64(invoice: Invoice): string {
+export function generateInvoicePDFBase64(invoice: Invoice, company?: PDFCompanyInfo): string {
+  const c = company || getDefaultCompanyInfo();
   const doc = new jsPDF();
 
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -620,7 +636,7 @@ export function generateInvoicePDFBase64(invoice: Invoice): string {
   let yPosition = margin;
 
   const formatCurrency = (amount: number) => {
-    return `KES ${amount.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    return `${c.currencyCode} ${amount.toLocaleString(c.currencyLocale, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
   doc.setFillColor(37, 99, 235);
@@ -633,8 +649,8 @@ export function generateInvoicePDFBase64(invoice: Invoice): string {
 
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text('Rent A Car In Kenya', margin, yPosition + 22);
-  doc.text('Premium Vehicle Rentals', margin, yPosition + 28);
+  doc.text(c.companyName, margin, yPosition + 22);
+  doc.text(c.tagline, margin, yPosition + 28);
 
   yPosition = 50;
 
@@ -805,11 +821,11 @@ export function generateInvoicePDFBase64(invoice: Invoice): string {
   yPosition += 6;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text('Bank: Example Bank Kenya', margin + 5, yPosition);
+  doc.text(`Bank: ${c.bankName}`, margin + 5, yPosition);
   yPosition += 5;
-  doc.text('Account: 1234567890', margin + 5, yPosition);
+  doc.text(`Account: ${c.bankAccount}`, margin + 5, yPosition);
   yPosition += 5;
-  doc.text('M-Pesa Till: 123456', margin + 5, yPosition);
+  doc.text(`M-Pesa Till: ${c.mpesaTill}`, margin + 5, yPosition);
   yPosition += 5;
   doc.text('Reference: ' + invoice.invoice_reference, margin + 5, yPosition);
 
@@ -817,9 +833,39 @@ export function generateInvoicePDFBase64(invoice: Invoice): string {
   doc.setFontSize(8);
   doc.setTextColor(100, 100, 100);
   doc.setFont('helvetica', 'normal');
-  doc.text('Rent A Car In Kenya | Premium Vehicle Rentals', margin, footerY);
-  doc.text('Email: info@rentacarinkenya.com | Tel: +254 XXX XXX XXX', margin, footerY + 5);
+  doc.text(`${c.companyName} | ${c.tagline}`, margin, footerY);
+  doc.text(`Email: ${c.email} | Tel: ${c.phoneNanyuki}`, margin, footerY + 5);
   doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - margin - 50, footerY);
 
   return doc.output('datauristring').split(',')[1];
+}
+
+function getDefaultCompanyInfo(): PDFCompanyInfo {
+  return {
+    companyName: 'Rent A Car In Kenya',
+    tagline: 'Premium Vehicle Rentals',
+    email: 'info@rentacarinkenya.com',
+    phoneNanyuki: '+254722513739',
+    phoneNairobi: '+254721177642',
+    bankName: 'Example Bank Kenya',
+    bankAccount: '1234567890',
+    mpesaTill: '123456',
+    currencyCode: 'KES',
+    currencyLocale: 'en-KE',
+  };
+}
+
+export function companySettingsToPDFInfo(settings: CompanySettings): PDFCompanyInfo {
+  return {
+    companyName: settings.company_name,
+    tagline: settings.tagline,
+    email: settings.email,
+    phoneNanyuki: settings.phone_nanyuki,
+    phoneNairobi: settings.phone_nairobi,
+    bankName: settings.bank_name,
+    bankAccount: settings.bank_account,
+    mpesaTill: settings.mpesa_till,
+    currencyCode: settings.currency_code,
+    currencyLocale: settings.currency_locale,
+  };
 }

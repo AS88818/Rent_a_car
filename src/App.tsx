@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/auth-context';
+import { CompanySettingsProvider } from './lib/company-settings-context';
 import { Toast } from './components/Toast';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -15,6 +16,7 @@ import { MaintenancePage } from './pages/MaintenancePage';
 import { SnagsPage } from './pages/SnagsPage';
 import { MyAssignmentsPage } from './pages/MyAssignmentsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { CompanySettingsPage } from './pages/CompanySettingsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { QuotationCalculatorPage } from './pages/QuotationCalculatorPage';
 import { UserManagementPage } from './pages/UserManagementPage';
@@ -253,6 +255,17 @@ function AppRoutes() {
         }
       />
 
+      <Route
+        path="/company-settings"
+        element={
+          <ProtectedRoute requiredRoles={['admin']}>
+            <Layout>
+              <CompanySettingsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
       <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Navigate to="/login" />} />
     </Routes>
   );
@@ -262,8 +275,10 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
-        <Toast />
+        <CompanySettingsProvider>
+          <AppRoutes />
+          <Toast />
+        </CompanySettingsProvider>
       </AuthProvider>
     </BrowserRouter>
   );

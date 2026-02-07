@@ -2,9 +2,10 @@ import { ReactNode, useState } from 'react';
 import {
   Menu, X, LogOut, Settings, LayoutDashboard, Calendar, PlusCircle,
   Car, CalendarDays, Wrench, AlertTriangle,
-  ClipboardList, FileText, Users, DollarSign, Mail, Receipt, Zap, BarChart3
+  ClipboardList, FileText, Users, DollarSign, Mail, Receipt, Zap, BarChart3, Building2
 } from 'lucide-react';
 import { useAuth } from '../lib/auth-context';
+import { useCompanySettings } from '../lib/company-settings-context';
 import { Link, useLocation } from 'react-router-dom';
 import { BottomNav } from './BottomNav';
 import { NotificationBell } from './NotificationBell';
@@ -15,6 +16,7 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const { user, userRole, signOut } = useAuth();
+  const { settings } = useCompanySettings();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 
@@ -54,6 +56,7 @@ export function Layout({ children }: LayoutProps) {
     ...(userRole === 'admin' ? [
       { label: 'User Management', href: '/users', icon: Users },
       { label: 'Pricing Admin', href: '/pricing', icon: DollarSign },
+      { label: 'Company Settings', href: '/company-settings', icon: Building2 },
       { label: 'Settings', href: '/settings', icon: Settings }
     ] : []),
   ];
@@ -77,13 +80,12 @@ export function Layout({ children }: LayoutProps) {
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center gap-3 mb-3">
             <img
-              src="/rent-a-car-in-kenya-logo-hd2-135x134.png"
-              alt="Rent A Car In Kenya Logo"
+              src={settings.logo_url}
+              alt={`${settings.company_name} Logo`}
               className="h-12 w-auto"
             />
             <div>
-              <h1 className="text-sm font-bold leading-tight text-neutral-900">Rent A Car</h1>
-              <h1 className="text-sm font-bold leading-tight text-neutral-900">In Kenya</h1>
+              <h1 className="text-sm font-bold leading-tight text-neutral-900 line-clamp-2">{settings.company_name}</h1>
             </div>
           </div>
           <p className="text-xs text-gray-600 font-medium">{userRole?.replace('_', ' ').toUpperCase()}</p>
@@ -133,7 +135,7 @@ export function Layout({ children }: LayoutProps) {
             {sidebarOpen ? <X className="w-6 h-6 text-neutral-900" /> : <Menu className="w-6 h-6 text-neutral-900" />}
           </button>
 
-          <h2 className="text-lg font-semibold text-neutral-900 flex-1 md:flex-none">Rent A Car In Kenya</h2>
+          <h2 className="text-lg font-semibold text-neutral-900 flex-1 md:flex-none">{settings.company_name}</h2>
 
           <div className="flex items-center gap-3">
             <span className="text-sm text-gray-700 hidden md:inline font-medium">{user?.email}</span>

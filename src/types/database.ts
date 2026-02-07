@@ -535,3 +535,23 @@ export interface AlertSnooze {
   snoozed_until: string;
   created_at: string;
 }
+
+export interface CompanySettings {
+  id: string;
+  company_name: string;
+  tagline: string;
+  email: string;
+  phone_nanyuki: string;
+  phone_nairobi: string;
+  website_url: string;
+  address: string;
+  bank_name: string;
+  bank_account: string;
+  mpesa_till: string;
+  logo_url: string;
+  email_signature: string;
+  currency_code: string;
+  currency_locale: string;
+  updated_at: string;
+  updated_by?: string;
+}

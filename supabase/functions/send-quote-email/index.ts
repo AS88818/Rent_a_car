@@ -106,7 +106,30 @@ Deno.serve(async (req: Request) => {
     console.log('Email:', payload.clientEmail);
     console.log('Quote:', payload.quoteReference);
 
-    // Fetch email template from Supabase
+    console.log('\n=== Fetching Company Settings ===');
+    const settingsResponse = await fetch(
+      `${supabaseUrl}/rest/v1/company_settings?select=*&limit=1`,
+      {
+        headers: {
+          'apikey': supabaseKey!,
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+      }
+    );
+    const settingsRows = settingsResponse.ok ? await settingsResponse.json() : [];
+    const companyData = settingsRows?.[0] || {};
+
+    const companyVars: Record<string, string> = {
+      company_name: companyData.company_name || '',
+      company_tagline: companyData.tagline || '',
+      company_email: companyData.email || '',
+      company_phone_nanyuki: companyData.phone_nanyuki || '',
+      company_phone_nairobi: companyData.phone_nairobi || '',
+      company_website: companyData.website_url || '',
+      company_address: companyData.address || '',
+      email_signature: companyData.email_signature || '',
+    };
+
     console.log('\n=== Fetching Template ===');
     const templateResponse = await fetch(
       `${supabaseUrl}/rest/v1/email_templates?template_key=eq.quote_submission&is_active=eq.true&select=*`,
@@ -130,23 +153,32 @@ Deno.serve(async (req: Request) => {
     const template = templates[0];
     console.log('Template found:', template.template_name);
 
-    // Replace variables in template
     console.log('\n=== Building Email ===');
+    const allVars: Record<string, string> = {
+      ...companyVars,
+      client_name: payload.clientName,
+      quote_reference: payload.quoteReference,
+      start_date: payload.startDate,
+      end_date: payload.endDate,
+      duration: payload.duration,
+      pickup_location: payload.pickupLocation,
+      rental_type: payload.rentalType,
+    };
+
     let emailBody = template.body;
-    emailBody = emailBody.replace(/\{\{client_name\}\}/g, payload.clientName);
-    emailBody = emailBody.replace(/\{\{quote_reference\}\}/g, payload.quoteReference);
-    emailBody = emailBody.replace(/\{\{start_date\}\}/g, payload.startDate);
-    emailBody = emailBody.replace(/\{\{end_date\}\}/g, payload.endDate);
-    emailBody = emailBody.replace(/\{\{duration\}\}/g, payload.duration);
-    emailBody = emailBody.replace(/\{\{pickup_location\}\}/g, payload.pickupLocation);
-    emailBody = emailBody.replace(/\{\{rental_type\}\}/g, payload.rentalType);
+    let emailSubject = template.subject;
+    Object.entries(allVars).forEach(([key, value]) => {
+      const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+      emailBody = emailBody.replace(regex, value);
+      emailSubject = emailSubject.replace(regex, value);
+    });
 
     // Build MIME email with attachment
     console.log('\n=== Sending via Pica Gmail ===');
     const attachmentFilename = `Quote-${payload.quoteReference}.pdf`;
     const raw = buildMimeEmailWithAttachment(
       payload.clientEmail,
-      template.subject,
+      emailSubject,
       emailBody,
       attachmentFilename,
       payload.pdfBase64

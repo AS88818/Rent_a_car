@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
+import { useCompanySettings } from '../lib/company-settings-context';
 import { showToast } from '../lib/toast';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const { signIn } = useAuth();
+  const { settings } = useCompanySettings();
   const [loading, setLoading] = useState(false);
   const [contactType, setContactType] = useState<'email' | 'phone'>('email');
   const [formData, setFormData] = useState({ identifier: '', password: '' });
@@ -35,12 +37,12 @@ export function LoginPage() {
         <div className="text-center mb-8">
           <div className="flex justify-center mb-6">
             <img
-              src="/rent-a-car-in-kenya-logo-hd2-135x134.png"
-              alt="Rent A Car In Kenya Logo"
+              src={settings.logo_url}
+              alt={`${settings.company_name} Logo`}
               className="h-24 w-auto"
             />
           </div>
-          <h1 className="text-2xl font-bold text-neutral-900">Rent A Car In Kenya</h1>
+          <h1 className="text-2xl font-bold text-neutral-900">{settings.company_name}</h1>
           <p className="text-gray-600 mt-2 font-medium">Fleet Hub</p>
         </div>
 

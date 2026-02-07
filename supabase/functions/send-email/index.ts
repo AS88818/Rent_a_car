@@ -78,12 +78,28 @@ Deno.serve(async (req: Request) => {
       throw new Error("Missing required fields: (bookingId or invoiceId) and emailType");
     }
 
+    const { data: companyRow } = await supabase
+      .from("company_settings")
+      .select("*")
+      .limit(1)
+      .maybeSingle();
+
+    const companyVars: Record<string, string> = companyRow ? {
+      company_name: companyRow.company_name || '',
+      company_tagline: companyRow.tagline || '',
+      company_email: companyRow.email || '',
+      company_phone_nanyuki: companyRow.phone_nanyuki || '',
+      company_phone_nairobi: companyRow.phone_nairobi || '',
+      company_website: companyRow.website_url || '',
+      company_address: companyRow.address || '',
+      email_signature: companyRow.email_signature || '',
+    } : {};
+
     let recipientEmail: string;
     let recipientName: string;
     let subject: string;
     let body: string;
 
-    // Handle invoice receipt emails
     if (invoiceId && emailType === 'invoice_receipt') {
       const { data: invoice, error: invoiceError } = await supabase
         .from("invoices")
@@ -131,6 +147,7 @@ Deno.serve(async (req: Request) => {
       };
 
       const variables: Record<string, string> = {
+        ...companyVars,
         client_name: invoice.client_name,
         invoice_reference: invoice.invoice_reference,
         total_amount: formatCurrency(invoice.total_amount),
@@ -147,7 +164,6 @@ Deno.serve(async (req: Request) => {
         body = body.replace(regex, value);
       });
     }
-    // Handle booking emails
     else if (bookingId) {
       const { data: booking, error: bookingError } = await supabase
         .from("bookings")
@@ -192,6 +208,7 @@ Deno.serve(async (req: Request) => {
       const duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60));
 
       const variables: Record<string, string> = {
+        ...companyVars,
         client_name: booking.client_name,
         vehicle_reg: booking.vehicle.reg_number,
         start_date: startDate.toLocaleDateString(),

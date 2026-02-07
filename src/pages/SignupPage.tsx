@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
 import { useAuth } from '../lib/auth-context';
+import { useCompanySettings } from '../lib/company-settings-context';
 import { branchService } from '../services/api';
 import { UserRole, Branch } from '../types/database';
 import { showToast } from '../lib/toast';
@@ -10,6 +11,7 @@ import { getRoleLabel, getRoleDescription } from '../lib/permissions';
 export function SignupPage() {
   const navigate = useNavigate();
   const { signUp } = useAuth();
+  const { settings } = useCompanySettings();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -91,14 +93,14 @@ export function SignupPage() {
       <div className="bg-white rounded-2xl shadow-card w-full max-w-md p-10">
         <div className="flex justify-center mb-6">
           <img
-            src="/rent-a-car-in-kenya-logo-hd2-135x134.png"
-            alt="Rent A Car In Kenya Logo"
+            src={settings.logo_url}
+            alt={`${settings.company_name} Logo`}
             className="h-20 w-auto"
           />
         </div>
 
         <h1 className="text-2xl font-bold text-center text-neutral-900 mb-2">Create Account</h1>
-        <p className="text-center text-gray-600 mb-6 font-medium">Join Rent A Car In Kenya Fleet Hub</p>
+        <p className="text-center text-gray-600 mb-6 font-medium">Join {settings.company_name} Fleet Hub</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

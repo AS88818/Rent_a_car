@@ -3,7 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { invoiceService, quotationService } from '../services/api';
 import { Invoice, PaymentStatus, PaymentMethod } from '../types/database';
 import { showToast } from '../lib/toast';
-import { generateInvoicePDF } from '../lib/pdf-utils';
+import { generateInvoicePDF, companySettingsToPDFInfo } from '../lib/pdf-utils';
+import { useCompanySettings } from '../lib/company-settings-context';
 import {
   FileText,
   Filter,
@@ -24,6 +25,7 @@ import {
 export function InvoicesPage() {
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get('highlight');
+  const { settings } = useCompanySettings();
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -123,7 +125,7 @@ export function InvoicesPage() {
 
   const handleDownloadPDF = (invoice: Invoice) => {
     try {
-      generateInvoicePDF(invoice);
+      generateInvoicePDF(invoice, companySettingsToPDFInfo(settings));
       showToast('PDF downloaded successfully', 'success');
     } catch (error: any) {
       showToast(error.message || 'Failed to generate PDF', 'error');

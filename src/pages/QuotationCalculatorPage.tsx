@@ -5,7 +5,8 @@ import { quotationService, vehicleService, bookingService, branchService, catego
 import { CategoryPricing, SeasonRule, CategoryQuoteResult, Branch, PricingConfig, Quote, VehicleCategory } from '../types/database';
 import { showToast } from '../lib/toast';
 import { useAuth } from '../lib/auth-context';
-import { generateQuotePDFBase64 } from '../lib/pdf-utils';
+import { generateQuotePDFBase64, companySettingsToPDFInfo } from '../lib/pdf-utils';
+import { useCompanySettings } from '../lib/company-settings-context';
 import { supabase } from '../lib/supabase';
 
 interface OtherFee {
@@ -40,6 +41,7 @@ export function QuotationCalculatorPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { settings: companySettings } = useCompanySettings();
   const [categoryPricing, setCategoryPricing] = useState<CategoryPricing[]>([]);
   const [seasonRules, setSeasonRules] = useState<SeasonRule[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -633,7 +635,7 @@ export function QuotationCalculatorPage() {
         })),
       };
 
-      const pdfBase64 = generateQuotePDFBase64(pdfData);
+      const pdfBase64 = generateQuotePDFBase64(pdfData, companySettingsToPDFInfo(companySettings));
 
       console.log('=== Starting email send process ===');
       console.log('Quote reference:', savedQuoteReference);
