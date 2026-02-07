@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { categoryService, vehicleService, bookingService } from '../services/api';
@@ -21,6 +21,7 @@ import { BookingDetailsModal } from '../components/BookingDetailsModal';
 import { BookingFormModal } from '../components/BookingFormModal';
 import { CalendarSettingsModal } from '../components/CalendarSettingsModal';
 import { FreeVehiclesSidePanel } from '../components/FreeVehiclesSidePanel';
+import { DayBookingsPopover } from '../components/DayBookingsPopover';
 import { exportCalendarToPDF } from '../lib/calendar-pdf-export';
 import { branchService } from '../services/api';
 
@@ -60,6 +61,16 @@ export function CalendarPage() {
   const [filterStartLocation, setFilterStartLocation] = useState('');
   const [filterEndLocation, setFilterEndLocation] = useState('');
   const [filterBookingType, setFilterBookingType] = useState('');
+  const [expandedDay, setExpandedDay] = useState<{ day: CalendarDay; bookings: DayBooking[]; rect: DOMRect } | null>(null);
+
+  const handleClosePopover = useCallback(() => setExpandedDay(null), []);
+
+  const handleMoreClick = (e: React.MouseEvent, day: CalendarDay, dayBookings: DayBooking[]) => {
+    const rect = (e.currentTarget as HTMLElement).closest('[data-calendar-cell]')?.getBoundingClientRect();
+    if (rect) {
+      setExpandedDay({ day, bookings: dayBookings, rect });
+    }
+  };
 
   // Handle OAuth callback when redirected back with code
   useEffect(() => {
@@ -881,14 +892,15 @@ export function CalendarPage() {
               return (
                 <div
                   key={`${weekIdx}-${dayIdx}`}
-                  className={`bg-white min-h-32 md:min-h-32 p-2 ${
+                  data-calendar-cell
+                  className={`bg-white min-h-[140px] p-1.5 overflow-hidden ${
                     !day.isCurrentMonth ? 'opacity-40' : ''
                   } ${day.isToday ? 'ring-2 ring-blue-500 ring-inset' : ''} ${
                     isHighlighted ? 'bg-blue-50 ring-1 ring-blue-200 ring-inset' : ''
                   }`}
                 >
                   <div className="flex justify-between items-start mb-1">
-                    <span className={`text-xs md:text-sm font-medium ${
+                    <span className={`text-xs font-medium ${
                       day.isToday ? 'text-blue-600 font-bold' :
                       day.isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
                     }`}>
@@ -897,23 +909,23 @@ export function CalendarPage() {
                     {day.isCurrentMonth && availableCount > 0 && (
                       <button
                         onClick={() => setSelectedDayForPanel(day)}
-                        className="text-xs text-green-600 font-medium hidden md:inline hover:text-green-700 hover:underline transition-colors"
+                        className="text-[10px] text-green-600 font-medium hover:text-green-700 hover:underline transition-colors leading-tight"
                       >
                         {availableCount} free
                       </button>
                     )}
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     {visibleBookings.map(booking => (
                       <button
                         key={booking.id}
                         onClick={() => setSelectedBooking(booking)}
-                        className={`w-full text-left px-2 py-1.5 md:py-1 rounded ${
+                        className={`w-full text-left px-1.5 py-0.5 rounded ${
                           booking.categoryColor?.bg
-                        } border-l-3 md:border-l-2 ${booking.categoryColor?.border} ${
+                        } border-l-2 ${booking.categoryColor?.border} ${
                           getBookingStatusStyle(booking.status)
-                        } hover:opacity-80 active:opacity-70 transition-opacity print:py-1 shadow-sm md:shadow-none`}
+                        } hover:opacity-80 active:opacity-70 transition-opacity overflow-hidden`}
                         title={`${booking.booking_reference || booking.vehicle?.reg_number} - ${booking.client_name}`}
                       >
                         <div className="md:hidden flex items-start justify-between gap-2">
@@ -935,10 +947,13 @@ export function CalendarPage() {
                           </div>
                         </div>
 
-                        <div className="hidden md:flex items-center gap-1">
-                          <span className="font-medium">
+                        <div className="hidden md:block">
+                          <div className="text-[11px] font-semibold text-gray-900 leading-tight break-all line-clamp-2">
                             {booking.booking_reference || booking.vehicle?.reg_number}
-                          </span>
+                          </div>
+                          <div className="text-[10px] text-gray-600 truncate leading-tight mt-px">
+                            {booking.client_name}
+                          </div>
                         </div>
 
                         <div className="hidden print:block text-xs">
@@ -952,9 +967,12 @@ export function CalendarPage() {
                     ))}
 
                     {moreCount > 0 && (
-                      <div className="text-xs text-gray-500 pl-1 md:pl-2">
+                      <button
+                        onClick={(e) => handleMoreClick(e, day, dayBookings)}
+                        className="text-[11px] text-blue-600 font-medium pl-1.5 hover:text-blue-800 hover:underline transition-colors cursor-pointer"
+                      >
                         +{moreCount} more
-                      </div>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -1030,6 +1048,23 @@ export function CalendarPage() {
           vehicles={getAvailableVehiclesForDay(selectedDayForPanel)}
           categories={categories}
           onClose={() => setSelectedDayForPanel(null)}
+        />
+      )}
+
+      {expandedDay && (
+        <DayBookingsPopover
+          bookings={expandedDay.bookings}
+          dateLabel={new Date(expandedDay.day.dateString).toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+          })}
+          anchorRect={expandedDay.rect}
+          onClose={handleClosePopover}
+          onSelectBooking={(booking) => {
+            setExpandedDay(null);
+            setSelectedBooking(booking);
+          }}
         />
       )}
     </div>
