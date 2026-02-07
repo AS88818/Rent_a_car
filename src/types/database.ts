@@ -258,7 +258,27 @@ export type NotificationType =
   | 'deadline_approaching'
   | 'snag_completed'
   | 'snag_overdue'
-  | 'assignment_updated';
+  | 'assignment_updated'
+  | 'service_due'
+  | 'mot_expiring'
+  | 'insurance_expiring'
+  | 'vehicle_grounded'
+  | 'booking_assigned'
+  | 'booking_updated'
+  | 'booking_reminder';
+
+export type NotificationPriority = 'urgent' | 'warning' | 'info';
+
+export interface NotificationMetadata {
+  vehicle_id?: string;
+  vehicle_reg?: string;
+  booking_id?: string;
+  client_name?: string;
+  start_datetime?: string;
+  days_until_expiry?: number;
+  km_remaining?: number;
+  [key: string]: unknown;
+}
 
 export interface Notification {
   id: string;
@@ -268,6 +288,8 @@ export interface Notification {
   message: string;
   link?: string;
   read: boolean;
+  priority?: NotificationPriority;
+  metadata?: NotificationMetadata;
   created_at: string;
 }
 

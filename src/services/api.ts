@@ -1811,7 +1811,7 @@ export const notificationService = {
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(100);
 
     if (unreadOnly) {
       query = query.eq('read', false);
@@ -1850,6 +1850,27 @@ export const notificationService = {
       .eq('read', false);
     if (error) throw error;
     return count || 0;
+  },
+
+  async deleteNotification(notificationId: string) {
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('id', notificationId);
+    if (error) throw error;
+  },
+
+  async deleteOldNotifications(userId: string, daysOld: number = 30) {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('user_id', userId)
+      .eq('read', true)
+      .lt('created_at', cutoffDate.toISOString());
+    if (error) throw error;
   },
 };
 
