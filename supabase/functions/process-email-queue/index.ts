@@ -19,14 +19,11 @@ interface EmailQueueItem {
   attempts: number;
 }
 
-// Build MIME email and encode to base64url
 function buildMimeEmail(to: string, subject: string, body: string): string {
-  // Check if body contains HTML tags
   const isHtml = /<[^>]+>/.test(body);
 
   let mime: string;
   if (isHtml) {
-    // Send as HTML with plain text alternative
     const boundary = "----=_Part_" + Date.now().toString(36);
     const plainText = body.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 
@@ -52,7 +49,6 @@ function buildMimeEmail(to: string, subject: string, body: string): string {
     mime = `To: ${to}\r\nSubject: ${subject}\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n${body}`;
   }
 
-  // Base64url encode
   const encoder = new TextEncoder();
   const data = encoder.encode(mime);
   let base64 = btoa(String.fromCharCode(...data));
@@ -84,7 +80,6 @@ Deno.serve(async (req: Request) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch pending emails that are due to be sent
     const { data: pendingEmails, error: fetchError } = await supabase
       .from("email_queue")
       .select("*")
@@ -115,6 +110,18 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    const emailIds = pendingEmails.map((e: EmailQueueItem) => e.id);
+    const { error: claimError } = await supabase
+      .from("email_queue")
+      .update({ status: "processing" })
+      .in("id", emailIds)
+      .eq("status", "pending");
+
+    if (claimError) {
+      console.error("Error claiming emails:", claimError);
+      throw claimError;
+    }
+
     const results = {
       processed: 0,
       sent: 0,
@@ -122,15 +129,12 @@ Deno.serve(async (req: Request) => {
       errors: [] as string[],
     };
 
-    // Process each email
     for (const email of pendingEmails as EmailQueueItem[]) {
       results.processed++;
 
       try {
-        // Build MIME email and encode to base64url
         const raw = buildMimeEmail(email.recipient_email, email.subject, email.body);
 
-        // Send email via Pica Gmail API
         console.log("Sending email to:", email.recipient_email);
 
         const gmailResponse = await fetch("https://api.picaos.com/v1/passthrough/users/me/messages/send", {
@@ -155,7 +159,6 @@ Deno.serve(async (req: Request) => {
         const gmailData = JSON.parse(responseText);
         console.log(`Email sent successfully. Gmail ID: ${gmailData.id}`);
 
-        // Update email queue status to sent
         const { error: updateError } = await supabase
           .from("email_queue")
           .update({
@@ -178,7 +181,6 @@ Deno.serve(async (req: Request) => {
         results.errors.push(`${email.id}: ${errorMessage}`);
         results.failed++;
 
-        // Update email queue with error
         const { error: updateError } = await supabase
           .from("email_queue")
           .update({

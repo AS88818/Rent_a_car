@@ -415,6 +415,7 @@ export interface CategoryQuoteResult {
 export type ScheduleType = 'immediate' | 'before_start' | 'after_start' | 'before_end' | 'after_end';
 export type ScheduleUnit = 'minutes' | 'hours' | 'days';
 export type TemplateApprovalStatus = 'draft' | 'pending' | 'approved' | 'rejected';
+export type TemplateCategory = 'booking' | 'invoice' | 'quote';
 
 export interface EmailTemplate {
   id: string;
@@ -428,6 +429,7 @@ export interface EmailTemplate {
   schedule_value: number;
   schedule_unit: ScheduleUnit;
   vehicle_ids: string[];
+  template_category: TemplateCategory;
   is_system_template: boolean;
   approval_status: TemplateApprovalStatus;
   created_by?: string;
@@ -440,13 +442,14 @@ export interface EmailTemplate {
 
 export interface EmailQueue {
   id: string;
-  booking_id: string;
+  booking_id?: string | null;
+  invoice_id?: string | null;
   email_type: string;
   recipient_email: string;
   recipient_name: string;
   subject: string;
   body: string;
-  status: 'pending' | 'sent' | 'failed' | 'cancelled';
+  status: 'pending' | 'processing' | 'sent' | 'failed' | 'cancelled';
   scheduled_for: string;
   sent_at?: string;
   error_message?: string;

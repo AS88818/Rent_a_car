@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { emailService, userService, vehicleService } from '../services/api';
-import { EmailTemplate, EmailQueue, AuthUser, Vehicle } from '../types/database';
+import { emailService, userService, vehicleService, categoryService } from '../services/api';
+import { EmailTemplate, EmailQueue, AuthUser, Vehicle, VehicleCategory, TemplateCategory } from '../types/database';
 import { showToast } from '../lib/toast';
 import {
   Plus,
@@ -19,14 +19,34 @@ import {
   FileText,
   Calendar,
   Download,
+  Search,
+  RotateCcw,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
 } from 'lucide-react';
 import { EmailTemplateFormModal } from '../components/EmailTemplateFormModal';
 import { EmailQueueEditModal } from '../components/EmailQueueEditModal';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { generateEmailPDF, generateBulkEmailsPDF } from '../lib/pdf-utils';
 
+const ITEMS_PER_PAGE_OPTIONS = [10, 25, 50];
+
+const CATEGORY_LABELS: Record<TemplateCategory, string> = {
+  booking: 'Booking',
+  invoice: 'Invoice',
+  quote: 'Quote',
+};
+
+const CATEGORY_COLORS: Record<TemplateCategory, string> = {
+  booking: 'bg-blue-100 text-blue-800 border-blue-200',
+  invoice: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  quote: 'bg-amber-100 text-amber-800 border-amber-200',
+};
+
 export function EmailsPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [vehicleCategories, setVehicleCategories] = useState<VehicleCategory[]>([]);
   const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
   const [emailQueue, setEmailQueue] = useState<EmailQueue[]>([]);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
@@ -39,10 +59,18 @@ export function EmailsPage() {
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const [showQueueEditModal, setShowQueueEditModal] = useState(false);
   const [editingQueueEmail, setEditingQueueEmail] = useState<EmailQueue | null>(null);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ action: () => void; message: string } | null>(null);
   const [templateFilter, setTemplateFilter] = useState<'all' | 'approved' | 'pending' | 'draft' | 'rejected'>('all');
-  const [queueFilter, setQueueFilter] = useState<'all' | 'pending' | 'sent' | 'failed' | 'cancelled'>('all');
+  const [templateCategoryFilter, setTemplateCategoryFilter] = useState<'all' | TemplateCategory>('all');
+  const [queueFilter, setQueueFilter] = useState<'all' | 'pending' | 'processing' | 'sent' | 'failed' | 'cancelled'>('all');
+  const [queueSearch, setQueueSearch] = useState('');
+  const [queuePage, setQueuePage] = useState(1);
+  const [queuePageSize, setQueuePageSize] = useState(10);
+  const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
+
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectingTemplateId, setRejectingTemplateId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -50,14 +78,16 @@ export function EmailsPage() {
 
   const fetchData = async () => {
     try {
-      const [vehiclesData, templatesData, queueData, userData] = await Promise.all([
+      const [vehiclesData, categoriesData, templatesData, queueData, userData] = await Promise.all([
         vehicleService.getVehicles(),
+        categoryService.getCategories(),
         emailService.getEmailTemplates(),
         emailService.getEmailQueue(),
         userService.getCurrentUser(),
       ]);
 
       setVehicles(vehiclesData);
+      setVehicleCategories(categoriesData);
       setEmailTemplates(templatesData);
       setEmailQueue(queueData);
       setCurrentUser(userData);
@@ -156,13 +186,19 @@ export function EmailsPage() {
     }
   };
 
-  const handleRejectTemplate = async (id: string, reason: string) => {
+  const handleRejectTemplate = async () => {
+    if (!rejectingTemplateId || !rejectionReason.trim()) return;
+
     try {
-      const updated = await emailService.rejectTemplate(id, reason);
+      const updated = await emailService.rejectTemplate(rejectingTemplateId, rejectionReason.trim());
       setEmailTemplates(emailTemplates.map((t) => (t.id === updated.id ? updated : t)));
       showToast('Template rejected', 'success');
     } catch (error: any) {
       showToast(error.message || 'Failed to reject template', 'error');
+    } finally {
+      setShowRejectModal(false);
+      setRejectingTemplateId(null);
+      setRejectionReason('');
     }
   };
 
@@ -194,12 +230,48 @@ export function EmailsPage() {
   };
 
   const handleSendEmailNow = async (id: string) => {
+    setSendingEmailId(id);
     try {
-      const updated = await emailService.sendEmailNow(id);
-      setEmailQueue(emailQueue.map((e) => (e.id === updated.id ? updated : e)));
-      showToast('Email scheduled for immediate sending', 'success');
+      await emailService.sendEmailNow(id);
+      await handleProcessEmails();
+      showToast('Email sent', 'success');
     } catch (error: any) {
-      showToast(error.message || 'Failed to schedule email', 'error');
+      showToast(error.message || 'Failed to send email', 'error');
+    } finally {
+      setSendingEmailId(null);
+    }
+  };
+
+  const handleRetryEmail = async (id: string) => {
+    try {
+      const updated = await emailService.updateEmailQueue(id, {
+        status: 'pending',
+        error_message: undefined,
+        attempts: 0,
+      } as any);
+      setEmailQueue(emailQueue.map((e) => (e.id === updated.id ? updated : e)));
+      showToast('Email queued for retry', 'success');
+    } catch (error: any) {
+      showToast(error.message || 'Failed to retry email', 'error');
+    }
+  };
+
+  const handleRetryAllFailed = async () => {
+    const failedEmails = emailQueue.filter((e) => e.status === 'failed');
+    if (failedEmails.length === 0) return;
+
+    try {
+      for (const email of failedEmails) {
+        const updated = await emailService.updateEmailQueue(email.id, {
+          status: 'pending',
+          error_message: undefined,
+          attempts: 0,
+        } as any);
+        setEmailQueue((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+      }
+      showToast(`${failedEmails.length} emails queued for retry`, 'success');
+    } catch (error: any) {
+      showToast(error.message || 'Failed to retry emails', 'error');
     }
   };
 
@@ -265,6 +337,8 @@ export function EmailsPage() {
         return <AlertCircle className="w-4 h-4 text-red-600" />;
       case 'pending':
         return <Clock className="w-4 h-4 text-yellow-600" />;
+      case 'processing':
+        return <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />;
       case 'cancelled':
         return <X className="w-4 h-4 text-gray-600" />;
       default:
@@ -280,6 +354,8 @@ export function EmailsPage() {
         return 'bg-red-100 text-red-800 border-red-200';
       case 'pending':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'processing':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'cancelled':
         return 'bg-gray-100 text-gray-800 border-gray-200';
       default:
@@ -322,14 +398,35 @@ export function EmailsPage() {
   };
 
   const filteredTemplates = emailTemplates.filter((template) => {
-    if (templateFilter === 'all') return true;
-    return template.approval_status === templateFilter;
+    if (templateFilter !== 'all' && template.approval_status !== templateFilter) return false;
+    if (templateCategoryFilter !== 'all' && template.template_category !== templateCategoryFilter) return false;
+    return true;
   });
 
   const filteredQueue = emailQueue.filter((email) => {
-    if (queueFilter === 'all') return true;
-    return email.status === queueFilter;
+    if (queueFilter !== 'all' && email.status !== queueFilter) return false;
+    if (queueSearch) {
+      const search = queueSearch.toLowerCase();
+      return (
+        email.recipient_name.toLowerCase().includes(search) ||
+        email.recipient_email.toLowerCase().includes(search) ||
+        email.subject.toLowerCase().includes(search) ||
+        email.email_type.toLowerCase().includes(search)
+      );
+    }
+    return true;
   });
+
+  const totalQueuePages = Math.max(1, Math.ceil(filteredQueue.length / queuePageSize));
+  const safeQueuePage = Math.min(queuePage, totalQueuePages);
+  const paginatedQueue = filteredQueue.slice(
+    (safeQueuePage - 1) * queuePageSize,
+    safeQueuePage * queuePageSize
+  );
+
+  useEffect(() => {
+    setQueuePage(1);
+  }, [queueFilter, queueSearch, queuePageSize]);
 
   const emailStats = {
     total: emailQueue.length,
@@ -375,11 +472,19 @@ export function EmailsPage() {
       </div>
 
       <div className="space-y-8">
-        {/* Email Queue Monitor */}
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-gray-900">Email Queue Monitor</h2>
             <div className="flex items-center gap-2">
+              {emailStats.failed > 0 && (
+                <button
+                  onClick={handleRetryAllFailed}
+                  className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Retry All Failed
+                </button>
+              )}
               <button
                 onClick={handleDownloadAllEmails}
                 disabled={filteredQueue.length === 0}
@@ -430,7 +535,7 @@ export function EmailsPage() {
             </div>
           </div>
 
-          <div className="mb-4">
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
             <select
               value={queueFilter}
               onChange={(e) => setQueueFilter(e.target.value as any)}
@@ -438,10 +543,29 @@ export function EmailsPage() {
             >
               <option value="all">All Emails</option>
               <option value="pending">Pending</option>
+              <option value="processing">Processing</option>
               <option value="sent">Sent</option>
               <option value="failed">Failed</option>
               <option value="cancelled">Cancelled</option>
             </select>
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={queueSearch}
+                onChange={(e) => setQueueSearch(e.target.value)}
+                placeholder="Search by name, email, subject, or type..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              />
+              {queueSearch && (
+                <button
+                  onClick={() => setQueueSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -469,7 +593,7 @@ export function EmailsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredQueue.slice(0, 10).map((email) => (
+                {paginatedQueue.map((email) => (
                   <tr key={email.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-2">
@@ -517,10 +641,15 @@ export function EmailsPage() {
                             </button>
                             <button
                               onClick={() => handleSendEmailNow(email.id)}
-                              className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors"
+                              disabled={sendingEmailId === email.id}
+                              className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors disabled:opacity-50"
                               title="Send Now"
                             >
-                              <Send className="w-4 h-4" />
+                              {sendingEmailId === email.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Send className="w-4 h-4" />
+                              )}
                             </button>
                             <button
                               onClick={() =>
@@ -536,7 +665,21 @@ export function EmailsPage() {
                             </button>
                           </>
                         )}
+                        {email.status === 'failed' && (
+                          <button
+                            onClick={() => handleRetryEmail(email.id)}
+                            className="p-1 text-orange-600 hover:bg-orange-50 rounded transition-colors"
+                            title="Retry"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
+                      {email.error_message && (
+                        <p className="text-xs text-red-500 mt-1 max-w-xs truncate" title={email.error_message}>
+                          {email.error_message}
+                        </p>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -545,15 +688,50 @@ export function EmailsPage() {
             {filteredQueue.length === 0 && (
               <div className="text-center py-8 text-gray-500">No emails in queue</div>
             )}
-            {filteredQueue.length > 10 && (
-              <div className="text-center py-4 text-sm text-gray-500">
-                Showing 10 of {filteredQueue.length} emails
-              </div>
-            )}
           </div>
+
+          {filteredQueue.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-4 border-t border-gray-200">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span>
+                  Showing {(safeQueuePage - 1) * queuePageSize + 1}-
+                  {Math.min(safeQueuePage * queuePageSize, filteredQueue.length)} of {filteredQueue.length}
+                </span>
+                <select
+                  value={queuePageSize}
+                  onChange={(e) => setQueuePageSize(Number(e.target.value))}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm"
+                >
+                  {ITEMS_PER_PAGE_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt} per page
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setQueuePage((p) => Math.max(1, p - 1))}
+                  disabled={safeQueuePage <= 1}
+                  className="p-1.5 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="px-3 py-1 text-sm text-gray-700">
+                  {safeQueuePage} / {totalQueuePages}
+                </span>
+                <button
+                  onClick={() => setQueuePage((p) => Math.min(totalQueuePages, p + 1))}
+                  disabled={safeQueuePage >= totalQueuePages}
+                  className="p-1.5 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Email Templates Section */}
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-gray-900">Email Templates</h2>
@@ -600,7 +778,7 @@ export function EmailsPage() {
             </div>
           </div>
 
-          <div className="mb-4">
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
             <select
               value={templateFilter}
               onChange={(e) => setTemplateFilter(e.target.value as any)}
@@ -611,6 +789,16 @@ export function EmailsPage() {
               <option value="pending">Pending Approval</option>
               <option value="draft">Draft</option>
               <option value="rejected">Rejected</option>
+            </select>
+            <select
+              value={templateCategoryFilter}
+              onChange={(e) => setTemplateCategoryFilter(e.target.value as any)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            >
+              <option value="all">All Categories</option>
+              <option value="booking">Booking</option>
+              <option value="invoice">Invoice</option>
+              <option value="quote">Quote</option>
             </select>
           </div>
 
@@ -630,6 +818,11 @@ export function EmailsPage() {
                       <div className="flex items-start gap-2 mb-2">
                         <h3 className="font-semibold text-gray-900 text-sm sm:text-base">{template.template_name}</h3>
                         <div className="flex items-center gap-1 flex-wrap flex-shrink-0">
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded border font-medium ${CATEGORY_COLORS[template.template_category]}`}
+                          >
+                            {CATEGORY_LABELS[template.template_category]}
+                          </span>
                           <span
                             className={`text-xs px-2 py-0.5 rounded border font-medium ${getApprovalBadge(template.approval_status)}`}
                           >
@@ -684,8 +877,9 @@ export function EmailsPage() {
                           </button>
                           <button
                             onClick={() => {
-                              const reason = prompt('Rejection reason:');
-                              if (reason) handleRejectTemplate(template.id, reason);
+                              setRejectingTemplateId(template.id);
+                              setRejectionReason('');
+                              setShowRejectModal(true);
                             }}
                             className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
                             title="Reject"
@@ -751,7 +945,6 @@ export function EmailsPage() {
         </div>
       </div>
 
-      {/* Modals */}
       <EmailTemplateFormModal
         isOpen={showTemplateModal}
         onClose={() => {
@@ -761,6 +954,7 @@ export function EmailsPage() {
         onSubmit={editingTemplate ? handleUpdateTemplate : handleCreateTemplate}
         template={editingTemplate}
         vehicles={vehicles}
+        vehicleCategories={vehicleCategories}
         submitting={submitting}
       />
 
@@ -778,17 +972,59 @@ export function EmailsPage() {
       {confirmAction && (
         <ConfirmModal
           isOpen={!!confirmAction}
-          onClose={() => {
-            setConfirmAction(null);
-            setShowConfirmModal(false);
-          }}
+          title="Confirm Action"
+          onCancel={() => setConfirmAction(null)}
           onConfirm={() => {
             confirmAction.action();
             setConfirmAction(null);
-            setShowConfirmModal(false);
           }}
           message={confirmAction.message}
         />
+      )}
+
+      {showRejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+            onClick={() => {
+              setShowRejectModal(false);
+              setRejectingTemplateId(null);
+              setRejectionReason('');
+            }}
+          ></div>
+          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Reject Template</h3>
+              <textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Provide a reason for rejection..."
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none resize-none"
+                rows={4}
+                autoFocus
+              />
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={() => {
+                    setShowRejectModal(false);
+                    setRejectingTemplateId(null);
+                    setRejectionReason('');
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRejectTemplate}
+                  disabled={!rejectionReason.trim()}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Reject
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

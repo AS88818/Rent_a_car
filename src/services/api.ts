@@ -1227,33 +1227,6 @@ export const emailService = {
     return data as EmailTemplate;
   },
 
-  async queueEmail(emailData: {
-    bookingId: string;
-    emailType: 'confirmation' | 'pickup_reminder' | 'dropoff_reminder';
-    recipientEmail: string;
-    recipientName: string;
-    subject: string;
-    body: string;
-    scheduledFor: string;
-  }) {
-    const { data, error } = await supabase
-      .from('email_queue')
-      .insert([{
-        booking_id: emailData.bookingId,
-        email_type: emailData.emailType,
-        recipient_email: emailData.recipientEmail,
-        recipient_name: emailData.recipientName,
-        subject: emailData.subject,
-        body: emailData.body,
-        scheduled_for: emailData.scheduledFor,
-        status: 'pending',
-      }])
-      .select()
-      .single();
-    if (error) throw error;
-    return data as EmailQueue;
-  },
-
   async sendEmail(bookingId: string, emailType: 'confirmation' | 'pickup_reminder' | 'dropoff_reminder') {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;

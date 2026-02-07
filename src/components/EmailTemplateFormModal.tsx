@@ -1,6 +1,6 @@
 import { X, Info, Check } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { EmailTemplate, Vehicle, ScheduleType, ScheduleUnit } from '../types/database';
+import { EmailTemplate, Vehicle, ScheduleType, ScheduleUnit, TemplateCategory, VehicleCategory } from '../types/database';
 
 interface EmailTemplateFormModalProps {
   isOpen: boolean;
@@ -8,6 +8,7 @@ interface EmailTemplateFormModalProps {
   onSubmit: (template: Partial<EmailTemplate>) => Promise<void>;
   template?: EmailTemplate | null;
   vehicles: Vehicle[];
+  vehicleCategories?: VehicleCategory[];
   submitting?: boolean;
 }
 
@@ -30,6 +31,7 @@ export function EmailTemplateFormModal({
   onSubmit,
   template,
   vehicles,
+  vehicleCategories = [],
   submitting = false,
 }: EmailTemplateFormModalProps) {
   const [formData, setFormData] = useState({
@@ -38,11 +40,17 @@ export function EmailTemplateFormModal({
     subject: '',
     body: '',
     vehicle_ids: [] as string[],
+    template_category: 'booking' as TemplateCategory,
     is_active: true,
     schedule_type: 'immediate' as ScheduleType,
     schedule_value: 0,
     schedule_unit: 'hours' as ScheduleUnit,
   });
+
+  const getCategoryName = (categoryId: string) => {
+    const cat = vehicleCategories.find(c => c.id === categoryId);
+    return cat?.category_name || '';
+  };
   const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
 
   useEffect(() => {
@@ -53,6 +61,7 @@ export function EmailTemplateFormModal({
         subject: template.subject,
         body: template.body,
         vehicle_ids: template.vehicle_ids || [],
+        template_category: template.template_category || 'booking',
         is_active: template.is_active,
         schedule_type: template.schedule_type,
         schedule_value: template.schedule_value,
@@ -65,6 +74,7 @@ export function EmailTemplateFormModal({
         subject: '',
         body: '',
         vehicle_ids: [],
+        template_category: 'booking',
         is_active: true,
         schedule_type: 'immediate',
         schedule_value: 0,
@@ -251,6 +261,25 @@ export function EmailTemplateFormModal({
               </div>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Category <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.template_category}
+                onChange={(e) => setFormData({ ...formData, template_category: e.target.value as TemplateCategory })}
+                disabled={submitting}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50"
+              >
+                <option value="booking">Booking</option>
+                <option value="invoice">Invoice</option>
+                <option value="quote">Quote</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Determines when this template is used: booking triggers, invoice sends, or quote submissions
+              </p>
+            </div>
+
             <div className="relative">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Vehicles (Optional)
@@ -307,7 +336,7 @@ export function EmailTemplateFormModal({
                         </div>
                         <div className="flex-1">
                           <p className="font-medium text-sm text-gray-900">{vehicle.reg_number}</p>
-                          <p className="text-xs text-gray-500">{vehicle.make} {vehicle.model} - {vehicle.category}</p>
+                          <p className="text-xs text-gray-500">{vehicle.make} {vehicle.model}{getCategoryName(vehicle.category_id) ? ` - ${getCategoryName(vehicle.category_id)}` : ''}</p>
                         </div>
                       </div>
                     ))}
