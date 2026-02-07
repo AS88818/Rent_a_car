@@ -69,7 +69,6 @@ export function MaintenancePage() {
             const isMechanic = u.role === 'mechanic';
             return isActive && isMechanic;
           });
-          console.log('Loaded mechanics:', mechanicsOnly);
           setMechanics(mechanicsOnly);
         } catch (error) {
           console.error('Failed to fetch users:', error);

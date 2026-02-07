@@ -17,18 +17,6 @@ export function OAuthCallbackPage() {
   // Check if this page was opened as a popup
   const isPopup = window.opener !== null;
 
-  // Debug logging
-  useEffect(() => {
-    console.log('OAuthCallbackPage mounted', {
-      isPopup,
-      authLoading,
-      hasUser: !!user,
-      userId: user?.id,
-      code: searchParams.get('code') ? 'present' : 'missing',
-      error: searchParams.get('error'),
-    });
-  }, [authLoading, user, searchParams, isPopup]);
-
   const notifyOpenerAndClose = (success: boolean, message?: string) => {
     if (isPopup && window.opener) {
       // Send message to parent window
@@ -95,9 +83,7 @@ export function OAuthCallbackPage() {
       }
 
       try {
-        console.log('Exchanging code for tokens...');
         const tokens = await exchangeCodeForTokens(code);
-        console.log('Got tokens, saving to database...');
 
         await calendarSettingsService.saveGoogleTokens(
           user.id,
@@ -105,8 +91,6 @@ export function OAuthCallbackPage() {
           tokens.refresh_token || '',
           tokens.expires_in
         );
-        console.log('Tokens saved successfully');
-
         setStatus('success');
 
         if (isPopup) {

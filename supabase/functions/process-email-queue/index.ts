@@ -80,6 +80,26 @@ Deno.serve(async (req: Request) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    const { data: companySettings } = await supabase
+      .from("company_settings")
+      .select("*")
+      .limit(1)
+      .maybeSingle();
+
+    const companyVars: Record<string, string> = {
+      "{{company_name}}": companySettings?.company_name || "Rent A Car In Kenya",
+      "{{company_email}}": companySettings?.email || "",
+      "{{company_phone_nanyuki}}": companySettings?.phone_nanyuki || "",
+      "{{company_phone_nairobi}}": companySettings?.phone_nairobi || "",
+      "{{company_website}}": companySettings?.website_url || "",
+      "{{company_address}}": companySettings?.address || "",
+      "{{bank_name}}": companySettings?.bank_name || "",
+      "{{bank_account}}": companySettings?.bank_account || "",
+      "{{mpesa_till}}": companySettings?.mpesa_till || "",
+      "{{email_signature}}": companySettings?.email_signature || "",
+      "{{currency_code}}": companySettings?.currency_code || "KES",
+    };
+
     const { data: pendingEmails, error: fetchError } = await supabase
       .from("email_queue")
       .select("*")
@@ -133,7 +153,14 @@ Deno.serve(async (req: Request) => {
       results.processed++;
 
       try {
-        const raw = buildMimeEmail(email.recipient_email, email.subject, email.body);
+        let finalSubject = email.subject;
+        let finalBody = email.body;
+        for (const [placeholder, value] of Object.entries(companyVars)) {
+          finalSubject = finalSubject.replaceAll(placeholder, value);
+          finalBody = finalBody.replaceAll(placeholder, value);
+        }
+
+        const raw = buildMimeEmail(email.recipient_email, finalSubject, finalBody);
 
         console.log("Sending email to:", email.recipient_email);
 

@@ -344,7 +344,7 @@ ${booking.notes ? `\nNotes:\n${booking.notes}` : ''}
     const { data: bookings, error: bookingsError } = await supabase
       .from('bookings')
       .select('*')
-      .in('status', ['Active', 'Deposit Not Paid']);
+      .in('status', ['Active', 'Advance Payment Not Paid']);
 
     if (bookingsError) throw bookingsError;
 

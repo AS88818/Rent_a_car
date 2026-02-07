@@ -261,9 +261,6 @@ export function QuotationCalculatorPage() {
     }>;
   }> => {
     try {
-      console.log(`Checking availability for ${categoryName}...`);
-      console.log(`Date range: ${inputs.startDateTime} to ${inputs.endDateTime}`);
-
       // Validate dates
       if (!inputs.startDateTime || !inputs.endDateTime) {
         console.warn('No dates provided for availability check');
@@ -277,15 +274,11 @@ export function QuotationCalculatorPage() {
         return { available: false, branchAvailability: [] };
       }
 
-      console.log(`Found category: ${category.category_name} (${category.id})`);
-
       // Get all vehicles in this category
       const allVehicles = await vehicleService.getVehicles();
       const categoryVehicles = allVehicles.filter(
         v => v.category_id === category.id && v.status === 'Available'
       );
-
-      console.log(`Found ${categoryVehicles.length} available vehicles in category ${categoryName}`);
 
       if (categoryVehicles.length === 0) {
         return { available: false, branchAvailability: [] };
@@ -295,8 +288,6 @@ export function QuotationCalculatorPage() {
       const allBookings = await bookingService.getBookings();
       const start = new Date(inputs.startDateTime);
       const end = new Date(inputs.endDateTime);
-
-      console.log(`Checking against ${allBookings.length} total bookings`);
 
       // Check availability for each vehicle and group by branch
       const branchAvailabilityMap = new Map<string, {
@@ -341,12 +332,6 @@ export function QuotationCalculatorPage() {
       }));
 
       const totalAvailable = branchAvailability.reduce((sum, b) => sum + b.availableCount, 0);
-
-      console.log(`Availability result for ${categoryName}:`, {
-        totalAvailable,
-        branchCount: branchAvailability.length,
-        branches: branchAvailability,
-      });
 
       return {
         available: totalAvailable > 0,
@@ -454,8 +439,6 @@ export function QuotationCalculatorPage() {
 
         // Use manually entered outside hours charge if outside office hours
         const outsideHoursCharge = isOutsideOfficeHours() ? (inputs.outsideHoursCharge || 0) : 0;
-
-        console.log(`${pricing.category_name}: totalDays=${totalDays}, hasChauffeur=${inputs.hasChauffeur}, chauffeurFee=${chauffeurFee}, outsideHours=${outsideHoursCharge}`);
 
         const differentLocationFee = inputs.differentLocationCharge || 0;
         const otherFee1 = inputs.otherFee1Amount || 0;
@@ -637,12 +620,6 @@ export function QuotationCalculatorPage() {
 
       const pdfBase64 = generateQuotePDFBase64(pdfData, companySettingsToPDFInfo(companySettings));
 
-      console.log('=== Starting email send process ===');
-      console.log('Quote reference:', savedQuoteReference);
-      console.log('Client email:', inputs.clientEmail);
-      console.log('Client name:', inputs.clientName);
-      console.log('PDF size:', pdfBase64.length, 'chars');
-
       const payload = {
         clientEmail: inputs.clientEmail,
         clientName: inputs.clientName,
@@ -657,13 +634,9 @@ export function QuotationCalculatorPage() {
         pdfBase64,
       };
 
-      console.log('Payload prepared, invoking edge function...');
-
       const { data: result, error: invokeError } = await supabase.functions.invoke('send-quote-email', {
         body: payload,
       });
-
-      console.log('Edge function response:', { result, invokeError });
 
       if (invokeError) {
         console.error('Invoke error details:', {
@@ -679,7 +652,6 @@ export function QuotationCalculatorPage() {
         throw new Error(result?.error || 'Failed to send email');
       }
 
-      console.log('Email sent successfully!', result);
       showToast('Quote sent successfully via email!', 'success');
     } catch (error: any) {
       console.error('=== Error sending quote email ===');

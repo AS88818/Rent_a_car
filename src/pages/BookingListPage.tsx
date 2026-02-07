@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { bookingService, vehicleService, branchService, categoryService, bookingDocumentService } from '../services/api';
 import { Booking, Vehicle, Branch, VehicleCategory, BookingDocument } from '../types/database';
-import { formatDateTime, checkInsuranceExpiryDuringBooking } from '../lib/utils';
+import { formatDateTime, checkInsuranceExpiryDuringBooking, checkLocationMismatch } from '../lib/utils';
 import { Plus, X, Car, Calendar, MapPin, Phone, Edit2, XCircle, Eye, Search, FileText, Download, RefreshCw, AlertCircle, AlertTriangle, User } from 'lucide-react';
 import { showToast } from '../lib/toast';
 import { ConfirmModal } from '../components/ConfirmModal';
@@ -529,26 +529,14 @@ export function BookingListPage() {
 
       <div className="space-y-4">
         {filteredBookings.map(booking => {
-          // Check for location mismatch between vehicle and pickup
           const vehicleBranch = branches.find(b => b.id === booking.vehicle?.branch_id);
           const vehicleLocationName = booking.vehicle?.on_hire ? 'On Hire' : (vehicleBranch?.branch_name || '');
-          const pickupLocationName = booking.start_location || '';
-          let hasLocationMismatch = false;
-          if (vehicleLocationName && pickupLocationName && !booking.vehicle?.on_hire &&
-              booking.status !== 'Completed' && booking.status !== 'Cancelled') {
-            const vehicleLoc = vehicleLocationName.toLowerCase().trim();
-            const pickupLoc = pickupLocationName.toLowerCase().trim();
-            const locationsMatch = vehicleLoc === pickupLoc ||
-              vehicleLoc.includes(pickupLoc) ||
-              pickupLoc.includes(vehicleLoc);
-            if (!locationsMatch) {
-              const vehicleFirstWord = vehicleLoc.split(' ')[0];
-              const pickupFirstWord = pickupLoc.split(' ')[0];
-              if (vehicleFirstWord.length >= 3 && pickupFirstWord.length >= 3) {
-                hasLocationMismatch = vehicleFirstWord !== pickupFirstWord;
-              }
-            }
-          }
+          const hasLocationMismatch = checkLocationMismatch(
+            vehicleLocationName,
+            booking.start_location || '',
+            booking.status,
+            booking.vehicle?.on_hire
+          );
           const daysUntilStart = Math.ceil(
             (new Date(booking.start_datetime).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
           );
@@ -586,7 +574,7 @@ export function BookingListPage() {
                         {booking.status}
                       </span>
                       {booking.vehicle?.insurance_expiry &&
-                        (booking.status === 'Active' || booking.status === 'Confirmed') &&
+                        (booking.status === 'Active') &&
                         checkInsuranceExpiryDuringBooking(
                           booking.vehicle.insurance_expiry,
                           booking.start_datetime,

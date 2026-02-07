@@ -1,16 +1,22 @@
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 
-interface Toast {
+export interface ToastItem {
   id: string;
   message: string;
   type: ToastType;
   duration?: number;
 }
 
-let listeners: ((toast: Toast | null) => void)[] = [];
-let currentToast: Toast | null = null;
+let listeners: ((toasts: ToastItem[]) => void)[] = [];
+let activeToasts: ToastItem[] = [];
 
-export function subscribe(callback: (toast: Toast | null) => void) {
+const MAX_TOASTS = 5;
+
+function notify() {
+  listeners.forEach(listener => listener([...activeToasts]));
+}
+
+export function subscribe(callback: (toasts: ToastItem[]) => void) {
   listeners.push(callback);
   return () => {
     listeners = listeners.filter(l => l !== callback);
@@ -19,19 +25,24 @@ export function subscribe(callback: (toast: Toast | null) => void) {
 
 export function showToast(message: string, type: ToastType = 'info', duration = 3000) {
   const id = Math.random().toString(36).substr(2, 9);
-  currentToast = { id, message, type, duration };
+  const toast: ToastItem = { id, message, type, duration };
 
-  listeners.forEach(listener => listener(currentToast));
+  activeToasts = [...activeToasts, toast].slice(-MAX_TOASTS);
+  notify();
 
   if (duration > 0) {
     setTimeout(() => {
-      currentToast = null;
-      listeners.forEach(listener => listener(null));
+      dismissToast(id);
     }, duration);
   }
 }
 
+export function dismissToast(id: string) {
+  activeToasts = activeToasts.filter(t => t.id !== id);
+  notify();
+}
+
 export function hideToast() {
-  currentToast = null;
-  listeners.forEach(listener => listener(null));
+  activeToasts = [];
+  notify();
 }

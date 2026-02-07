@@ -88,7 +88,7 @@ export function BookingDetailsModal({
   const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
 
   const hasInsuranceIssue = vehicle?.insurance_expiry &&
-    (booking.status === 'Active' || booking.status === 'Confirmed') &&
+    (booking.status === 'Active') &&
     checkInsuranceExpiryDuringBooking(
       vehicle.insurance_expiry,
       booking.start_datetime,

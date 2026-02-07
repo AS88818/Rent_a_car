@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { vehicleService, bookingService, snagService, branchService, categoryService, imageService, alertSnoozeService } from '../services/api';
 import { Vehicle, Booking, Snag, Branch, VehicleCategory, VehicleImage } from '../types/database';
-import { daysUntilExpiry, formatDate, checkInsuranceExpiryDuringBooking } from '../lib/utils';
+import { daysUntilExpiry, formatDate, checkInsuranceExpiryDuringBooking, checkLocationMismatch } from '../lib/utils';
 import {
   AlertCircle,
   TrendingUp,
@@ -1263,33 +1263,13 @@ export function DashboardPage() {
                     return false;
                   }) : null;
 
-                  // Show warning if vehicle location doesn't match pickup location
-                  // Compare vehicle's location with booking's start location
-                  let hasLocationMismatch = false;
                   const vehicleLocationName = vehicleBranch?.branch_name || vehicle?.branch_name || '';
-                  const pickupLocationName = booking.start_location || '';
-
-                  if (vehicleLocationName && pickupLocationName) {
-                    const vehicleLoc = vehicleLocationName.toLowerCase().trim();
-                    const pickupLoc = pickupLocationName.toLowerCase().trim();
-
-                    // Check if locations are different
-                    // First, try exact or contains match
-                    const locationsMatch = vehicleLoc === pickupLoc ||
-                      vehicleLoc.includes(pickupLoc) ||
-                      pickupLoc.includes(vehicleLoc);
-
-                    if (!locationsMatch) {
-                      // Locations don't match directly, check first words
-                      const vehicleFirstWord = vehicleLoc.split(' ')[0];
-                      const pickupFirstWord = pickupLoc.split(' ')[0];
-
-                      // Mismatch if first words are different (e.g., "nairobi" vs "nanyuki")
-                      if (vehicleFirstWord.length >= 3 && pickupFirstWord.length >= 3) {
-                        hasLocationMismatch = vehicleFirstWord !== pickupFirstWord;
-                      }
-                    }
-                  }
+                  const hasLocationMismatch = checkLocationMismatch(
+                    vehicleLocationName,
+                    booking.start_location || '',
+                    booking.status,
+                    vehicle?.on_hire
+                  );
 
                   const daysUntilStart = Math.ceil(
                     (new Date(booking.start_datetime).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
@@ -1298,7 +1278,7 @@ export function DashboardPage() {
                   const bookingType = booking.booking_type || 'self_drive';
 
                   const hasInsuranceIssue = vehicle?.insurance_expiry &&
-                    (booking.status === 'Active' || booking.status === 'Confirmed') &&
+                    (booking.status === 'Active') &&
                     checkInsuranceExpiryDuringBooking(
                       vehicle.insurance_expiry,
                       booking.start_datetime,

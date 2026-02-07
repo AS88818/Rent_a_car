@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Building2, Mail, Phone, CreditCard, Globe, FileText, Save, Loader2 } from 'lucide-react';
+import { Building2, Mail, Phone, CreditCard, FileText, Save, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useCompanySettings } from '../lib/company-settings-context';
+import { useAuth } from '../lib/auth-context';
 import { CompanySettings } from '../types/database';
 import { showToast } from '../lib/toast';
 
@@ -9,15 +10,40 @@ type FormSection = 'branding' | 'contact' | 'payment' | 'email';
 
 export function CompanySettingsPage() {
   const { settings, refresh } = useCompanySettings();
+  const { user } = useAuth();
   const [formData, setFormData] = useState<Partial<CompanySettings>>({});
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [activeSection, setActiveSection] = useState<FormSection>('branding');
 
   useEffect(() => {
     if (settings.id) {
       setFormData({ ...settings });
+      setLoading(false);
+      setLoadError(false);
+    } else {
+      const timeout = setTimeout(() => {
+        if (!settings.id) {
+          setLoading(false);
+          setLoadError(true);
+        }
+      }, 5000);
+      return () => clearTimeout(timeout);
     }
   }, [settings]);
+
+  const handleRetry = async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      await refresh();
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (field: keyof CompanySettings, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -46,6 +72,7 @@ export function CompanySettingsPage() {
           currency_code: formData.currency_code,
           currency_locale: formData.currency_locale,
           updated_at: new Date().toISOString(),
+          updated_by: user?.id || null,
         })
         .eq('id', settings.id);
 
@@ -68,6 +95,56 @@ export function CompanySettingsPage() {
   ];
 
   const hasChanges = JSON.stringify(formData) !== JSON.stringify(settings);
+
+  if (loading) {
+    return (
+      <div className="p-4 md:p-8">
+        <div className="mb-8">
+          <div className="h-9 w-64 bg-gray-200 rounded-lg animate-pulse" />
+          <div className="h-5 w-96 bg-gray-100 rounded mt-2 animate-pulse" />
+        </div>
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="lg:w-56 flex-shrink-0 space-y-2">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-10 bg-gray-100 rounded-lg animate-pulse" />
+            ))}
+          </div>
+          <div className="flex-1">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="space-y-2">
+                  <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-10 bg-gray-100 rounded-lg animate-pulse" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="p-4 md:p-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Company Settings</h1>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">Failed to load settings</h2>
+          <p className="text-gray-600 mb-6">Could not retrieve company settings from the database.</p>
+          <button
+            onClick={handleRetry}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-8">

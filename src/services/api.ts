@@ -24,6 +24,8 @@ import {
   SnagResolution,
   Notification,
   VehicleWithSnagCount,
+  PaymentMethod,
+  BookingDeposit,
 } from '../types/database';
 import { checkBookingConflict, calculateVehicleHealth } from '../lib/utils';
 

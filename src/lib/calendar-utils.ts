@@ -147,7 +147,7 @@ export function getBookingStatusStyle(status: string): string {
       return 'border-solid';
     case 'Draft':
       return 'border-dashed';
-    case 'Deposit Not Paid':
+    case 'Advance Payment Not Paid':
       return 'border-dotted';
     default:
       return 'border-solid';

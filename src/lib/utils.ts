@@ -182,3 +182,31 @@ export function checkInsuranceExpiryDuringBooking(
 
   return expiry >= start && expiry <= end;
 }
+
+export function checkLocationMismatch(
+  vehicleLocation: string,
+  pickupLocation: string,
+  bookingStatus?: string,
+  isOnHire?: boolean
+): boolean {
+  if (!vehicleLocation || !pickupLocation) return false;
+  if (isOnHire) return false;
+  if (bookingStatus === 'Completed' || bookingStatus === 'Cancelled') return false;
+
+  const vehicleLoc = vehicleLocation.toLowerCase().trim();
+  const pickupLoc = pickupLocation.toLowerCase().trim();
+
+  const locationsMatch = vehicleLoc === pickupLoc ||
+    vehicleLoc.includes(pickupLoc) ||
+    pickupLoc.includes(vehicleLoc);
+
+  if (!locationsMatch) {
+    const vehicleFirstWord = vehicleLoc.split(' ')[0];
+    const pickupFirstWord = pickupLoc.split(' ')[0];
+    if (vehicleFirstWord.length >= 3 && pickupFirstWord.length >= 3) {
+      return vehicleFirstWord !== pickupFirstWord;
+    }
+  }
+
+  return false;
+}
