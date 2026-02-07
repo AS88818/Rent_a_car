@@ -1083,7 +1083,7 @@ export function QuotationCalculatorPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">Select pickup location</option>
-              {branches.filter(branch => branch.branch_name !== 'On Hire').map(branch => (
+              {branches.map(branch => (
                 <option key={branch.id} value={branch.id}>{branch.branch_name}</option>
               ))}
               <option value="other">Other</option>
@@ -1126,7 +1126,7 @@ export function QuotationCalculatorPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">Select drop-off location</option>
-              {branches.filter(branch => branch.branch_name !== 'On Hire').map(branch => (
+              {branches.map(branch => (
                 <option key={branch.id} value={branch.id}>{branch.branch_name}</option>
               ))}
               <option value="other">Other</option>

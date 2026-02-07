@@ -151,12 +151,7 @@ export function getAvailableVehicles(
       return false;
     }
 
-    // Exclude vehicles currently on hire
-    if (vehicle.on_hire) {
-      return false;
-    }
-
-    if (vehicle.status === 'Grounded' || vehicle.health_flag === 'Grounded') {
+    if (vehicle.status === 'On Hire' || vehicle.status === 'Grounded' || vehicle.health_flag === 'Grounded') {
       return false;
     }
 
@@ -187,10 +182,10 @@ export function checkLocationMismatch(
   vehicleLocation: string,
   pickupLocation: string,
   bookingStatus?: string,
-  isOnHire?: boolean
+  vehicleStatus?: string
 ): boolean {
   if (!vehicleLocation || !pickupLocation) return false;
-  if (isOnHire) return false;
+  if (vehicleStatus === 'On Hire') return false;
   if (bookingStatus === 'Completed' || bookingStatus === 'Cancelled') return false;
 
   const vehicleLoc = vehicleLocation.toLowerCase().trim();

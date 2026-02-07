@@ -70,7 +70,7 @@ export function VehiclesPage() {
       const vehiclesWithDetails = vehiclesData.map(v => ({
         ...v,
         category_name: categoriesData.find(c => c.id === v.category_id)?.category_name,
-        branch_name: v.on_hire ? 'On Hire' : (branchesData.find(b => b.id === v.branch_id)?.branch_name || 'Not assigned'),
+        branch_name: branchesData.find(b => b.id === v.branch_id)?.branch_name || 'Not assigned',
       }));
 
       setVehicles(vehiclesWithDetails);
@@ -636,9 +636,7 @@ export function VehiclesPage() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   >
                     <option value="">Select Location</option>
-                    {branches
-                      .filter((branch) => branch.branch_name !== 'On Hire')
-                      .map((branch) => (
+                    {branches.map((branch) => (
                         <option key={branch.id} value={branch.id}>
                           {branch.branch_name}
                         </option>

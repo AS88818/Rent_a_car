@@ -141,7 +141,7 @@ export const vehicleService = {
     const oldBranch = branches.find(b => b.id === vehicle.branch_id);
     const newBranch = branches.find(b => b.id === branchId);
 
-    const oldLocation = vehicle.on_hire ? 'On Hire' : (oldBranch?.branch_name || 'Unknown');
+    const oldLocation = oldBranch?.branch_name || 'Unknown';
     const newLocation = newBranch?.branch_name || branchId;
 
     await activityLogService.logActivity({
@@ -155,11 +155,12 @@ export const vehicleService = {
       notes: `Vehicle moved from ${oldLocation} to ${newLocation}`,
     });
 
-    return await this.updateVehicle(id, {
-      branch_id: branchId,
-      on_hire: false,
-      on_hire_location: null
-    });
+    const updates: Partial<Vehicle> = { branch_id: branchId };
+    if (vehicle.status === 'On Hire') {
+      updates.status = 'Available';
+    }
+
+    return await this.updateVehicle(id, updates);
   },
 
   async publishDraft(id: string) {

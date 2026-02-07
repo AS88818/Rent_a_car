@@ -331,7 +331,7 @@ export function BookingFormModal({
                       required
                     >
                       <option value="">Select start location</option>
-                      {branches.filter(branch => branch.branch_name !== 'On Hire').map(branch => (
+                      {branches.map(branch => (
                         <option key={branch.id} value={branch.id}>{branch.branch_name}</option>
                       ))}
                       <option value="other">Other</option>
@@ -378,7 +378,7 @@ export function BookingFormModal({
                       required
                     >
                       <option value="">Select end location</option>
-                      {branches.filter(branch => branch.branch_name !== 'On Hire').map(branch => (
+                      {branches.map(branch => (
                         <option key={branch.id} value={branch.id}>{branch.branch_name}</option>
                       ))}
                       <option value="other">Other</option>

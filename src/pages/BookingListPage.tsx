@@ -530,12 +530,12 @@ export function BookingListPage() {
       <div className="space-y-4">
         {filteredBookings.map(booking => {
           const vehicleBranch = branches.find(b => b.id === booking.vehicle?.branch_id);
-          const vehicleLocationName = booking.vehicle?.on_hire ? 'On Hire' : (vehicleBranch?.branch_name || '');
+          const vehicleLocationName = vehicleBranch?.branch_name || '';
           const hasLocationMismatch = checkLocationMismatch(
             vehicleLocationName,
             booking.start_location || '',
             booking.status,
-            booking.vehicle?.on_hire
+            booking.vehicle?.status
           );
           const daysUntilStart = Math.ceil(
             (new Date(booking.start_datetime).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
@@ -801,7 +801,7 @@ export function BookingListPage() {
                       required
                     >
                       <option value="">Select start location</option>
-                      {branches.filter(branch => branch.branch_name !== 'On Hire').map(branch => (
+                      {branches.map(branch => (
                         <option key={branch.id} value={branch.id}>{branch.branch_name}</option>
                       ))}
                       <option value="other">Other</option>
@@ -841,7 +841,7 @@ export function BookingListPage() {
                       required
                     >
                       <option value="">Select end location</option>
-                      {branches.filter(branch => branch.branch_name !== 'On Hire').map(branch => (
+                      {branches.map(branch => (
                         <option key={branch.id} value={branch.id}>{branch.branch_name}</option>
                       ))}
                       <option value="other">Other</option>

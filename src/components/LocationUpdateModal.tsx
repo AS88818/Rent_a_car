@@ -32,15 +32,15 @@ export function LocationUpdateModal({ vehicle, onClose, onConfirm }: LocationUpd
     }
   };
 
-  const currentBranch = vehicle.on_hire ? null : branches.find(b => b.id === vehicle.branch_id);
+  const currentBranch = branches.find(b => b.id === vehicle.branch_id);
   const newBranch = branches.find(b => b.id === selectedBranchId);
-  const currentLocationText = vehicle.on_hire ? 'On Hire' : (currentBranch?.branch_name || 'Not assigned');
+  const currentLocationText = currentBranch?.branch_name || 'Not assigned';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!vehicle.on_hire && selectedBranchId === vehicle.branch_id) {
+    if (selectedBranchId === vehicle.branch_id) {
       setError('Please select a different location');
       return;
     }
@@ -94,13 +94,13 @@ export function LocationUpdateModal({ vehicle, onClose, onConfirm }: LocationUpd
                     <span className="font-medium text-gray-900">
                       {currentLocationText}
                     </span>
+                    {vehicle.status === 'On Hire' && (
+                      <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                        On Hire
+                      </span>
+                    )}
                   </div>
-                  {vehicle.on_hire && vehicle.on_hire_location && (
-                    <p className="mt-1 text-sm text-gray-600 ml-6">
-                      {vehicle.on_hire_location}
-                    </p>
-                  )}
-                  {!vehicle.on_hire && currentBranch?.location && (
+                  {currentBranch?.location && (
                     <p className="mt-1 text-sm text-gray-600 ml-6">
                       {currentBranch.location}
                     </p>
@@ -128,7 +128,7 @@ export function LocationUpdateModal({ vehicle, onClose, onConfirm }: LocationUpd
                 </select>
               </div>
 
-              {selectedBranchId && (vehicle.on_hire || selectedBranchId !== vehicle.branch_id) && (
+              {selectedBranchId && selectedBranchId !== vehicle.branch_id && (
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-sm text-blue-800">
                     <strong>Confirm:</strong> Move vehicle from{' '}
@@ -156,7 +156,7 @@ export function LocationUpdateModal({ vehicle, onClose, onConfirm }: LocationUpd
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting || !selectedBranchId || (!vehicle.on_hire && selectedBranchId === vehicle.branch_id)}
+                  disabled={isSubmitting || !selectedBranchId || selectedBranchId === vehicle.branch_id}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? 'Moving...' : 'Move Vehicle'}

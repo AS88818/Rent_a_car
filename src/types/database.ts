@@ -48,8 +48,6 @@ export interface Vehicle {
   is_personal?: boolean;
   current_location?: string;
   is_draft?: boolean;
-  on_hire?: boolean;
-  on_hire_location?: string;
   deleted_at?: string;
   created_at: string;
   updated_at: string;

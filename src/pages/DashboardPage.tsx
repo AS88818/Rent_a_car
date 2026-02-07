@@ -98,9 +98,7 @@ export function DashboardPage() {
       // Other roles see only their branch
       const snagBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
 
-      // Mechanics should see ALL vehicles across all branches
       const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
-      // Mechanics need all bookings to correctly attribute on-hire vehicles to branches
       const bookingBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
 
       const [vehiclesData, bookingsData, snagsData, branchesData, categoriesData] = await Promise.all([
@@ -113,7 +111,7 @@ export function DashboardPage() {
 
       const vehiclesWithBranch = vehiclesData.map(v => ({
         ...v,
-        branch_name: v.on_hire ? 'On Hire' : (branchesData.find(b => b.id === v.branch_id)?.branch_name || 'Not assigned')
+        branch_name: branchesData.find(b => b.id === v.branch_id)?.branch_name || 'Not assigned'
       }));
 
       setVehicles(vehiclesWithBranch);
@@ -235,59 +233,22 @@ export function DashboardPage() {
   const totalVehicles = businessVehicles.length;
   // A vehicle is grounded if health_flag is 'Grounded' (primary indicator)
   const groundedVehicles = businessVehicles.filter(v => v.health_flag === 'Grounded').length;
-  const onHireVehicles = businessVehicles.filter(v => v.on_hire && v.health_flag !== 'Grounded').length;
+  const onHireVehicles = businessVehicles.filter(v => v.status === 'On Hire' && v.health_flag !== 'Grounded').length;
   const availableVehicles = businessVehicles.filter(v =>
-    v.status === 'Available' && !v.on_hire && v.health_flag !== 'Grounded'
+    v.status === 'Available' && v.health_flag !== 'Grounded'
   ).length;
 
-  // Map on-hire vehicles back to their pickup branch using booking data
-  const onHireVehicleBranchMap = new Map<string, string>();
-  const nowForBranch = new Date();
-  businessVehicles
-    .filter(v => v.on_hire)
-    .forEach(v => {
-      const activeBooking = bookings.find(b =>
-        b.vehicle_id === v.id &&
-        b.status !== 'Completed' &&
-        b.status !== 'Cancelled' &&
-        new Date(b.start_datetime) <= nowForBranch &&
-        new Date(b.end_datetime) >= nowForBranch
-      );
-      if (activeBooking?.branch_id) {
-        onHireVehicleBranchMap.set(v.id, activeBooking.branch_id);
-      } else {
-        // Fallback: most recent non-completed/cancelled booking
-        const recentBooking = bookings.find(b =>
-          b.vehicle_id === v.id &&
-          b.status !== 'Completed' &&
-          b.status !== 'Cancelled'
-        );
-        if (recentBooking?.branch_id) {
-          onHireVehicleBranchMap.set(v.id, recentBooking.branch_id);
-        }
-      }
-    });
-
-  const getEffectiveBranchId = (vehicle: typeof businessVehicles[number]): string | null | undefined => {
-    if (vehicle.on_hire) {
-      return onHireVehicleBranchMap.get(vehicle.id) || null;
-    }
-    return vehicle.branch_id;
-  };
-
   const branchBreakdown = branches
-    .filter(branch => branch.branch_name !== 'On Hire')
     .map(branch => {
-      // All vehicles belonging to this branch (including on-hire via booking attribution)
-      const branchVehicles = businessVehicles.filter(v => getEffectiveBranchId(v) === branch.id);
+      const branchVehicles = businessVehicles.filter(v => v.branch_id === branch.id);
 
       return {
         id: branch.id,
         name: branch.branch_name,
         shortName: branch.branch_name.includes('Nairobi') ? 'NRB' : 'NYK',
         total: branchVehicles.length,
-        available: branchVehicles.filter(v => v.status === 'Available' && !v.on_hire && v.health_flag !== 'Grounded').length,
-        onHire: branchVehicles.filter(v => v.on_hire && v.health_flag !== 'Grounded').length,
+        available: branchVehicles.filter(v => v.status === 'Available' && v.health_flag !== 'Grounded').length,
+        onHire: branchVehicles.filter(v => v.status === 'On Hire' && v.health_flag !== 'Grounded').length,
         grounded: branchVehicles.filter(v => v.health_flag === 'Grounded').length,
       };
     });
@@ -296,14 +257,13 @@ export function DashboardPage() {
     const categoryVehicles = businessVehicles.filter(v => v.category_id === category.id);
 
     const byBranch: Record<string, { total: number; available: number; onHire: number; grounded: number }> = {};
-    branches.filter(b => b.branch_name !== 'On Hire').forEach(branch => {
-      // All vehicles in this category belonging to this branch (including on-hire via booking attribution)
-      const branchCategoryVehicles = categoryVehicles.filter(v => getEffectiveBranchId(v) === branch.id);
+    branches.forEach(branch => {
+      const branchCategoryVehicles = categoryVehicles.filter(v => v.branch_id === branch.id);
 
       byBranch[branch.id] = {
         total: branchCategoryVehicles.length,
-        available: branchCategoryVehicles.filter(v => v.status === 'Available' && !v.on_hire && v.health_flag !== 'Grounded').length,
-        onHire: branchCategoryVehicles.filter(v => v.on_hire && v.health_flag !== 'Grounded').length,
+        available: branchCategoryVehicles.filter(v => v.status === 'Available' && v.health_flag !== 'Grounded').length,
+        onHire: branchCategoryVehicles.filter(v => v.status === 'On Hire' && v.health_flag !== 'Grounded').length,
         grounded: branchCategoryVehicles.filter(v => v.health_flag === 'Grounded').length,
       };
     });
@@ -312,8 +272,8 @@ export function DashboardPage() {
       category_id: category.id,
       category_name: category.category_name,
       total: categoryVehicles.length,
-      available: categoryVehicles.filter(v => v.status === 'Available' && !v.on_hire && v.health_flag !== 'Grounded').length,
-      onHire: categoryVehicles.filter(v => v.on_hire && v.health_flag !== 'Grounded').length,
+      available: categoryVehicles.filter(v => v.status === 'Available' && v.health_flag !== 'Grounded').length,
+      onHire: categoryVehicles.filter(v => v.status === 'On Hire' && v.health_flag !== 'Grounded').length,
       grounded: categoryVehicles.filter(v => v.health_flag === 'Grounded').length,
       byBranch,
     };
@@ -652,7 +612,7 @@ export function DashboardPage() {
                   ))}
                 </div>
 
-                {branches.filter(b => b.branch_name !== 'On Hire').map(branch => (
+                {branches.map(branch => (
                   <details key={branch.id} className="bg-gray-50 rounded-lg">
                     <summary className="cursor-pointer font-semibold text-gray-900 flex items-center justify-between p-3 hover:bg-gray-100 rounded-lg transition-colors">
                       <span>{branch.branch_name}</span>
@@ -707,7 +667,7 @@ export function DashboardPage() {
                       ))}
                     </tr>
 
-                    {branches.filter(b => b.branch_name !== 'On Hire').map(branch => {
+                    {branches.map(branch => {
                       const branchAvailableTotal = categoryBreakdown.reduce((sum, cat) =>
                         sum + (cat.byBranch[branch.id]?.available || 0), 0
                       );
@@ -811,7 +771,7 @@ export function DashboardPage() {
                         {vehicle.isOverdue ? `Overdue by ${Math.abs(vehicle.kmLeft)}` : vehicle.kmLeft.toLocaleString()}
                       </td>
                       <td className="p-3 text-gray-700">
-                        {vehicle.status === 'On Hire' ? 'On Hire' : vehicle.branch_name}
+                        {vehicle.branch_name}
                       </td>
                       <td className="p-3 text-gray-700">
                         {nextBooking ? formatDate(nextBooking.start_datetime) : '-'}
@@ -879,7 +839,7 @@ export function DashboardPage() {
                         {vehicle.daysLeft}
                       </td>
                       <td className="p-3 text-gray-700">
-                        {vehicle.status === 'On Hire' ? 'On Hire' : vehicle.branch_name}
+                        {vehicle.branch_name}
                       </td>
                       <td className="p-3 text-gray-700">
                         {nextBooking ? formatDate(nextBooking.start_datetime) : '-'}
@@ -1234,7 +1194,7 @@ export function DashboardPage() {
 
                   // Fallback: if branch_id lookup failed but vehicle has a valid branch_name, match by name
                   if (!vehicleBranch && vehicle?.branch_name &&
-                      !['On Hire', 'Not assigned', 'Unknown'].includes(vehicle.branch_name)) {
+                      !['Not assigned', 'Unknown'].includes(vehicle.branch_name)) {
                     vehicleBranch = branches.find(b =>
                       b.branch_name.toLowerCase().trim() === vehicle.branch_name!.toLowerCase().trim() ||
                       b.branch_name.toLowerCase().includes(vehicle.branch_name!.toLowerCase()) ||
@@ -1268,7 +1228,7 @@ export function DashboardPage() {
                     vehicleLocationName,
                     booking.start_location || '',
                     booking.status,
-                    vehicle?.on_hire
+                    vehicle?.status
                   );
 
                   const daysUntilStart = Math.ceil(

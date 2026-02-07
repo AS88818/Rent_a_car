@@ -47,17 +47,11 @@ export function VehicleFormModal({
     mot_not_applicable: false,
     no_of_passengers: '',
     luggage_space: '',
-    on_hire: false,
-    on_hire_location: '',
   });
   const [submitting, setSubmitting] = useState(false);
-  // Store the original branch_id to restore when toggling On Hire off
-  const [originalBranchId, setOriginalBranchId] = useState<string>(defaultBranchId || '');
 
   useEffect(() => {
     if (mode === 'edit' && vehicle) {
-      // Store the original branch_id before it might be cleared by On Hire toggle
-      setOriginalBranchId(vehicle.branch_id || '');
       setFormData({
         reg_number: vehicle.reg_number || '',
         category_id: vehicle.category_id || '',
@@ -82,8 +76,6 @@ export function VehicleFormModal({
         mot_not_applicable: vehicle.mot_not_applicable || false,
         no_of_passengers: vehicle.no_of_passengers?.toString() || '',
         luggage_space: vehicle.luggage_space || '',
-        on_hire: vehicle.on_hire || false,
-        on_hire_location: vehicle.on_hire_location || '',
       });
     }
   }, [mode, vehicle]);
@@ -118,8 +110,6 @@ export function VehicleFormModal({
         mot_not_applicable: formData.mot_not_applicable,
         no_of_passengers: formData.no_of_passengers ? parseInt(formData.no_of_passengers) : undefined,
         luggage_space: formData.luggage_space || undefined,
-        on_hire: formData.on_hire,
-        on_hire_location: formData.on_hire_location || undefined,
       };
 
       let result: Vehicle;
@@ -191,68 +181,23 @@ export function VehicleFormModal({
             </div>
 
             <div className="md:col-span-2">
-              <div className="flex items-center gap-2 mb-2">
-                <input
-                  type="checkbox"
-                  id="on_hire"
-                  checked={formData.on_hire}
-                  onChange={(e) => {
-                    const isOnHire = e.target.checked;
-                    if (isOnHire) {
-                      // Store current branch_id before clearing it
-                      setOriginalBranchId(formData.branch_id || originalBranchId);
-                    }
-                    setFormData({
-                      ...formData,
-                      on_hire: isOnHire,
-                      // When unchecking On Hire, restore the original branch_id
-                      branch_id: isOnHire ? '' : (originalBranchId || formData.branch_id)
-                    });
-                  }}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                />
-                <label htmlFor="on_hire" className="text-sm font-medium text-gray-700">
-                  Vehicle is On Hire
-                </label>
-              </div>
-              <p className="text-xs text-gray-500 ml-6">
-                Check this if the vehicle is currently on hire (not at a branch location)
-              </p>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Branch Location *
+              </label>
+              <select
+                value={formData.branch_id}
+                onChange={(e) => setFormData({ ...formData, branch_id: e.target.value })}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              >
+                <option value="">Select Branch</option>
+                {branches.map((branch) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.branch_name}
+                  </option>
+                ))}
+              </select>
             </div>
-
-            {formData.on_hire ? (
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  On Hire Location / Customer
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g., Customer Name or Location"
-                  value={formData.on_hire_location}
-                  onChange={(e) => setFormData({ ...formData, on_hire_location: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                />
-              </div>
-            ) : (
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Branch Location *
-                </label>
-                <select
-                  value={formData.branch_id}
-                  onChange={(e) => setFormData({ ...formData, branch_id: e.target.value })}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                >
-                  <option value="">Select Branch</option>
-                  {branches.map((branch) => (
-                    <option key={branch.id} value={branch.id}>
-                      {branch.branch_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
