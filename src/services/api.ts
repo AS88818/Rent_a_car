@@ -970,12 +970,14 @@ export const branchService = {
 
 export const categoryService = {
   async getCategories() {
-    const { data, error } = await supabase
-      .from('vehicle_categories')
-      .select('*')
-      .order('category_name');
-    if (error) throw error;
-    return data as VehicleCategory[];
+    return cachedFetch<VehicleCategory[]>('categories', async () => {
+      const { data, error } = await supabase
+        .from('vehicle_categories')
+        .select('*')
+        .order('category_name');
+      if (error) throw error;
+      return data as VehicleCategory[];
+    });
   },
 
   async createCategory(category: Omit<VehicleCategory, 'id' | 'created_at' | 'updated_at'>) {
@@ -985,6 +987,7 @@ export const categoryService = {
       .select()
       .single();
     if (error) throw error;
+    invalidateCache('categories');
     return data as VehicleCategory;
   },
 
@@ -996,6 +999,7 @@ export const categoryService = {
       .select()
       .single();
     if (error) throw error;
+    invalidateCache('categories');
     return data as VehicleCategory;
   },
 
@@ -1005,6 +1009,7 @@ export const categoryService = {
       .delete()
       .eq('id', id);
     if (error) throw error;
+    invalidateCache('categories');
   },
 };
 
