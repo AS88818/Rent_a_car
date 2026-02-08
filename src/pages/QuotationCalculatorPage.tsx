@@ -127,6 +127,7 @@ export function QuotationCalculatorPage() {
 
       setSavedQuoteReference(quote.quote_reference || null);
       setLoadedQuoteId(quote.id);
+      setCurrentStep(2);
       showToast('Quote loaded successfully', 'success');
 
       navigate(location.pathname, { replace: true, state: {} });
