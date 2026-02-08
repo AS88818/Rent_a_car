@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Building2, Mail, Phone, CreditCard, FileText, Save, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Building2, Mail, Phone, CreditCard, FileText, Save, Loader2, AlertCircle, RefreshCw, Send } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useCompanySettings } from '../lib/company-settings-context';
 import { useAuth } from '../lib/auth-context';
 import { CompanySettings } from '../types/database';
 import { showToast } from '../lib/toast';
+import { EmailSendingSettings } from '../components/EmailSendingSettings';
 
-type FormSection = 'branding' | 'contact' | 'payment' | 'email';
+type FormSection = 'branding' | 'contact' | 'payment' | 'email' | 'email_sending';
 
 export function CompanySettingsPage() {
   const { settings, refresh } = useCompanySettings();
@@ -19,7 +20,7 @@ export function CompanySettingsPage() {
 
   useEffect(() => {
     if (settings.id) {
-      setFormData({ ...settings });
+      setFormData(prev => ({ ...settings, pica_secret_key: prev.pica_secret_key, pica_connection_key: prev.pica_connection_key, pica_action_id: prev.pica_action_id }));
       setLoading(false);
       setLoadError(false);
     } else {
@@ -32,6 +33,25 @@ export function CompanySettingsPage() {
       return () => clearTimeout(timeout);
     }
   }, [settings]);
+
+  useEffect(() => {
+    async function loadCredentials() {
+      const { data } = await supabase
+        .from('company_settings')
+        .select('pica_secret_key, pica_connection_key, pica_action_id')
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        setFormData(prev => ({
+          ...prev,
+          pica_secret_key: data.pica_secret_key || '',
+          pica_connection_key: data.pica_connection_key || '',
+          pica_action_id: data.pica_action_id || '',
+        }));
+      }
+    }
+    loadCredentials();
+  }, []);
 
   const handleRetry = async () => {
     setLoading(true);
@@ -71,6 +91,9 @@ export function CompanySettingsPage() {
           email_signature: formData.email_signature,
           currency_code: formData.currency_code,
           currency_locale: formData.currency_locale,
+          pica_secret_key: formData.pica_secret_key || null,
+          pica_connection_key: formData.pica_connection_key || null,
+          pica_action_id: formData.pica_action_id || null,
           updated_at: new Date().toISOString(),
           updated_by: user?.id || null,
         })
@@ -92,6 +115,7 @@ export function CompanySettingsPage() {
     { key: 'contact', label: 'Contact Info', icon: Phone },
     { key: 'payment', label: 'Payment Details', icon: CreditCard },
     { key: 'email', label: 'Email Signature', icon: Mail },
+    { key: 'email_sending', label: 'Email Sending', icon: Send },
   ];
 
   const hasChanges = JSON.stringify(formData) !== JSON.stringify(settings);
@@ -105,7 +129,7 @@ export function CompanySettingsPage() {
         </div>
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="lg:w-56 flex-shrink-0 space-y-2">
-            {[1, 2, 3, 4].map(i => (
+            {[1, 2, 3, 4, 5].map(i => (
               <div key={i} className="h-10 bg-gray-100 rounded-lg animate-pulse" />
             ))}
           </div>
@@ -339,6 +363,17 @@ export function CompanySettingsPage() {
                   </div>
                 </div>
               )}
+            </SettingsCard>
+          )}
+
+          {activeSection === 'email_sending' && (
+            <SettingsCard title="Email Sending Account" description="Configure which Gmail account sends all outgoing emails (confirmations, invoices, quotes)">
+              <EmailSendingSettings
+                picaSecretKey={formData.pica_secret_key || ''}
+                picaConnectionKey={formData.pica_connection_key || ''}
+                picaActionId={formData.pica_action_id || ''}
+                onChange={(field, value) => handleChange(field as keyof CompanySettings, value)}
+              />
             </SettingsCard>
           )}
         </div>

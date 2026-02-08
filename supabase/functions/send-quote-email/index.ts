@@ -82,19 +82,11 @@ Deno.serve(async (req: Request) => {
 
   try {
     console.log('\n=== Environment Check ===');
-    const picaSecretKey = Deno.env.get('PICA_SECRET_KEY');
-    const picaConnectionKey = Deno.env.get('PICA_GMAIL_CONNECTION_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    console.log('PICA_SECRET_KEY:', picaSecretKey ? 'SET' : 'MISSING');
-    console.log('PICA_GMAIL_CONNECTION_KEY:', picaConnectionKey ? 'SET' : 'MISSING');
     console.log('SUPABASE_URL:', supabaseUrl ? 'SET' : 'MISSING');
     console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseKey ? 'SET' : 'MISSING');
-
-    if (!picaSecretKey || !picaConnectionKey) {
-      throw new Error('Pica environment variables are not configured. Please add PICA_SECRET_KEY and PICA_GMAIL_CONNECTION_KEY to Supabase Edge Function secrets.');
-    }
 
     if (!supabaseUrl || !supabaseKey) {
       throw new Error('Supabase environment variables are not configured properly');
@@ -118,6 +110,17 @@ Deno.serve(async (req: Request) => {
     );
     const settingsRows = settingsResponse.ok ? await settingsResponse.json() : [];
     const companyData = settingsRows?.[0] || {};
+
+    const picaSecretKey = companyData.pica_secret_key || Deno.env.get('PICA_SECRET_KEY');
+    const picaConnectionKey = companyData.pica_connection_key || Deno.env.get('PICA_GMAIL_CONNECTION_KEY');
+    const picaActionId = companyData.pica_action_id || 'conn_mod_def::F_JeJ_A_TKg::cc2kvVQQTiiIiLEDauy6zQ';
+
+    console.log('PICA_SECRET_KEY:', picaSecretKey ? 'SET' : 'MISSING');
+    console.log('PICA_GMAIL_CONNECTION_KEY:', picaConnectionKey ? 'SET' : 'MISSING');
+
+    if (!picaSecretKey || !picaConnectionKey) {
+      throw new Error('Pica credentials are not configured. Set them in Company Settings or as environment variables.');
+    }
 
     const companyVars: Record<string, string> = {
       company_name: companyData.company_name || '',
@@ -191,7 +194,7 @@ Deno.serve(async (req: Request) => {
         'Content-Type': 'application/json',
         'x-pica-secret': picaSecretKey,
         'x-pica-connection-key': picaConnectionKey,
-        'x-pica-action-id': 'conn_mod_def::F_JeJ_A_TKg::cc2kvVQQTiiIiLEDauy6zQ',
+        'x-pica-action-id': picaActionId,
       },
       body: JSON.stringify({ raw }),
     });

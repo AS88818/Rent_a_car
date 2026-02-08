@@ -36,7 +36,7 @@ export function CompanySettingsProvider({ children }: { children: ReactNode }) {
   const fetchSettings = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .from('company_settings')
+        .from('company_settings_public')
         .select('*')
         .limit(1)
         .maybeSingle();

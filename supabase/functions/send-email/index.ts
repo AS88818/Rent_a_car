@@ -64,12 +64,6 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const picaSecretKey = Deno.env.get("PICA_SECRET_KEY");
-    const picaConnectionKey = Deno.env.get("PICA_GMAIL_CONNECTION_KEY");
-
-    if (!picaSecretKey || !picaConnectionKey) {
-      throw new Error("Pica environment variables are not set (PICA_SECRET_KEY, PICA_GMAIL_CONNECTION_KEY)");
-    }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { bookingId, invoiceId, emailType }: EmailRequest = await req.json();
@@ -83,6 +77,14 @@ Deno.serve(async (req: Request) => {
       .select("*")
       .limit(1)
       .maybeSingle();
+
+    const picaSecretKey = companyRow?.pica_secret_key || Deno.env.get("PICA_SECRET_KEY");
+    const picaConnectionKey = companyRow?.pica_connection_key || Deno.env.get("PICA_GMAIL_CONNECTION_KEY");
+    const picaActionId = companyRow?.pica_action_id || "conn_mod_def::F_JeJ_A_TKg::cc2kvVQQTiiIiLEDauy6zQ";
+
+    if (!picaSecretKey || !picaConnectionKey) {
+      throw new Error("Pica credentials are not configured. Set them in Company Settings or as environment variables.");
+    }
 
     const companyVars: Record<string, string> = companyRow ? {
       company_name: companyRow.company_name || '',
@@ -243,7 +245,7 @@ Deno.serve(async (req: Request) => {
         "Content-Type": "application/json",
         "x-pica-secret": picaSecretKey,
         "x-pica-connection-key": picaConnectionKey,
-        "x-pica-action-id": "conn_mod_def::F_JeJ_A_TKg::cc2kvVQQTiiIiLEDauy6zQ",
+        "x-pica-action-id": picaActionId,
       },
       body: JSON.stringify({ raw }),
     });

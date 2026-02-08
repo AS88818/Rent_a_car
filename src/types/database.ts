@@ -572,6 +572,9 @@ export interface CompanySettings {
   email_signature: string;
   currency_code: string;
   currency_locale: string;
+  pica_secret_key?: string;
+  pica_connection_key?: string;
+  pica_action_id?: string;
   updated_at: string;
   updated_by?: string;
 }
