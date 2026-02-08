@@ -3,11 +3,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { bookingService, vehicleService, branchService, categoryService, bookingDocumentService } from '../services/api';
 import { Booking, Vehicle, Branch, VehicleCategory, BookingDocument } from '../types/database';
-import { formatDateTime, checkInsuranceExpiryDuringBooking, checkLocationMismatch } from '../lib/utils';
-import { Plus, X, Car, Calendar, MapPin, Phone, Edit2, XCircle, Eye, Search, FileText, Download, RefreshCw, AlertCircle, AlertTriangle, User } from 'lucide-react';
+import { checkInsuranceExpiryDuringBooking, checkLocationMismatch } from '../lib/utils';
+import { Plus, X, Car, Calendar, MapPin, Phone, Search, RefreshCw, AlertCircle, AlertTriangle, User } from 'lucide-react';
 import { showToast } from '../lib/toast';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { BookingDetailsModal } from '../components/BookingDetailsModal';
+import { BookingFormModal } from '../components/BookingFormModal';
 
 type BookingTimeFilter = 'upcoming' | 'past' | 'all';
 
@@ -28,12 +29,14 @@ export function BookingListPage() {
   const [loading, setLoading] = useState(true);
 
   const [selectedBooking, setSelectedBooking] = useState<BookingWithDetails | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [documents, setDocuments] = useState<BookingDocument[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const [filterBranch, setFilterBranch] = useState<string>('');
   const [filterCategory, setFilterCategory] = useState<string>('');
@@ -42,25 +45,6 @@ export function BookingListPage() {
   const [searchQuery, setSearchQuery] = useState(searchParams.get('vehicle') || '');
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
-
-  const [formData, setFormData] = useState({
-    vehicle_id: '',
-    client_name: '',
-    contact: '',
-    start_datetime: '',
-    end_datetime: '',
-    start_location: '',
-    end_location: '',
-    notes: '',
-  });
-
-  // Location type state for edit form
-  const [startLocationType, setStartLocationType] = useState<'branch' | 'other'>('branch');
-  const [endLocationType, setEndLocationType] = useState<'branch' | 'other'>('branch');
-  const [selectedStartBranchId, setSelectedStartBranchId] = useState('');
-  const [selectedEndBranchId, setSelectedEndBranchId] = useState('');
-  const [customStartLocation, setCustomStartLocation] = useState('');
-  const [customEndLocation, setCustomEndLocation] = useState('');
 
   const fetchData = async () => {
     try {
@@ -136,22 +120,12 @@ export function BookingListPage() {
     loadDocuments();
   }, [selectedBooking?.id]);
 
-  const handleUpdateBooking = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmitBooking = async (bookingData: any) => {
+    if (!editingBooking) return;
 
-    if (!selectedBooking) return;
-
+    setSubmitting(true);
     try {
-      const updatedBooking = await bookingService.updateBooking(selectedBooking.id, {
-        vehicle_id: formData.vehicle_id,
-        client_name: formData.client_name,
-        contact: formData.contact,
-        start_datetime: formData.start_datetime,
-        end_datetime: formData.end_datetime,
-        start_location: formData.start_location,
-        end_location: formData.end_location,
-        notes: formData.notes,
-      });
+      const updatedBooking = await bookingService.updateBooking(editingBooking.id, bookingData);
 
       const vehicle = vehicles.find(v => v.id === updatedBooking.vehicle_id);
       const branch = branches.find(b => b.id === vehicle?.branch_id);
@@ -163,11 +137,23 @@ export function BookingListPage() {
         category_id: vehicle?.category_id,
       };
 
-      setBookings(bookings.map(b => (b.id === selectedBooking.id ? updatedBookingWithDetails : b)));
+      setBookings(bookings.map(b => (b.id === editingBooking.id ? updatedBookingWithDetails : b)));
       showToast('Booking updated successfully', 'success');
-      closeModal();
+      setShowEditModal(false);
+      setEditingBooking(null);
+      setSelectedBooking(null);
     } catch (error: any) {
       showToast(error.message || 'Failed to update booking', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditBooking = () => {
+    if (selectedBooking) {
+      setEditingBooking(selectedBooking);
+      setSelectedBooking(null);
+      setShowEditModal(true);
     }
   };
 
@@ -190,75 +176,10 @@ export function BookingListPage() {
 
   const openBookingDetails = (booking: BookingWithDetails) => {
     setSelectedBooking(booking);
-    setIsEditing(false);
-
-    // Convert ISO datetime to local datetime-local format (YYYY-MM-DDThh:mm)
-    const formatForDatetimeLocal = (isoString: string) => {
-      const date = new Date(isoString);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      return `${year}-${month}-${day}T${hours}:${minutes}`;
-    };
-
-    // Check if start location matches a branch
-    const startBranch = branches.find(b => b.branch_name === booking.start_location);
-    if (startBranch) {
-      setStartLocationType('branch');
-      setSelectedStartBranchId(startBranch.id);
-      setCustomStartLocation('');
-    } else {
-      setStartLocationType('other');
-      setSelectedStartBranchId('');
-      setCustomStartLocation(booking.start_location);
-    }
-
-    // Check if end location matches a branch
-    const endBranch = branches.find(b => b.branch_name === booking.end_location);
-    if (endBranch) {
-      setEndLocationType('branch');
-      setSelectedEndBranchId(endBranch.id);
-      setCustomEndLocation('');
-    } else {
-      setEndLocationType('other');
-      setSelectedEndBranchId('');
-      setCustomEndLocation(booking.end_location);
-    }
-
-    setFormData({
-      vehicle_id: booking.vehicle_id,
-      client_name: booking.client_name,
-      contact: booking.contact,
-      start_datetime: formatForDatetimeLocal(booking.start_datetime),
-      end_datetime: formatForDatetimeLocal(booking.end_datetime),
-      start_location: booking.start_location,
-      end_location: booking.end_location,
-      notes: booking.notes || '',
-    });
   };
 
   const closeModal = () => {
     setSelectedBooking(null);
-    setIsEditing(false);
-    setFormData({
-      vehicle_id: '',
-      client_name: '',
-      contact: '',
-      start_datetime: '',
-      end_datetime: '',
-      start_location: '',
-      end_location: '',
-      notes: '',
-    });
-    // Reset location state
-    setStartLocationType('branch');
-    setEndLocationType('branch');
-    setSelectedStartBranchId('');
-    setSelectedEndBranchId('');
-    setCustomStartLocation('');
-    setCustomEndLocation('');
   };
 
   const getHealthBadgeColor = (health?: string) => {
@@ -692,205 +613,29 @@ export function BookingListPage() {
       )}
 
       <BookingDetailsModal
-        isOpen={!!selectedBooking && !isEditing}
+        isOpen={!!selectedBooking}
         onClose={closeModal}
         booking={selectedBooking}
         vehicle={selectedBooking?.vehicle || null}
         branches={branches}
-        onEdit={() => setIsEditing(true)}
+        onEdit={handleEditBooking}
         onCancel={() => selectedBooking && setConfirmCancel(selectedBooking.id)}
         userRole={userRole}
       />
 
-      {selectedBooking && isEditing && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">Edit Booking</h2>
-              <button
-                onClick={() => setIsEditing(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleUpdateBooking} className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle</label>
-                  <select
-                    value={formData.vehicle_id}
-                    onChange={(e) => setFormData({ ...formData, vehicle_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Select a vehicle</option>
-                    {vehicles.filter(v => !v.is_personal).map(v => (
-                      <option key={v.id} value={v.id}>
-                        {v.reg_number}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Client Name</label>
-                    <input
-                      type="text"
-                      value={formData.client_name}
-                      onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Contact</label>
-                    <input
-                      type="tel"
-                      value={formData.contact}
-                      onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Date & Time</label>
-                    <input
-                      type="datetime-local"
-                      value={formData.start_datetime}
-                      onChange={(e) => setFormData({ ...formData, start_datetime: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">End Date & Time</label>
-                    <input
-                      type="datetime-local"
-                      value={formData.end_datetime}
-                      onChange={(e) => setFormData({ ...formData, end_datetime: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Location</label>
-                    <select
-                      value={startLocationType === 'other' ? 'other' : selectedStartBranchId}
-                      onChange={(e) => {
-                        if (e.target.value === 'other') {
-                          setStartLocationType('other');
-                          setSelectedStartBranchId('');
-                          setFormData({ ...formData, start_location: customStartLocation });
-                        } else {
-                          setStartLocationType('branch');
-                          setSelectedStartBranchId(e.target.value);
-                          const branch = branches.find(b => b.id === e.target.value);
-                          setFormData({ ...formData, start_location: branch?.branch_name || '' });
-                        }
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    >
-                      <option value="">Select start location</option>
-                      {branches.map(branch => (
-                        <option key={branch.id} value={branch.id}>{branch.branch_name}</option>
-                      ))}
-                      <option value="other">Other</option>
-                    </select>
-                    {startLocationType === 'other' && (
-                      <input
-                        type="text"
-                        value={customStartLocation}
-                        onChange={(e) => {
-                          setCustomStartLocation(e.target.value);
-                          setFormData({ ...formData, start_location: e.target.value });
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mt-2"
-                        placeholder="Enter custom start location"
-                        required
-                      />
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">End Location</label>
-                    <select
-                      value={endLocationType === 'other' ? 'other' : selectedEndBranchId}
-                      onChange={(e) => {
-                        if (e.target.value === 'other') {
-                          setEndLocationType('other');
-                          setSelectedEndBranchId('');
-                          setFormData({ ...formData, end_location: customEndLocation });
-                        } else {
-                          setEndLocationType('branch');
-                          setSelectedEndBranchId(e.target.value);
-                          const branch = branches.find(b => b.id === e.target.value);
-                          setFormData({ ...formData, end_location: branch?.branch_name || '' });
-                        }
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    >
-                      <option value="">Select end location</option>
-                      {branches.map(branch => (
-                        <option key={branch.id} value={branch.id}>{branch.branch_name}</option>
-                      ))}
-                      <option value="other">Other</option>
-                    </select>
-                    {endLocationType === 'other' && (
-                      <input
-                        type="text"
-                        value={customEndLocation}
-                        onChange={(e) => {
-                          setCustomEndLocation(e.target.value);
-                          setFormData({ ...formData, end_location: e.target.value });
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mt-2"
-                        placeholder="Enter custom end location"
-                        required
-                      />
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                  <textarea
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows={3}
-                  />
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="submit"
-                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Save Changes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsEditing(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <BookingFormModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingBooking(null);
+        }}
+        onSubmit={handleSubmitBooking}
+        vehicles={vehicles}
+        bookings={bookings}
+        branches={branches}
+        editingBooking={editingBooking}
+        submitting={submitting}
+      />
 
       <ConfirmModal
         isOpen={confirmCancel !== null}

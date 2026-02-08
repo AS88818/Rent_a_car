@@ -117,7 +117,8 @@ export function BookingFormModal({
     const fetchUsers = async () => {
       try {
         const usersData = await userService.getAllUsers();
-        setUsers(usersData);
+        const drivers = usersData.filter(u => u.role === 'driver');
+        setUsers(drivers);
       } catch (error) {
         console.error('Failed to fetch users:', error);
       }
@@ -504,7 +505,7 @@ export function BookingFormModal({
                     </button>
                     <button
                       type="button"
-                      onClick={() => setClientData({ ...clientData, booking_type: 'transfer', chauffeur_id: '', chauffeur_name: '' })}
+                      onClick={() => setClientData({ ...clientData, booking_type: 'transfer' })}
                       className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
                         clientData.booking_type === 'transfer'
                           ? 'border-orange-500 bg-orange-50 text-orange-700'
@@ -516,12 +517,12 @@ export function BookingFormModal({
                     </button>
                   </div>
 
-                  {clientData.booking_type === 'chauffeur' && (
+                  {(clientData.booking_type === 'chauffeur' || clientData.booking_type === 'transfer') && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         <div className="flex items-center gap-2">
                           <UsersIcon className="w-4 h-4" />
-                          Assign Chauffeur (Optional)
+                          Assign Driver (Optional)
                         </div>
                       </label>
                       <select
@@ -537,13 +538,13 @@ export function BookingFormModal({
                         disabled={submitting}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <option value="">Select a chauffeur (optional)</option>
+                        <option value="">Select a driver (optional)</option>
                         {users.map(user => (
                           <option key={user.id} value={user.id}>{user.full_name}</option>
                         ))}
                       </select>
                       {!clientData.chauffeur_id && (
-                        <p className="text-xs text-gray-500 mt-1">You can assign a chauffeur later</p>
+                        <p className="text-xs text-gray-500 mt-1">You can assign a driver later</p>
                       )}
                     </div>
                   )}
