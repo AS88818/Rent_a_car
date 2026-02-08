@@ -1064,7 +1064,7 @@ export const userService = {
     if (error) throw error;
 
     const { error: metadataError } = await supabase.auth.admin.updateUserById(id, {
-      user_metadata: updates,
+      app_metadata: updates,
     });
     if (metadataError) throw metadataError;
 
