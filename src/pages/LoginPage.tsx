@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { useCompanySettings } from '../lib/company-settings-context';
 import { showToast } from '../lib/toast';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { signIn } = useAuth();
   const { settings } = useCompanySettings();
   const [loading, setLoading] = useState(false);
@@ -24,8 +23,7 @@ export function LoginPage() {
     try {
       await signIn(formData.identifier, formData.password, contactType);
       showToast('Login successful', 'success');
-      const redirectTo = searchParams.get('redirect') || '/dashboard';
-      navigate(redirectTo);
+      navigate('/dashboard');
     } catch (error: any) {
       showToast(error.message || 'Login failed', 'error');
     } finally {

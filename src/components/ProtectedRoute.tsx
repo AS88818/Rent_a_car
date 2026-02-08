@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { UserRole } from '../types/database';
 import { ShieldX, ArrowLeft } from 'lucide-react';
@@ -11,7 +11,6 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps) {
   const { user, userRole, loading } = useAuth();
-  const location = useLocation();
   const navigate = useNavigate();
 
   if (loading) {
@@ -26,11 +25,7 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
   }
 
   if (!user) {
-    const redirectPath = location.pathname + location.search;
-    const loginUrl = redirectPath && redirectPath !== '/'
-      ? `/login?redirect=${encodeURIComponent(redirectPath)}`
-      : '/login';
-    return <Navigate to={loginUrl} replace />;
+    return <Navigate to="/login" replace />;
   }
 
   if (requiredRoles && !requiredRoles.includes(userRole!)) {
