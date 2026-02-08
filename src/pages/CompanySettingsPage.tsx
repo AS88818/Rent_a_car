@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Building2, Mail, Phone, CreditCard, FileText, Save, Loader2, AlertCircle, RefreshCw, Send } from 'lucide-react';
+import { Building2, Mail, Phone, CreditCard, FileText, Save, Loader2, AlertCircle, RefreshCw, Send, Calendar } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useCompanySettings } from '../lib/company-settings-context';
 import { useAuth } from '../lib/auth-context';
 import { CompanySettings } from '../types/database';
 import { showToast } from '../lib/toast';
 import { EmailSendingSettings } from '../components/EmailSendingSettings';
+import { CalendarSyncSettings } from '../components/CalendarSyncSettings';
 
-type FormSection = 'branding' | 'contact' | 'payment' | 'email' | 'email_sending';
+type FormSection = 'branding' | 'contact' | 'payment' | 'email' | 'email_sending' | 'calendar_sync';
 
 export function CompanySettingsPage() {
   const { settings, refresh } = useCompanySettings();
@@ -20,7 +21,7 @@ export function CompanySettingsPage() {
 
   useEffect(() => {
     if (settings.id) {
-      setFormData(prev => ({ ...settings, pica_secret_key: prev.pica_secret_key, pica_connection_key: prev.pica_connection_key, pica_action_id: prev.pica_action_id }));
+      setFormData(prev => ({ ...settings, pica_secret_key: prev.pica_secret_key, pica_connection_key: prev.pica_connection_key, pica_action_id: prev.pica_action_id, google_client_id: prev.google_client_id, google_client_secret: prev.google_client_secret, google_redirect_uri: prev.google_redirect_uri }));
       setLoading(false);
       setLoadError(false);
     } else {
@@ -38,7 +39,7 @@ export function CompanySettingsPage() {
     async function loadCredentials() {
       const { data } = await supabase
         .from('company_settings')
-        .select('pica_secret_key, pica_connection_key, pica_action_id')
+        .select('pica_secret_key, pica_connection_key, pica_action_id, google_client_id, google_client_secret, google_redirect_uri')
         .limit(1)
         .maybeSingle();
       if (data) {
@@ -47,6 +48,9 @@ export function CompanySettingsPage() {
           pica_secret_key: data.pica_secret_key || '',
           pica_connection_key: data.pica_connection_key || '',
           pica_action_id: data.pica_action_id || '',
+          google_client_id: data.google_client_id || '',
+          google_client_secret: data.google_client_secret || '',
+          google_redirect_uri: data.google_redirect_uri || '',
         }));
       }
     }
@@ -94,6 +98,9 @@ export function CompanySettingsPage() {
           pica_secret_key: formData.pica_secret_key || null,
           pica_connection_key: formData.pica_connection_key || null,
           pica_action_id: formData.pica_action_id || null,
+          google_client_id: formData.google_client_id || null,
+          google_client_secret: formData.google_client_secret || null,
+          google_redirect_uri: formData.google_redirect_uri || null,
           updated_at: new Date().toISOString(),
           updated_by: user?.id || null,
         })
@@ -116,6 +123,7 @@ export function CompanySettingsPage() {
     { key: 'payment', label: 'Payment Details', icon: CreditCard },
     { key: 'email', label: 'Email Signature', icon: Mail },
     { key: 'email_sending', label: 'Email Sending', icon: Send },
+    { key: 'calendar_sync', label: 'Calendar Sync', icon: Calendar },
   ];
 
   const hasChanges = JSON.stringify(formData) !== JSON.stringify(settings);
@@ -372,6 +380,17 @@ export function CompanySettingsPage() {
                 picaSecretKey={formData.pica_secret_key || ''}
                 picaConnectionKey={formData.pica_connection_key || ''}
                 picaActionId={formData.pica_action_id || ''}
+                onChange={(field, value) => handleChange(field as keyof CompanySettings, value)}
+              />
+            </SettingsCard>
+          )}
+
+          {activeSection === 'calendar_sync' && (
+            <SettingsCard title="Google Calendar Sync" description="Automatically sync all bookings to a shared Google Calendar">
+              <CalendarSyncSettings
+                googleClientId={formData.google_client_id || ''}
+                googleClientSecret={formData.google_client_secret || ''}
+                googleRedirectUri={formData.google_redirect_uri || ''}
                 onChange={(field, value) => handleChange(field as keyof CompanySettings, value)}
               />
             </SettingsCard>

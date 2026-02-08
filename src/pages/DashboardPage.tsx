@@ -29,6 +29,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { showToast } from '../lib/toast';
+import { autoSyncToCompanyCalendar } from '../services/calendar-service';
 import { BookingDetailsModal } from '../components/BookingDetailsModal';
 import { BookingFormModal } from '../components/BookingFormModal';
 import { VehicleTypeBadge } from '../components/VehicleTypeBadge';
@@ -203,6 +204,13 @@ export function DashboardPage() {
       setShowEditModal(false);
       setEditingBooking(null);
       setSelectedBooking(null);
+
+      const vehicle = vehicles.find(v => v.id === updatedBooking.vehicle_id);
+      autoSyncToCompanyCalendar(updatedBooking, vehicle).then(result => {
+        if (!result.synced && result.error && userRole === 'admin') {
+          showToast(`Calendar sync failed: ${result.error}`, 'warning');
+        }
+      });
     } catch (error: any) {
       showToast(error.message || 'Failed to update booking', 'error');
     } finally {

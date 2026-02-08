@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth-context';
 import { bookingService, vehicleService, categoryService, branchService } from '../services/api';
 import { Vehicle, VehicleCategory, Branch, Booking } from '../types/database';
 import { showToast } from '../lib/toast';
+import { autoSyncToCompanyCalendar } from '../services/calendar-service';
 import { getAvailableVehicles, calculateBookingDuration, checkInsuranceExpiryDuringBooking, formatDate } from '../lib/utils';
 import { ArrowLeft, Check, CheckCircle, Calendar, MapPin, AlertTriangle } from 'lucide-react';
 import { BookingDocumentUpload } from '../components/BookingDocumentUpload';
@@ -14,7 +15,7 @@ interface VehicleWithBranch extends Vehicle {
 
 export function BookingCreatePage() {
   const navigate = useNavigate();
-  const { branchId } = useAuth();
+  const { branchId, userRole } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [categories, setCategories] = useState<VehicleCategory[]>([]);
   const [vehicles, setVehicles] = useState<VehicleWithBranch[]>([]);
@@ -260,6 +261,14 @@ export function BookingCreatePage() {
       setCreatedBookingId(createdBooking.id);
       setBookingCreated(true);
       showToast(saveAsDraft ? 'Draft saved successfully' : 'Booking created successfully', 'success');
+
+      if (!saveAsDraft) {
+        autoSyncToCompanyCalendar(createdBooking, selectedVehicle).then(result => {
+          if (!result.synced && result.error && userRole === 'admin') {
+            showToast(`Calendar sync failed: ${result.error}`, 'warning');
+          }
+        });
+      }
     } catch (error: any) {
       showToast(error.message || 'Failed to create booking', 'error');
     } finally {

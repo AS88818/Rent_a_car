@@ -1,4 +1,6 @@
-interface GoogleOAuthConfig {
+import { supabase } from './supabase';
+
+export interface GoogleOAuthConfig {
   clientId: string;
   clientSecret: string;
   redirectUri: string;
@@ -12,26 +14,28 @@ interface GoogleTokenResponse {
   token_type: string;
 }
 
-export function getGoogleOAuthConfig(): GoogleOAuthConfig {
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-  const clientSecret = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
+const DEFAULT_REDIRECT_URI = 'https://rent-a-car-in-kenya-g64w.bolt.host/oauth/callback.html';
 
-  // Hardcode the production redirect URI to avoid environment variable issues
-  const redirectUri = 'https://rent-a-car-in-kenya-g64w.bolt.host/oauth/callback.html';
+export async function getCompanyGoogleConfig(): Promise<GoogleOAuthConfig> {
+  const { data } = await supabase
+    .from('company_settings')
+    .select('google_client_id, google_client_secret, google_redirect_uri')
+    .limit(1)
+    .maybeSingle();
+
+  const clientId = data?.google_client_id || import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+  const clientSecret = data?.google_client_secret || import.meta.env.VITE_GOOGLE_CLIENT_SECRET || '';
+  const redirectUri = data?.google_redirect_uri || DEFAULT_REDIRECT_URI;
 
   if (!clientId) {
-    throw new Error('Google OAuth Client ID is not configured. Please set VITE_GOOGLE_CLIENT_ID in your environment variables.');
+    throw new Error('Google OAuth Client ID is not configured. Set it in Company Settings or VITE_GOOGLE_CLIENT_ID.');
   }
 
-  return {
-    clientId,
-    clientSecret: clientSecret || '',
-    redirectUri
-  };
+  return { clientId, clientSecret, redirectUri };
 }
 
-export function initiateGoogleOAuth(): void {
-  const config = getGoogleOAuthConfig();
+export async function initiateGoogleOAuth(): Promise<void> {
+  const config = await getCompanyGoogleConfig();
 
   const scope = encodeURIComponent('https://www.googleapis.com/auth/calendar');
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
@@ -42,11 +46,9 @@ export function initiateGoogleOAuth(): void {
     `access_type=offline&` +
     `prompt=consent`;
 
-  // Check if we're in an iframe (like Bolt.host)
   const isInIframe = window.self !== window.top;
 
   if (isInIframe) {
-    // Open in a new window/tab to avoid X-Frame-Options issues
     const width = 600;
     const height = 700;
     const left = window.screenX + (window.outerWidth - width) / 2;
@@ -58,13 +60,12 @@ export function initiateGoogleOAuth(): void {
       `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
     );
   } else {
-    // Normal redirect for non-iframe contexts
     window.location.href = authUrl;
   }
 }
 
 export async function exchangeCodeForTokens(code: string): Promise<GoogleTokenResponse> {
-  const config = getGoogleOAuthConfig();
+  const config = await getCompanyGoogleConfig();
 
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -89,7 +90,7 @@ export async function exchangeCodeForTokens(code: string): Promise<GoogleTokenRe
 }
 
 export async function refreshAccessToken(refreshToken: string): Promise<GoogleTokenResponse> {
-  const config = getGoogleOAuthConfig();
+  const config = await getCompanyGoogleConfig();
 
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',

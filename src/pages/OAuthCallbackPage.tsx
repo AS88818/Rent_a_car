@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { exchangeCodeForTokens } from '../lib/google-oauth';
-import { calendarSettingsService } from '../services/calendar-service';
+import { companyCalendarService } from '../services/calendar-service';
 import { useAuth } from '../lib/auth-context';
 import { showToast } from '../lib/toast';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
@@ -85,8 +85,7 @@ export function OAuthCallbackPage() {
       try {
         const tokens = await exchangeCodeForTokens(code);
 
-        await calendarSettingsService.saveGoogleTokens(
-          user.id,
+        await companyCalendarService.saveGoogleTokens(
           tokens.access_token,
           tokens.refresh_token || '',
           tokens.expires_in
@@ -98,7 +97,7 @@ export function OAuthCallbackPage() {
         } else {
           showToast('Google Calendar connected successfully!', 'success');
           setTimeout(() => {
-            navigate('/calendar', { replace: true });
+            navigate('/company-settings', { replace: true });
           }, 2000);
         }
       } catch (err: any) {
@@ -152,7 +151,7 @@ export function OAuthCallbackPage() {
                 </button>
               ) : (
                 <button
-                  onClick={() => navigate('/calendar', { replace: true })}
+                  onClick={() => navigate('/company-settings', { replace: true })}
                   className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Back to Calendar

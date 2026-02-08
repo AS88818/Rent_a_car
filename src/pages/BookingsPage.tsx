@@ -5,6 +5,7 @@ import { Booking, Vehicle, Branch } from '../types/database';
 import { calculateBookingDuration, formatDateTime, getHealthColor } from '../lib/utils';
 import { Plus, Edit } from 'lucide-react';
 import { showToast } from '../lib/toast';
+import { autoSyncToCompanyCalendar, autoDeleteFromCompanyCalendar } from '../services/calendar-service';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { BookingFormModal } from '../components/BookingFormModal';
 
@@ -66,6 +67,12 @@ export function BookingsPage() {
         const updatedBooking = await bookingService.updateBooking(editingBooking.id, bookingData);
         setBookings(bookings.map(b => (b.id === editingBooking.id ? updatedBooking : b)));
         showToast('Booking updated successfully', 'success');
+
+        autoSyncToCompanyCalendar(updatedBooking, vehicle).then(result => {
+          if (!result.synced && result.error && userRole === 'admin') {
+            showToast(`Calendar sync failed: ${result.error}`, 'warning');
+          }
+        });
       } else {
         const vehicleBranchId = vehicle?.branch_id || branchId;
 
@@ -82,6 +89,12 @@ export function BookingsPage() {
 
         setBookings([...bookings, newBooking]);
         showToast('Booking created successfully', 'success');
+
+        autoSyncToCompanyCalendar(newBooking, vehicle).then(result => {
+          if (!result.synced && result.error && userRole === 'admin') {
+            showToast(`Calendar sync failed: ${result.error}`, 'warning');
+          }
+        });
       }
 
       setShowModal(false);
@@ -104,11 +117,20 @@ export function BookingsPage() {
     setCancelling(true);
     try {
       await bookingService.updateBooking(confirmCancel, { status: 'Cancelled' });
+      const cancelledBooking = bookings.find(b => b.id === confirmCancel);
       setBookings(
         bookings.map(b => (b.id === confirmCancel ? { ...b, status: 'Cancelled' } : b))
       );
       showToast('Booking cancelled', 'success');
       setConfirmCancel(null);
+
+      if (cancelledBooking) {
+        autoDeleteFromCompanyCalendar(cancelledBooking).then(result => {
+          if (!result.synced && result.error && userRole === 'admin') {
+            showToast(`Calendar sync failed: ${result.error}`, 'warning');
+          }
+        });
+      }
     } catch (error: any) {
       showToast(error.message || 'Failed to cancel booking', 'error');
     } finally {

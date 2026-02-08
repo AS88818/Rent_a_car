@@ -575,6 +575,15 @@ export interface CompanySettings {
   pica_secret_key?: string;
   pica_connection_key?: string;
   pica_action_id?: string;
+  google_client_id?: string;
+  google_client_secret?: string;
+  google_redirect_uri?: string;
+  google_access_token?: string;
+  google_refresh_token?: string;
+  google_calendar_id?: string;
+  google_token_expiry?: string;
+  google_sync_enabled?: boolean;
+  google_last_sync_at?: string;
   updated_at: string;
   updated_by?: string;
 }

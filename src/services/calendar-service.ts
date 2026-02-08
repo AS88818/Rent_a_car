@@ -2,19 +2,6 @@ import { supabase } from '../lib/supabase';
 import { Booking, Vehicle } from '../types/database';
 import { getAuthorizationHeader, isTokenExpired, refreshAccessToken } from '../lib/google-oauth';
 
-interface UserCalendarSettings {
-  id: string;
-  user_id: string;
-  google_access_token?: string;
-  google_refresh_token?: string;
-  google_calendar_id?: string;
-  token_expiry?: string;
-  sync_enabled: boolean;
-  last_sync_at?: string;
-  created_at: string;
-  updated_at: string;
-}
-
 interface GoogleCalendarEvent {
   summary: string;
   description: string;
@@ -23,105 +10,94 @@ interface GoogleCalendarEvent {
   colorId?: string;
 }
 
-export const calendarSettingsService = {
-  async getSettings(userId: string): Promise<UserCalendarSettings | null> {
+interface CompanyCalendarConfig {
+  google_access_token: string;
+  google_refresh_token: string;
+  google_calendar_id?: string;
+  google_token_expiry?: string;
+  google_sync_enabled: boolean;
+  google_last_sync_at?: string;
+}
+
+export const companyCalendarService = {
+  async getConfig(): Promise<CompanyCalendarConfig | null> {
     const { data, error } = await supabase
-      .from('user_calendar_settings')
-      .select('*')
-      .eq('user_id', userId)
+      .from('company_settings')
+      .select('google_access_token, google_refresh_token, google_calendar_id, google_token_expiry, google_sync_enabled, google_last_sync_at')
+      .limit(1)
       .maybeSingle();
 
-    if (error) throw error;
-    return data;
+    if (error || !data) return null;
+    return data as CompanyCalendarConfig;
   },
 
-  async createSettings(userId: string): Promise<UserCalendarSettings> {
-    const { data, error } = await supabase
-      .from('user_calendar_settings')
-      .insert([{ user_id: userId }])
-      .select()
-      .single();
+  async updateConfig(updates: Partial<CompanyCalendarConfig>): Promise<void> {
+    const { data: existing } = await supabase
+      .from('company_settings')
+      .select('id')
+      .limit(1)
+      .maybeSingle();
 
-    if (error) throw error;
-    return data;
-  },
+    if (!existing) return;
 
-  async updateSettings(
-    userId: string,
-    updates: Partial<UserCalendarSettings>
-  ): Promise<UserCalendarSettings> {
-    const { data, error } = await supabase
-      .from('user_calendar_settings')
+    await supabase
+      .from('company_settings')
       .update(updates)
-      .eq('user_id', userId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+      .eq('id', existing.id);
   },
 
   async saveGoogleTokens(
-    userId: string,
     accessToken: string,
     refreshToken: string,
     expiresIn: number
-  ): Promise<UserCalendarSettings> {
+  ): Promise<void> {
     const tokenExpiry = new Date(Date.now() + expiresIn * 1000).toISOString();
 
-    const existingSettings = await this.getSettings(userId);
-
-    if (existingSettings) {
-      return this.updateSettings(userId, {
-        google_access_token: accessToken,
-        google_refresh_token: refreshToken,
-        token_expiry: tokenExpiry,
-        sync_enabled: true,
-      });
-    } else {
-      const { data, error } = await supabase
-        .from('user_calendar_settings')
-        .insert([{
-          user_id: userId,
-          google_access_token: accessToken,
-          google_refresh_token: refreshToken,
-          token_expiry: tokenExpiry,
-          sync_enabled: true,
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    }
-  },
-
-  async disconnect(userId: string): Promise<void> {
-    await this.updateSettings(userId, {
-      google_access_token: undefined,
-      google_refresh_token: undefined,
-      google_calendar_id: undefined,
-      token_expiry: undefined,
-      sync_enabled: false,
+    await this.updateConfig({
+      google_access_token: accessToken,
+      google_refresh_token: refreshToken,
+      google_token_expiry: tokenExpiry,
+      google_sync_enabled: true,
     });
   },
 
-  async getValidAccessToken(userId: string): Promise<string> {
-    const settings = await this.getSettings(userId);
+  async disconnect(): Promise<void> {
+    const { data: existing } = await supabase
+      .from('company_settings')
+      .select('id')
+      .limit(1)
+      .maybeSingle();
 
-    if (!settings || !settings.google_access_token || !settings.google_refresh_token) {
+    if (!existing) return;
+
+    await supabase
+      .from('company_settings')
+      .update({
+        google_access_token: null,
+        google_refresh_token: null,
+        google_calendar_id: null,
+        google_token_expiry: null,
+        google_sync_enabled: false,
+      })
+      .eq('id', existing.id);
+  },
+
+  async getValidAccessToken(): Promise<string> {
+    const config = await this.getConfig();
+
+    if (!config || !config.google_access_token || !config.google_refresh_token) {
       throw new Error('Google Calendar is not connected');
     }
 
-    if (!settings.token_expiry || !isTokenExpired(settings.token_expiry)) {
-      return settings.google_access_token;
+    if (!config.google_token_expiry || !isTokenExpired(config.google_token_expiry)) {
+      return config.google_access_token;
     }
 
-    const tokenResponse = await refreshAccessToken(settings.google_refresh_token);
+    const tokenResponse = await refreshAccessToken(config.google_refresh_token);
 
-    await this.updateSettings(userId, {
+    await this.updateConfig({
       google_access_token: tokenResponse.access_token,
-      token_expiry: new Date(Date.now() + tokenResponse.expires_in * 1000).toISOString(),
+      google_token_expiry: new Date(Date.now() + tokenResponse.expires_in * 1000).toISOString(),
     });
 
     return tokenResponse.access_token;
@@ -252,23 +228,22 @@ ${booking.notes ? `\nNotes:\n${booking.notes}` : ''}
   },
 
   async syncBookingToGoogle(
-    userId: string,
     booking: Booking,
     vehicle?: Vehicle
   ): Promise<void> {
     try {
-      const settings = await calendarSettingsService.getSettings(userId);
+      const config = await companyCalendarService.getConfig();
 
-      if (!settings || !settings.sync_enabled) {
+      if (!config || !config.google_sync_enabled) {
         return;
       }
 
-      const accessToken = await calendarSettingsService.getValidAccessToken(userId);
-      let calendarId = settings.google_calendar_id;
+      const accessToken = await companyCalendarService.getValidAccessToken();
+      let calendarId = config.google_calendar_id;
 
       if (!calendarId) {
         calendarId = await googleCalendarService.getPrimaryCalendarId(accessToken);
-        await calendarSettingsService.updateSettings(userId, {
+        await companyCalendarService.updateConfig({
           google_calendar_id: calendarId,
         });
       }
@@ -295,8 +270,8 @@ ${booking.notes ? `\nNotes:\n${booking.notes}` : ''}
           .eq('id', booking.id);
       }
 
-      await calendarSettingsService.updateSettings(userId, {
-        last_sync_at: new Date().toISOString(),
+      await companyCalendarService.updateConfig({
+        google_last_sync_at: new Date().toISOString(),
       });
     } catch (error) {
       console.error('Failed to sync booking to Google Calendar:', error);
@@ -304,16 +279,16 @@ ${booking.notes ? `\nNotes:\n${booking.notes}` : ''}
     }
   },
 
-  async deleteBookingFromGoogle(userId: string, booking: Booking): Promise<void> {
+  async deleteBookingFromGoogle(booking: Booking): Promise<void> {
     try {
-      const settings = await calendarSettingsService.getSettings(userId);
+      const config = await companyCalendarService.getConfig();
 
-      if (!settings || !settings.sync_enabled || !booking.google_event_id) {
+      if (!config || !config.google_sync_enabled || !booking.google_event_id) {
         return;
       }
 
-      const accessToken = await calendarSettingsService.getValidAccessToken(userId);
-      const calendarId = settings.google_calendar_id;
+      const accessToken = await companyCalendarService.getValidAccessToken();
+      const calendarId = config.google_calendar_id;
 
       if (!calendarId) {
         return;
@@ -325,8 +300,8 @@ ${booking.notes ? `\nNotes:\n${booking.notes}` : ''}
         booking.google_event_id
       );
 
-      await calendarSettingsService.updateSettings(userId, {
-        last_sync_at: new Date().toISOString(),
+      await companyCalendarService.updateConfig({
+        google_last_sync_at: new Date().toISOString(),
       });
     } catch (error) {
       console.error('Failed to delete booking from Google Calendar:', error);
@@ -334,10 +309,10 @@ ${booking.notes ? `\nNotes:\n${booking.notes}` : ''}
     }
   },
 
-  async syncAllBookings(userId: string): Promise<void> {
-    const settings = await calendarSettingsService.getSettings(userId);
+  async syncAllBookings(): Promise<void> {
+    const config = await companyCalendarService.getConfig();
 
-    if (!settings || !settings.sync_enabled) {
+    if (!config || !config.google_sync_enabled) {
       throw new Error('Google Calendar sync is not enabled');
     }
 
@@ -358,7 +333,35 @@ ${booking.notes ? `\nNotes:\n${booking.notes}` : ''}
 
     for (const booking of bookings) {
       const vehicle = vehicleMap.get(booking.vehicle_id);
-      await this.syncBookingToGoogle(userId, booking, vehicle);
+      await this.syncBookingToGoogle(booking, vehicle);
     }
   },
 };
+
+export async function autoSyncToCompanyCalendar(
+  booking: Booking,
+  vehicle?: Vehicle
+): Promise<{ synced: boolean; error?: string }> {
+  try {
+    await bookingSyncService.syncBookingToGoogle(booking, vehicle);
+    return { synced: true };
+  } catch (error: any) {
+    console.error('Auto-sync to Google Calendar failed:', error);
+    return { synced: false, error: error.message || 'Calendar sync failed' };
+  }
+}
+
+export async function autoDeleteFromCompanyCalendar(
+  booking: Booking
+): Promise<{ synced: boolean; error?: string }> {
+  try {
+    await bookingSyncService.deleteBookingFromGoogle(booking);
+    return { synced: true };
+  } catch (error: any) {
+    console.error('Auto-delete from Google Calendar failed:', error);
+    return { synced: false, error: error.message || 'Calendar sync failed' };
+  }
+}
+
+// Keep backward-compatible exports
+export const calendarSettingsService = companyCalendarService;

@@ -6,6 +6,7 @@ import { Booking, Vehicle, Branch, VehicleCategory, BookingDocument } from '../t
 import { checkInsuranceExpiryDuringBooking, checkLocationMismatch } from '../lib/utils';
 import { Plus, X, Car, Calendar, MapPin, Phone, Search, RefreshCw, AlertCircle, AlertTriangle, User } from 'lucide-react';
 import { showToast } from '../lib/toast';
+import { autoSyncToCompanyCalendar, autoDeleteFromCompanyCalendar } from '../services/calendar-service';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { BookingDetailsModal } from '../components/BookingDetailsModal';
 import { BookingFormModal } from '../components/BookingFormModal';
@@ -142,6 +143,12 @@ export function BookingListPage() {
       setShowEditModal(false);
       setEditingBooking(null);
       setSelectedBooking(null);
+
+      autoSyncToCompanyCalendar(updatedBooking, vehicle).then(result => {
+        if (!result.synced && result.error && userRole === 'admin') {
+          showToast(`Calendar sync failed: ${result.error}`, 'warning');
+        }
+      });
     } catch (error: any) {
       showToast(error.message || 'Failed to update booking', 'error');
     } finally {
@@ -162,11 +169,20 @@ export function BookingListPage() {
 
     setCancelling(true);
     try {
+      const cancelledBooking = bookings.find(b => b.id === confirmCancel);
       await bookingService.updateBooking(confirmCancel, { status: 'Cancelled' });
       setBookings(bookings.filter(b => b.id !== confirmCancel));
       showToast('Booking cancelled', 'success');
       setConfirmCancel(null);
       closeModal();
+
+      if (cancelledBooking) {
+        autoDeleteFromCompanyCalendar(cancelledBooking).then(result => {
+          if (!result.synced && result.error && userRole === 'admin') {
+            showToast(`Calendar sync failed: ${result.error}`, 'warning');
+          }
+        });
+      }
     } catch (error: any) {
       showToast(error.message || 'Failed to cancel booking', 'error');
     } finally {

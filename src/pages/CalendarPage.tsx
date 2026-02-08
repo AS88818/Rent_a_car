@@ -1,12 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { categoryService, vehicleService, bookingService } from '../services/api';
-import { exchangeCodeForTokens } from '../lib/google-oauth';
-import { calendarSettingsService } from '../services/calendar-service';
+import { autoSyncToCompanyCalendar } from '../services/calendar-service';
 import { VehicleCategory, Vehicle, Booking } from '../types/database';
 import { showToast } from '../lib/toast';
-import { ChevronLeft, ChevronRight, Settings, Printer, Download, Filter, X, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Printer, Download, Filter, X, RefreshCw } from 'lucide-react';
 import {
   getMonthCalendar,
   getMonthName,
@@ -19,7 +18,6 @@ import {
 } from '../lib/calendar-utils';
 import { BookingDetailsModal } from '../components/BookingDetailsModal';
 import { BookingFormModal } from '../components/BookingFormModal';
-import { CalendarSettingsModal } from '../components/CalendarSettingsModal';
 import { FreeVehiclesSidePanel } from '../components/FreeVehiclesSidePanel';
 import { DayBookingsPopover } from '../components/DayBookingsPopover';
 import { exportCalendarToPDF } from '../lib/calendar-pdf-export';
@@ -34,7 +32,6 @@ interface DayBooking extends Booking {
 export function CalendarPage() {
   const { branchId, userRole, user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [categories, setCategories] = useState<VehicleCategory[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -45,7 +42,6 @@ export function CalendarPage() {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [showFilters, setShowFilters] = useState(false);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [calendarWeeks, setCalendarWeeks] = useState<CalendarWeek[]>([]);
   const [quickPeriod, setQuickPeriod] = useState('this_month');
@@ -72,44 +68,6 @@ export function CalendarPage() {
     }
   };
 
-  // Handle OAuth callback when redirected back with code
-  useEffect(() => {
-    const handleOAuthCallback = async () => {
-      const oauthCode = searchParams.get('oauth_code');
-      const oauthError = searchParams.get('oauth_error');
-
-      if (oauthError) {
-        showToast(decodeURIComponent(oauthError), 'error');
-        // Clear the URL params
-        setSearchParams({});
-        return;
-      }
-
-      if (oauthCode && user?.id) {
-        try {
-          showToast('Completing Google Calendar connection...', 'success');
-          const tokens = await exchangeCodeForTokens(oauthCode);
-
-          await calendarSettingsService.saveGoogleTokens(
-            user.id,
-            tokens.access_token,
-            tokens.refresh_token || '',
-            tokens.expires_in
-          );
-
-          showToast('Google Calendar connected successfully!', 'success');
-          // Clear the URL params
-          setSearchParams({});
-        } catch (err: any) {
-          console.error('OAuth token exchange error:', err);
-          showToast(err.message || 'Failed to connect Google Calendar', 'error');
-          setSearchParams({});
-        }
-      }
-    };
-
-    handleOAuthCallback();
-  }, [searchParams, user, setSearchParams]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -216,6 +174,13 @@ export function CalendarPage() {
       showToast('Booking updated successfully', 'success');
       setShowEditModal(false);
       setEditingBooking(null);
+
+      const vehicle = vehicles.find(v => v.id === updatedBooking.vehicle_id);
+      autoSyncToCompanyCalendar(updatedBooking, vehicle).then(result => {
+        if (!result.synced && result.error && userRole === 'admin') {
+          showToast(`Calendar sync failed: ${result.error}`, 'warning');
+        }
+      });
     } catch (error: any) {
       showToast(error.message || 'Failed to update booking', 'error');
     } finally {
@@ -435,13 +400,6 @@ export function CalendarPage() {
         </div>
 
         <div className="flex gap-2">
-          <button
-            onClick={() => setShowSettings(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors print:hidden"
-          >
-            <Settings className="w-4 h-4" />
-            <span className="hidden sm:inline">Settings</span>
-          </button>
           <button
             onClick={() => setShowFilters(!showFilters)}
             className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -1049,10 +1007,6 @@ export function CalendarPage() {
         editingBooking={editingBooking}
         submitting={submitting}
       />
-
-      {showSettings && (
-        <CalendarSettingsModal onClose={() => setShowSettings(false)} />
-      )}
 
       {selectedDayForPanel && (
         <FreeVehiclesSidePanel
