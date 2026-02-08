@@ -750,13 +750,17 @@ export function DashboardPage() {
               </thead>
               <tbody>
                 {vehiclesDueForService.map(vehicle => {
-                  const nextBooking = upcomingBookings.find(b => b.vehicle_id === vehicle.id);
                   const now = new Date();
-                  const bookingStarted = nextBooking && new Date(nextBooking.start_datetime) <= now;
-                  const bookingEnded = nextBooking && new Date(nextBooking.end_datetime) < now;
-                  const isCurrentlyOnHire = bookingStarted && !bookingEnded;
-                  const daysToNextRental = nextBooking && !bookingStarted
-                    ? Math.ceil((new Date(nextBooking.start_datetime).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+                  const vehicleBookings = upcomingBookings.filter(b => b.vehicle_id === vehicle.id);
+                  const currentBooking = vehicleBookings.find(b => {
+                    const start = new Date(b.start_datetime);
+                    const end = new Date(b.end_datetime);
+                    return start <= now && end >= now;
+                  });
+                  const isCurrentlyOnHire = !!currentBooking;
+                  const futureBooking = vehicleBookings.find(b => new Date(b.start_datetime) > now);
+                  const daysToNextRental = futureBooking
+                    ? Math.ceil((new Date(futureBooking.start_datetime).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
                     : null;
 
                   return (
@@ -775,7 +779,7 @@ export function DashboardPage() {
                         {vehicle.branch_name}
                       </td>
                       <td className="p-3 text-gray-700">
-                        {nextBooking ? formatDate(nextBooking.start_datetime) : '-'}
+                        {futureBooking ? formatDate(futureBooking.start_datetime) : '-'}
                       </td>
                       <td className="p-3 text-right text-gray-700">
                         {isCurrentlyOnHire
@@ -818,13 +822,17 @@ export function DashboardPage() {
               </thead>
               <tbody>
                 {insuranceExpiringSoon.map(vehicle => {
-                  const nextBooking = upcomingBookings.find(b => b.vehicle_id === vehicle.id);
                   const now = new Date();
-                  const bookingStarted = nextBooking && new Date(nextBooking.start_datetime) <= now;
-                  const bookingEnded = nextBooking && new Date(nextBooking.end_datetime) < now;
-                  const isCurrentlyOnHire = bookingStarted && !bookingEnded;
-                  const daysToNextRental = nextBooking && !bookingStarted
-                    ? Math.ceil((new Date(nextBooking.start_datetime).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+                  const vehicleBookings = upcomingBookings.filter(b => b.vehicle_id === vehicle.id);
+                  const currentBooking = vehicleBookings.find(b => {
+                    const start = new Date(b.start_datetime);
+                    const end = new Date(b.end_datetime);
+                    return start <= now && end >= now;
+                  });
+                  const isCurrentlyOnHire = !!currentBooking;
+                  const futureBooking = vehicleBookings.find(b => new Date(b.start_datetime) > now);
+                  const daysToNextRental = futureBooking
+                    ? Math.ceil((new Date(futureBooking.start_datetime).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
                     : null;
 
                   return (
@@ -843,7 +851,7 @@ export function DashboardPage() {
                         {vehicle.branch_name}
                       </td>
                       <td className="p-3 text-gray-700">
-                        {nextBooking ? formatDate(nextBooking.start_datetime) : '-'}
+                        {futureBooking ? formatDate(futureBooking.start_datetime) : '-'}
                       </td>
                       <td className="p-3 text-right text-gray-700">
                         {isCurrentlyOnHire
