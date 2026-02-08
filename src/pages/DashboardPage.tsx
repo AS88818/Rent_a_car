@@ -302,12 +302,10 @@ export function DashboardPage() {
     return startDate >= threeDaysFromNow && startDate <= fiveDaysFromNow;
   });
 
-  const upcomingBookings = bookings
+  const activeBookings = bookings
     .filter(b => {
-      // Show all non-completed and non-cancelled bookings
       if (b.status === 'Completed' || b.status === 'Cancelled') return false;
       const endDate = new Date(b.end_datetime);
-      // Only show bookings that haven't ended yet
       return endDate >= now;
     })
     .sort((a, b) => {
@@ -316,14 +314,13 @@ export function DashboardPage() {
       const aIsCurrent = aStart <= now;
       const bIsCurrent = bStart <= now;
 
-      // Current bookings (already started) come first
       if (aIsCurrent && !bIsCurrent) return -1;
       if (!aIsCurrent && bIsCurrent) return 1;
 
-      // Within same category, sort by start date
       return aStart.getTime() - bStart.getTime();
-    })
-    .slice(0, 10);
+    });
+
+  const upcomingBookings = activeBookings.slice(0, 10);
 
   // Handler for snoozing an alert
   const handleSnoozeAlert = async (
@@ -751,7 +748,7 @@ export function DashboardPage() {
               <tbody>
                 {vehiclesDueForService.map(vehicle => {
                   const now = new Date();
-                  const vehicleBookings = upcomingBookings.filter(b => b.vehicle_id === vehicle.id);
+                  const vehicleBookings = activeBookings.filter(b => b.vehicle_id === vehicle.id);
                   const currentBooking = vehicleBookings.find(b => {
                     const start = new Date(b.start_datetime);
                     const end = new Date(b.end_datetime);
@@ -823,7 +820,7 @@ export function DashboardPage() {
               <tbody>
                 {insuranceExpiringSoon.map(vehicle => {
                   const now = new Date();
-                  const vehicleBookings = upcomingBookings.filter(b => b.vehicle_id === vehicle.id);
+                  const vehicleBookings = activeBookings.filter(b => b.vehicle_id === vehicle.id);
                   const currentBooking = vehicleBookings.find(b => {
                     const start = new Date(b.start_datetime);
                     const end = new Date(b.end_datetime);
