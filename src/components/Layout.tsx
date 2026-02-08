@@ -28,21 +28,25 @@ export function Layout({ children }: LayoutProps) {
     }
   };
 
+  const canAccessBookings = ['admin', 'manager', 'staff'].includes(userRole || '');
+
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { label: 'My Assignments', href: '/my-assignments', icon: ClipboardList },
+    ...(userRole === 'mechanic' ? [
+      { label: 'My Assignments', href: '/my-assignments', icon: ClipboardList }
+    ] : []),
     { label: 'Vehicles', href: '/vehicles', icon: Car },
     { label: 'Quick Actions', href: '/quick-actions', icon: Zap },
     { label: 'Snags', href: '/snags', icon: AlertTriangle },
     { label: 'Maintenance', href: '/maintenance', icon: Wrench },
     { label: 'Calendar', href: '/calendar', icon: CalendarDays },
-    ...(userRole !== 'mechanic' ? [
+    ...(canAccessBookings ? [
       { label: 'Create Quotation', href: '/quotation', icon: FileText }
     ] : []),
     ...(userRole === 'admin' || userRole === 'manager' ? [
       { label: 'Quotes', href: '/quotes', icon: Receipt }
     ] : []),
-    ...(userRole !== 'mechanic' ? [
+    ...(canAccessBookings ? [
       { label: 'Bookings', href: '/bookings', icon: Calendar },
       { label: 'Create Booking', href: '/bookings/create', icon: PlusCircle }
     ] : []),
