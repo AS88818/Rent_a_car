@@ -114,7 +114,6 @@ export function CalendarPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Mechanics should see ALL vehicles across all branches
         const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
 
         const [categoriesData, vehiclesData, bookingsData, branchesData] = await Promise.all([
@@ -126,8 +125,14 @@ export function CalendarPage() {
 
         setCategories(categoriesData);
         setVehicles(vehiclesData);
-        setBookings(bookingsData);
         setBranches(branchesData);
+
+        if (userRole === 'driver') {
+          const filteredBookings = bookingsData.filter(b => b.chauffeur_id === user?.id);
+          setBookings(filteredBookings);
+        } else {
+          setBookings(bookingsData);
+        }
 
         const allCategoryIds = categoriesData.map(c => c.id);
         setSelectedCategories(allCategoryIds);
@@ -139,7 +144,7 @@ export function CalendarPage() {
     };
 
     fetchData();
-  }, [branchId, userRole]);
+  }, [branchId, userRole, user?.id]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -153,8 +158,15 @@ export function CalendarPage() {
       ]);
       setCategories(categoriesData);
       setVehicles(vehiclesData);
-      setBookings(bookingsData);
       setBranches(branchesData);
+
+      if (userRole === 'driver') {
+        const filteredBookings = bookingsData.filter(b => b.chauffeur_id === user?.id);
+        setBookings(filteredBookings);
+      } else {
+        setBookings(bookingsData);
+      }
+
       showToast('Data refreshed', 'success');
     } catch (error) {
       showToast('Failed to refresh data', 'error');

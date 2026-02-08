@@ -437,7 +437,7 @@ export function BookingDetailsModal({
               Close
             </button>
           )}
-          {onEdit && (!userRole || ['admin', 'fleet_manager', 'basic_user'].includes(userRole)) && (
+          {onEdit && (!userRole || ['admin', 'manager'].includes(userRole)) && (
             <button
               onClick={onEdit}
               className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
@@ -446,7 +446,7 @@ export function BookingDetailsModal({
               Edit Booking
             </button>
           )}
-          {onCancel && (!userRole || ['admin', 'fleet_manager', 'basic_user'].includes(userRole)) &&
+          {onCancel && (!userRole || ['admin', 'manager'].includes(userRole)) &&
             booking?.status !== 'Cancelled' && booking?.status !== 'Completed' && (
             <button
               onClick={onCancel}

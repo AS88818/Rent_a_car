@@ -63,6 +63,7 @@ export function QuotationCalculatorPage() {
   const [showDrafts, setShowDrafts] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [quoteCreated, setQuoteCreated] = useState(false);
+  const [loadedQuoteId, setLoadedQuoteId] = useState<string | null>(null);
 
   const [inputs, setInputs] = useState<QuoteInputs>({
     startDateTime: '',
@@ -125,6 +126,7 @@ export function QuotationCalculatorPage() {
       setVisibleCategories(categories);
 
       setSavedQuoteReference(quote.quote_reference || null);
+      setLoadedQuoteId(quote.id);
       showToast('Quote loaded successfully', 'success');
 
       navigate(location.pathname, { replace: true, state: {} });
@@ -277,7 +279,7 @@ export function QuotationCalculatorPage() {
       // Get all vehicles in this category
       const allVehicles = await vehicleService.getVehicles();
       const categoryVehicles = allVehicles.filter(
-        v => v.category_id === category.id && v.status === 'Available'
+        v => v.category_id === category.id && v.status === 'Available' && !v.is_personal
       );
 
       if (categoryVehicles.length === 0) {
@@ -726,10 +728,76 @@ export function QuotationCalculatorPage() {
       setSavedQuoteReference(savedQuote.quote_reference);
       showToast(`Quote saved! Reference: ${savedQuote.quote_reference}`, 'success');
       setCurrentDraftId(null);
+      setLoadedQuoteId(null);
       setQuoteCreated(true);
     } catch (error: any) {
       showToast(error.message || 'Failed to save quote', 'error');
     }
+  };
+
+  const updateExistingQuote = async () => {
+    if (!loadedQuoteId) return;
+
+    if (!inputs.clientName) {
+      showToast('Please enter client name', 'error');
+      return;
+    }
+
+    if (!inputs.clientPhone && !inputs.clientEmail) {
+      showToast('Please enter either phone number or email address', 'error');
+      return;
+    }
+
+    if (results.length === 0) {
+      showToast('Please calculate quote first', 'error');
+      return;
+    }
+
+    if (visibleCategories.length === 0) {
+      showToast('Please select at least one vehicle category to save', 'error');
+      return;
+    }
+
+    try {
+      const quoteData: { [key: string]: CategoryQuoteResult } = {};
+      results
+        .filter(r => visibleCategories.includes(r.categoryName))
+        .forEach(r => {
+          quoteData[r.categoryName] = r;
+        });
+
+      await quotationService.updateQuote(loadedQuoteId, {
+        client_name: inputs.clientName,
+        client_email: inputs.clientEmail || undefined,
+        client_phone: inputs.clientPhone || undefined,
+        pickup_location: inputs.pickupLocation || undefined,
+        dropoff_location: inputs.dropoffLocation || undefined,
+        start_date: inputs.startDateTime.split('T')[0],
+        end_date: inputs.endDateTime.split('T')[0],
+        has_chauffeur: inputs.hasChauffeur,
+        has_half_day: inputs.hasHalfDay,
+        outside_hours_charges: isOutsideOfficeHours() ? inputs.outsideHoursCharge : undefined,
+        other_fee_1_desc: inputs.otherFee1Desc || undefined,
+        other_fee_1_amount: inputs.otherFee1Amount || undefined,
+        other_fee_2_desc: inputs.otherFee2Desc || undefined,
+        other_fee_2_amount: inputs.otherFee2Amount || undefined,
+        quote_data: quoteData,
+        quote_inputs: {
+          ...inputs,
+          pickupLocationType,
+          dropoffLocationType,
+        },
+      });
+
+      showToast(`Quote updated successfully! Reference: ${savedQuoteReference}`, 'success');
+    } catch (error: any) {
+      showToast(error.message || 'Failed to update quote', 'error');
+    }
+  };
+
+  const closeQuote = () => {
+    setLoadedQuoteId(null);
+    navigate('/quotes');
   };
 
   const saveDraft = async () => {
@@ -1885,14 +1953,44 @@ export function QuotationCalculatorPage() {
             </button>
           </div>
 
-          <button
-            onClick={saveQuote}
-            disabled={!inputs.clientName || visibleCategories.length === 0}
-            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-4 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-colors font-semibold flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Save className="w-5 h-5" />
-            Save Quote & Get Reference Number
-          </button>
+          {loadedQuoteId ? (
+            <div className="flex flex-col gap-3">
+              <div className="flex gap-3">
+                <button
+                  onClick={updateExistingQuote}
+                  disabled={!inputs.clientName || visibleCategories.length === 0}
+                  className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-4 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-colors font-semibold flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Save className="w-5 h-5" />
+                  Save Changes
+                </button>
+                <button
+                  onClick={closeQuote}
+                  className="bg-white border border-gray-300 text-gray-700 px-6 py-4 rounded-lg hover:bg-gray-50 transition-colors font-semibold flex items-center justify-center gap-2"
+                >
+                  <X className="w-5 h-5" />
+                  Close
+                </button>
+              </div>
+              <button
+                onClick={saveQuote}
+                disabled={!inputs.clientName || visibleCategories.length === 0}
+                className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Plus className="w-5 h-5" />
+                Save as New Quote
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={saveQuote}
+              disabled={!inputs.clientName || visibleCategories.length === 0}
+              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-4 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-colors font-semibold flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Save className="w-5 h-5" />
+              Save Quote & Get Reference Number
+            </button>
+          )}
         </div>
       )}
         </div>
