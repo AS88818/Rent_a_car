@@ -26,6 +26,8 @@ import { EmailsPage } from './pages/EmailsPage';
 import QuotesPage from './pages/QuotesPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { OAuthCallbackPage } from './pages/OAuthCallbackPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -44,6 +46,8 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
 
       <Route

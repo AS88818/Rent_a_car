@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { useCompanySettings } from '../lib/company-settings-context';
 import { showToast } from '../lib/toast';
@@ -98,7 +98,14 @@ export function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-neutral-900 mb-2">Password</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-neutral-900">Password</label>
+              {contactType === 'email' && (
+                <Link to="/forgot-password" className="text-sm text-blue-600 hover:underline">
+                  Forgot password?
+                </Link>
+              )}
+            </div>
             <input
               type="password"
               name="password"
