@@ -123,7 +123,10 @@ export function AcceptQuoteModal({ quote, onClose, onSuccess }: AcceptQuoteModal
         })
       );
 
-      const validVehicles = vehicles.filter((v): v is VehicleWithBranch => v !== null && v.status === 'Available' && !v.is_personal);
+      // These vehicle IDs were already confirmed to have no booking overlap for the quote
+      // period. Do NOT re-filter by status === 'Available' — vehicles with status 'On Hire'
+      // are bookable for the quote's future dates. Only exclude Grounded vehicles.
+      const validVehicles = vehicles.filter((v): v is VehicleWithBranch => v !== null && v.status !== 'Grounded' && !v.is_personal);
       setAvailableVehicles(validVehicles);
 
       if (branchAvailability.length === 1) {

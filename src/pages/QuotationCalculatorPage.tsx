@@ -278,9 +278,13 @@ export function QuotationCalculatorPage() {
       }
 
       // Get all vehicles in this category
+      // Note: do NOT pre-filter by status === 'Available' here — vehicles with status
+      // 'On Hire' are still bookable for future date ranges. The booking-overlap check
+      // below correctly determines real availability. Only exclude Grounded vehicles
+      // and personal vehicles which can never be booked.
       const allVehicles = await vehicleService.getVehicles();
       const categoryVehicles = allVehicles.filter(
-        v => v.category_id === category.id && v.status === 'Available' && !v.is_personal
+        v => v.category_id === category.id && v.status !== 'Grounded' && !v.is_personal
       );
 
       if (categoryVehicles.length === 0) {

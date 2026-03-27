@@ -649,6 +649,7 @@ export function BookingListPage() {
         vehicles={vehicles}
         bookings={bookings}
         branches={branches}
+        categories={categories}
         editingBooking={editingBooking}
         submitting={submitting}
       />

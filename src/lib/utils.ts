@@ -20,11 +20,18 @@ export function checkBookingConflict(
   const newEnd = new Date(endDateTime);
 
   return bookings.some(booking => {
+    // Terminal statuses never block new bookings
     if (booking.status === 'Cancelled') return false;
+    if (booking.status === 'Completed') return false;
     if (excludeBookingId && booking.id === excludeBookingId) return false;
 
     const existingStart = new Date(booking.start_datetime);
     const existingEnd = new Date(booking.end_datetime);
+
+    // An Active booking whose end date is already in the past cannot conflict
+    // with future bookings — treat it as effectively over so it doesn't block
+    // new reservations after its end date.
+    if (booking.status === 'Active' && existingEnd <= new Date()) return false;
 
     return newStart < existingEnd && newEnd > existingStart;
   });
@@ -151,9 +158,14 @@ export function getAvailableVehicles(
       return false;
     }
 
-    if (vehicle.status === 'On Hire' || vehicle.status === 'Grounded' || vehicle.health_flag === 'Grounded') {
+    // Grounded vehicles cannot be booked at all
+    if (vehicle.status === 'Grounded' || vehicle.health_flag === 'Grounded') {
       return false;
     }
+
+    // For 'On Hire' vehicles, don't reject outright — they may be available
+    // for the requested date range if it doesn't overlap with existing bookings.
+    // The overlap check below will correctly handle this.
 
     const vehicleBookings = bookings.filter(b =>
       b.vehicle_id === vehicle.id &&

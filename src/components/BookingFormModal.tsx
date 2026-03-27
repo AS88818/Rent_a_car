@@ -1,6 +1,6 @@
 import { X, ChevronLeft, ChevronRight, Calendar, MapPin, User, Phone, Mail, Car, Users as UsersIcon, ArrowRightLeft, AlertTriangle } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Vehicle, Booking, Branch, AuthUser } from '../types/database';
+import { Vehicle, Booking, Branch, AuthUser, VehicleCategory } from '../types/database';
 import { userService } from '../services/api';
 import { getAvailableVehicles, calculateBookingDuration, getHealthColor, checkInsuranceExpiryDuringBooking, formatDate } from '../lib/utils';
 
@@ -25,6 +25,7 @@ interface BookingFormModalProps {
   vehicles: Vehicle[];
   bookings: Booking[];
   branches: Branch[];
+  categories?: VehicleCategory[];
   editingBooking?: Booking | null;
   submitting?: boolean;
 }
@@ -36,6 +37,7 @@ export function BookingFormModal({
   vehicles,
   bookings,
   branches,
+  categories = [],
   editingBooking,
   submitting = false,
 }: BookingFormModalProps) {
@@ -452,7 +454,9 @@ export function BookingFormModal({
                             <div className="flex items-start justify-between mb-2">
                               <div>
                                 <h4 className="font-semibold text-gray-900">{vehicle.reg_number}</h4>
-                                <p className="text-sm text-gray-600">{vehicle.category}</p>
+                                <p className="text-sm text-gray-600">
+                                  {categories.find(c => c.id === vehicle.category_id)?.category_name || ''}
+                                </p>
                               </div>
                               <span className={`px-2 py-1 rounded text-xs font-semibold ${getHealthColor(vehicle.health_flag)}`}>
                                 {vehicle.health_flag}
