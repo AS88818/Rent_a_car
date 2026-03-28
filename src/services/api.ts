@@ -345,9 +345,14 @@ export const bookingService = {
       }
     }
 
+    // Strip empty strings that would fail UUID/type validation in PostgreSQL
+    const sanitisedUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([, v]) => v !== '')
+    );
+
     const { data, error } = await supabase
       .from('bookings')
-      .update(updates)
+      .update(sanitisedUpdates)
       .eq('id', id)
       .select(`
         *,

@@ -210,6 +210,8 @@ export function BookingFormModal({
     await onSubmit({
       ...dateData,
       ...clientData,
+      chauffeur_id: clientData.chauffeur_id || undefined,
+      chauffeur_name: clientData.chauffeur_id ? clientData.chauffeur_name : undefined,
     });
 
     handleClose();
