@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
-import { vehicleService, categoryService, branchService, imageService } from '../services/api';
+import { vehicleService, categoryService, branchService, imageService, bookingService } from '../services/api';
 import { Vehicle, VehicleCategory, Branch, VehicleImage } from '../types/database';
 import { Search, Car, Gauge, Plus, X, ArrowUpDown, RefreshCw } from 'lucide-react';
 import { showToast } from '../lib/toast';
@@ -58,6 +58,9 @@ export function VehiclesPage() {
 
   const fetchData = async () => {
     try {
+      // Sync vehicle statuses based on actual booking start times before loading
+      await bookingService.syncVehicleStatuses();
+
       // Mechanics should see ALL vehicles across all branches
       const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
 
