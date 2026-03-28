@@ -68,7 +68,7 @@ export function BookingCreatePage() {
           categoryService.getCategories(),
           vehicleService.getVehicles(branchId || undefined),
           branchService.getBranches(),
-          bookingService.getBookings(branchId || undefined),
+          bookingService.getBookings(branchId || undefined, new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()),
         ]);
 
         const vehiclesWithBranch = vehiclesData

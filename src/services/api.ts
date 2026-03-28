@@ -237,7 +237,7 @@ export const vehicleService = {
 
 export const bookingService = {
 
-  async getBookings(branchId?: string) {
+  async getBookings(branchId?: string, dateFrom?: string) {
     let query = supabase
       .from('bookings')
       .select(`
@@ -250,10 +250,15 @@ export const bookingService = {
       query = query.eq('branch_id', branchId);
     }
 
+    // Filter by end_datetime (not start) so active bookings that started
+    // before the window but are still running are always included.
+    if (dateFrom) {
+      query = query.gte('end_datetime', dateFrom);
+    }
+
     const { data, error } = await query;
     if (error) throw error;
 
-    // Flatten the branch_name from nested object
     const bookings = data?.map((booking: any) => ({
       ...booking,
       branch_name: booking.branch_name?.branch_name || null

@@ -77,7 +77,7 @@ export function CalendarPage() {
         const [categoriesData, vehiclesData, bookingsData, branchesData] = await Promise.all([
           categoryService.getCategories(),
           vehicleService.getVehicles(vehicleBranchFilter),
-          bookingService.getBookings(branchId || undefined),
+          bookingService.getBookings(branchId || undefined, new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()),
           branchService.getBranches(),
         ]);
 
@@ -111,7 +111,7 @@ export function CalendarPage() {
       const [categoriesData, vehiclesData, bookingsData, branchesData] = await Promise.all([
         categoryService.getCategories(),
         vehicleService.getVehicles(vehicleBranchFilter),
-        bookingService.getBookings(branchId || undefined),
+        bookingService.getBookings(branchId || undefined, new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()),
         branchService.getBranches(),
       ]);
       setCategories(categoriesData);

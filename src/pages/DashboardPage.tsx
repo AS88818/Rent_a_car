@@ -105,7 +105,7 @@ export function DashboardPage() {
 
       const [vehiclesData, bookingsData, snagsData, branchesData, categoriesData] = await Promise.all([
         vehicleService.getVehicles(vehicleBranchFilter),
-        bookingService.getBookings(bookingBranchFilter),
+        bookingService.getBookings(bookingBranchFilter, new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()),
         snagService.getSnags(undefined, snagBranchFilter),
         branchService.getBranches(),
         categoryService.getCategories(),

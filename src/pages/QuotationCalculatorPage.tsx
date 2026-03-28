@@ -297,8 +297,8 @@ export function QuotationCalculatorPage() {
         return { available: false, branchAvailability: [] };
       }
 
-      // Get all active bookings
-      const allBookings = await bookingService.getBookings();
+      // Get bookings within a 90-day lookback — enough to catch all active bookings
+      const allBookings = await bookingService.getBookings(undefined, new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString());
       const start = new Date(inputs.startDateTime);
       const end = new Date(inputs.endDateTime);
 
