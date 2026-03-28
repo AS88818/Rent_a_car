@@ -197,26 +197,26 @@ export const vehicleService = {
     id: string,
     userInfo: { id: string; name: string; role: string }
   ) {
-    const activeBookings = await supabase
+    const { count: activeCount, error: activeError } = await supabase
       .from('bookings')
-      .select('id')
+      .select('id', { count: 'exact', head: true })
       .eq('vehicle_id', id)
-      .in('status', ['Active', 'Advance Payment Not Paid', 'Draft'])
-      .maybeSingle();
+      .in('status', ['Active', 'Advance Payment Not Paid', 'Draft']);
 
-    if (activeBookings.data) {
+    if (activeError) throw activeError;
+    if (activeCount && activeCount > 0) {
       throw new Error('Cannot delete vehicle with active or pending bookings');
     }
 
-    const futureBookings = await supabase
+    const { count: futureCount, error: futureError } = await supabase
       .from('bookings')
-      .select('id')
+      .select('id', { count: 'exact', head: true })
       .eq('vehicle_id', id)
       .gte('start_datetime', new Date().toISOString())
-      .not('status', 'in', '("Cancelled","Completed")')
-      .maybeSingle();
+      .not('status', 'in', '("Cancelled","Completed")');
 
-    if (futureBookings.data) {
+    if (futureError) throw futureError;
+    if (futureCount && futureCount > 0) {
       throw new Error('Cannot delete vehicle with future bookings');
     }
 
