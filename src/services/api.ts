@@ -236,6 +236,18 @@ export const vehicleService = {
 };
 
 export const bookingService = {
+  // Auto-complete Active bookings whose end_datetime has passed.
+  // Fires the DB trigger on each row, which resets vehicle status automatically.
+  // Called on app load so no SQL editor or pg_cron access is required.
+  async autoCompleteOverdueBookings(): Promise<void> {
+    const { error } = await supabase
+      .from('bookings')
+      .update({ status: 'Completed' })
+      .eq('status', 'Active')
+      .lt('end_datetime', new Date().toISOString());
+    if (error) console.warn('autoCompleteOverdueBookings:', error.message);
+  },
+
   async getBookings(branchId?: string) {
     let query = supabase
       .from('bookings')
