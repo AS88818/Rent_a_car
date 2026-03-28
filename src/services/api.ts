@@ -236,59 +236,6 @@ export const vehicleService = {
 };
 
 export const bookingService = {
-  // Auto-complete Active bookings whose end_datetime has passed, then directly
-  // reset any vehicle still showing On Hire with no current active booking.
-  // Does not rely on the DB trigger — works even if migrations were never applied.
-  async autoCompleteOverdueBookings(): Promise<void> {
-    const now = new Date().toISOString();
-    console.log('[OnHireFix] Running. now =', now);
-
-    // Step 1: Mark expired Active bookings as Completed
-    const { error: bookingError, count: bookingCount } = await supabase
-      .from('bookings')
-      .update({ status: 'Completed' })
-      .eq('status', 'Active')
-      .lt('end_datetime', now);
-    if (bookingError) console.error('[OnHireFix] bookings update error:', bookingError.message, bookingError.code);
-    else console.log('[OnHireFix] Expired bookings completed:', bookingCount);
-
-    // Step 2: Find all vehicles still showing On Hire
-    const { data: onHireVehicles, error: vehicleError } = await supabase
-      .from('vehicles')
-      .select('id, reg_number, health_flag')
-      .eq('status', 'On Hire');
-    if (vehicleError) {
-      console.error('[OnHireFix] vehicles query error:', vehicleError.message, vehicleError.code);
-      return;
-    }
-    console.log('[OnHireFix] On Hire vehicles found:', onHireVehicles?.map(v => v.reg_number));
-    if (!onHireVehicles || onHireVehicles.length === 0) return;
-
-    // Step 3: For each On Hire vehicle, check if it has a truly current Active booking
-    for (const vehicle of onHireVehicles) {
-      const { data: activeBookings, error: abError } = await supabase
-        .from('bookings')
-        .select('id, end_datetime')
-        .eq('vehicle_id', vehicle.id)
-        .eq('status', 'Active')
-        .gt('end_datetime', now)
-        .limit(1);
-      if (abError) console.error('[OnHireFix] active booking check error for', vehicle.reg_number, abError.message);
-
-      if (!activeBookings || activeBookings.length === 0) {
-        console.log('[OnHireFix] No live booking for', vehicle.reg_number, '— resetting to Available');
-        const newStatus = vehicle.health_flag === 'Grounded' ? 'Grounded' : 'Available';
-        const { error: updateError } = await supabase
-          .from('vehicles')
-          .update({ status: newStatus })
-          .eq('id', vehicle.id);
-        if (updateError) console.error('[OnHireFix] vehicle update FAILED for', vehicle.reg_number, updateError.message, updateError.code);
-        else console.log('[OnHireFix] vehicle', vehicle.reg_number, '→', newStatus, '✓');
-      } else {
-        console.log('[OnHireFix]', vehicle.reg_number, 'has live booking until', activeBookings[0].end_datetime, '— leaving On Hire');
-      }
-    }
-  },
 
   async getBookings(branchId?: string) {
     let query = supabase

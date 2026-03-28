@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
-import { vehicleService, categoryService, branchService, imageService, bookingService } from '../services/api';
+import { vehicleService, categoryService, branchService, imageService } from '../services/api';
 import { Vehicle, VehicleCategory, Branch, VehicleImage } from '../types/database';
 import { Search, Car, Gauge, Plus, X, ArrowUpDown, RefreshCw } from 'lucide-react';
 import { showToast } from '../lib/toast';
@@ -58,9 +58,6 @@ export function VehiclesPage() {
 
   const fetchData = async () => {
     try {
-      // Fix any vehicles stuck On Hire with no current active booking before loading
-      await bookingService.autoCompleteOverdueBookings();
-
       // Mechanics should see ALL vehicles across all branches
       const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
 
