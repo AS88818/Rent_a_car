@@ -166,20 +166,24 @@ export function QuotationCalculatorPage() {
   };
 
   const getSeasonForDate = (date: Date): 'Peak' | 'Off Peak' => {
-    const check = new Date(date);
-    check.setHours(12, 0, 0, 0); // midday to avoid timezone edge cases
+    // Dates stored as "MM-DD" (no year) — compare as numeric month*100+day
+    const dateMD = (date.getMonth() + 1) * 100 + date.getDate();
 
     for (const rule of seasonRules) {
-      const start = new Date(rule.date_start);
-      const end = new Date(rule.date_end);
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
-      if (check >= start && check <= end) {
-        return rule.season_type;
+      const [sm, sd] = rule.date_start.split('-').map(Number);
+      const [em, ed] = rule.date_end.split('-').map(Number);
+      const startMD = sm * 100 + sd;
+      const endMD = em * 100 + ed;
+
+      if (startMD <= endMD) {
+        // Normal range within a year (e.g. 06-01 to 09-30)
+        if (dateMD >= startMD && dateMD <= endMD) return rule.season_type;
+      } else {
+        // Crosses year boundary (e.g. 12-05 to 01-15)
+        if (dateMD >= startMD || dateMD <= endMD) return rule.season_type;
       }
     }
 
-    // Default to Peak if no rule covers this date
     return 'Peak';
   };
 
