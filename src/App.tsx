@@ -1,8 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './lib/auth-context';
 import { CompanySettingsProvider } from './lib/company-settings-context';
-import { bookingService } from './services/api';
 import { Toast } from './components/Toast';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -33,15 +31,6 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
-
-  // Auto-complete overdue Active bookings on login and every hour thereafter.
-  // This fires the DB trigger on each row, which resets vehicle status.
-  useEffect(() => {
-    if (!user) return;
-    bookingService.autoCompleteOverdueBookings();
-    const interval = setInterval(bookingService.autoCompleteOverdueBookings, 60 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [user]);
 
   if (loading) {
     return (
