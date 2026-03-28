@@ -237,63 +237,6 @@ export const vehicleService = {
 
 export const bookingService = {
 
-  // Lightweight query: only Active bookings with the fields needed for vehicle status sync.
-  async getActiveBookings(): Promise<{ id: string; vehicle_id: string; start_datetime: string; end_datetime: string }[]> {
-    const { data, error } = await supabase
-      .from('bookings')
-      .select('id, vehicle_id, start_datetime, end_datetime')
-      .eq('status', 'Active');
-    if (error) throw error;
-    return data || [];
-  },
-
-  // Sync vehicle statuses based on actual booking start/end times.
-  // Fixes vehicles showing "On Hire" for bookings that haven't started yet.
-  async syncVehicleStatuses(): Promise<void> {
-    const now = new Date().toISOString();
-
-    // 1. Vehicles that are "On Hire" but their booking hasn't started → Available
-    const { data: prematureOnHire } = await supabase
-      .from('vehicles')
-      .select('id, health_flag, reg_number')
-      .eq('status', 'On Hire');
-
-    if (prematureOnHire && prematureOnHire.length > 0) {
-      const { data: activeBookings } = await supabase
-        .from('bookings')
-        .select('vehicle_id, start_datetime, end_datetime')
-        .eq('status', 'Active');
-
-      for (const vehicle of prematureOnHire) {
-        const bookings = (activeBookings || []).filter(b => b.vehicle_id === vehicle.id);
-        const hasStarted = bookings.some(
-          b => b.start_datetime <= now && b.end_datetime > now
-        );
-        if (!hasStarted) {
-          const newStatus = vehicle.health_flag === 'Grounded' ? 'Grounded' : 'Available';
-          await supabase.from('vehicles').update({ status: newStatus }).eq('id', vehicle.id);
-        }
-      }
-    }
-
-    // 2. Vehicles that are "Available" but have a booking that has already started → On Hire
-    const { data: shouldBeOnHire } = await supabase
-      .from('bookings')
-      .select('vehicle_id')
-      .eq('status', 'Active')
-      .lte('start_datetime', now)
-      .gt('end_datetime', now);
-
-    if (shouldBeOnHire && shouldBeOnHire.length > 0) {
-      const vehicleIds = [...new Set(shouldBeOnHire.map(b => b.vehicle_id))];
-      await supabase
-        .from('vehicles')
-        .update({ status: 'On Hire' })
-        .in('id', vehicleIds)
-        .neq('status', 'On Hire');
-    }
-  },
-
   async getBookings(branchId?: string) {
     let query = supabase
       .from('bookings')
