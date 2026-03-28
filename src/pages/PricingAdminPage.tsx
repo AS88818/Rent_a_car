@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { quotationService } from '../services/api';
-import { CategoryPricing, PricingConfig } from '../types/database';
+import { CategoryPricing, PricingConfig, SeasonRule } from '../types/database';
 import { showToast } from '../lib/toast';
-import { DollarSign, Save, Edit, X, TrendingUp, Percent, RefreshCw } from 'lucide-react';
+import { DollarSign, Save, Edit, X, TrendingUp, Percent, RefreshCw, Calendar, Plus, Trash2 } from 'lucide-react';
 
 export function PricingAdminPage() {
   const [pricingConfig, setPricingConfig] = useState<PricingConfig | null>(null);
@@ -12,6 +12,12 @@ export function PricingAdminPage() {
   const [editingGlobal, setEditingGlobal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const [seasonRules, setSeasonRules] = useState<SeasonRule[]>([]);
+  const [editingRule, setEditingRule] = useState<string | null>(null);
+  const [showAddRule, setShowAddRule] = useState(false);
+  const [ruleForm, setRuleForm] = useState({ season_name: '', date_start: '', date_end: '', season_type: 'Peak' as 'Peak' | 'Off Peak' });
+  const [newRuleForm, setNewRuleForm] = useState({ season_name: '', date_start: '', date_end: '', season_type: 'Peak' as 'Peak' | 'Off Peak' });
 
   const [globalForm, setGlobalForm] = useState({
     chauffeur_fee_per_day: 0,
@@ -26,13 +32,15 @@ export function PricingAdminPage() {
 
   const fetchData = async () => {
     try {
-      const [config, pricing] = await Promise.all([
+      const [config, pricing, rules] = await Promise.all([
         quotationService.getPricingConfig(),
         quotationService.getCategoryPricing(),
+        quotationService.getSeasonRules(),
       ]);
 
       setPricingConfig(config);
       setCategoryPricing(pricing);
+      setSeasonRules(rules);
 
       if (config) {
         setGlobalForm({
@@ -175,6 +183,62 @@ export function PricingAdminPage() {
     }
 
     return errors;
+  };
+
+  const validateRuleForm = (form: typeof ruleForm) => {
+    if (!form.season_name.trim()) return 'Season name is required';
+    if (!/^\d{2}-\d{2}$/.test(form.date_start)) return 'Start date must be MM-DD (e.g. 06-01)';
+    if (!/^\d{2}-\d{2}$/.test(form.date_end)) return 'End date must be MM-DD (e.g. 09-30)';
+    return null;
+  };
+
+  const handleEditRule = (rule: SeasonRule) => {
+    setEditingRule(rule.id);
+    setRuleForm({ season_name: rule.season_name, date_start: rule.date_start, date_end: rule.date_end, season_type: rule.season_type });
+  };
+
+  const handleSaveRule = async () => {
+    const error = validateRuleForm(ruleForm);
+    if (error) { showToast(error, 'error'); return; }
+    setSubmitting(true);
+    try {
+      const updated = await quotationService.updateSeasonRule(editingRule!, ruleForm);
+      setSeasonRules(seasonRules.map(r => r.id === editingRule ? updated : r));
+      setEditingRule(null);
+      showToast('Season rule updated', 'success');
+    } catch (e: any) {
+      showToast(e.message || 'Failed to update rule', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleAddRule = async () => {
+    const error = validateRuleForm(newRuleForm);
+    if (error) { showToast(error, 'error'); return; }
+    setSubmitting(true);
+    try {
+      const created = await quotationService.createSeasonRule(newRuleForm);
+      setSeasonRules([...seasonRules, created].sort((a, b) => a.date_start.localeCompare(b.date_start)));
+      setShowAddRule(false);
+      setNewRuleForm({ season_name: '', date_start: '', date_end: '', season_type: 'Peak' });
+      showToast('Season rule added', 'success');
+    } catch (e: any) {
+      showToast(e.message || 'Failed to add rule', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteRule = async (id: string) => {
+    if (!confirm('Delete this season rule?')) return;
+    try {
+      await quotationService.deleteSeasonRule(id);
+      setSeasonRules(seasonRules.filter(r => r.id !== id));
+      showToast('Season rule deleted', 'success');
+    } catch (e: any) {
+      showToast(e.message || 'Failed to delete rule', 'error');
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -443,6 +507,104 @@ export function PricingAdminPage() {
                           </div>
                         );
                       })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Season Rules */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 mt-8">
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-100 rounded-lg"><Calendar className="w-5 h-5 text-purple-600" /></div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Season Rules</h2>
+              <p className="text-sm text-gray-500">Define which date ranges are Peak or Off Peak</p>
+            </div>
+          </div>
+          <button onClick={() => { setShowAddRule(true); setEditingRule(null); }} className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium">
+            <Plus className="w-4 h-4" /> Add Rule
+          </button>
+        </div>
+
+        <div className="p-6">
+          {showAddRule && (
+            <div className="mb-4 p-4 border border-purple-200 rounded-lg bg-purple-50">
+              <p className="text-xs text-gray-500 mb-3">Dates in MM-DD format (e.g. 06-01 for June 1st)</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-600">Name</label>
+                  <input className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" placeholder="e.g. Peak Summer" value={newRuleForm.season_name} onChange={e => setNewRuleForm({ ...newRuleForm, season_name: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600">Start (MM-DD)</label>
+                  <input className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" placeholder="06-01" value={newRuleForm.date_start} onChange={e => setNewRuleForm({ ...newRuleForm, date_start: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600">End (MM-DD)</label>
+                  <input className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" placeholder="09-30" value={newRuleForm.date_end} onChange={e => setNewRuleForm({ ...newRuleForm, date_end: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600">Type</label>
+                  <select className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" value={newRuleForm.season_type} onChange={e => setNewRuleForm({ ...newRuleForm, season_type: e.target.value as 'Peak' | 'Off Peak' })}>
+                    <option value="Peak">Peak</option>
+                    <option value="Off Peak">Off Peak</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-2 mt-3">
+                <button onClick={handleAddRule} disabled={submitting} className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"><Save className="w-4 h-4" /> Save</button>
+                <button onClick={() => setShowAddRule(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-2"><X className="w-4 h-4" /> Cancel</button>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            {seasonRules.map(rule => (
+              <div key={rule.id} className="border border-gray-200 rounded-lg p-4">
+                {editingRule === rule.id ? (
+                  <>
+                    <p className="text-xs text-gray-500 mb-3">Dates in MM-DD format (e.g. 06-01 for June 1st)</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-gray-600">Name</label>
+                        <input className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" value={ruleForm.season_name} onChange={e => setRuleForm({ ...ruleForm, season_name: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-600">Start (MM-DD)</label>
+                        <input className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" value={ruleForm.date_start} onChange={e => setRuleForm({ ...ruleForm, date_start: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-600">End (MM-DD)</label>
+                        <input className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" value={ruleForm.date_end} onChange={e => setRuleForm({ ...ruleForm, date_end: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-600">Type</label>
+                        <select className="mt-1 w-full border rounded-lg px-3 py-2 text-sm" value={ruleForm.season_type} onChange={e => setRuleForm({ ...ruleForm, season_type: e.target.value as 'Peak' | 'Off Peak' })}>
+                          <option value="Peak">Peak</option>
+                          <option value="Off Peak">Off Peak</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <button onClick={handleSaveRule} disabled={submitting} className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"><Save className="w-4 h-4" /> Save</button>
+                      <button onClick={() => setEditingRule(null)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-2"><X className="w-4 h-4" /> Cancel</button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${rule.season_type === 'Peak' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>{rule.season_type}</span>
+                      <span className="font-medium text-gray-900">{rule.season_name}</span>
+                      <span className="text-sm text-gray-500">{rule.date_start} → {rule.date_end}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => handleEditRule(rule)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-700"><Edit className="w-4 h-4" /></button>
+                      <button onClick={() => handleDeleteRule(rule.id)} className="p-2 hover:bg-red-50 rounded-lg text-gray-500 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
                 )}

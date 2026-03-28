@@ -709,6 +709,35 @@ export const quotationService = {
     return data as SeasonRule[];
   },
 
+  async createSeasonRule(rule: { season_name: string; date_start: string; date_end: string; season_type: 'Peak' | 'Off Peak' }) {
+    const { data, error } = await supabase
+      .from('season_rules')
+      .insert([rule])
+      .select()
+      .single();
+    if (error) throw error;
+    return data as SeasonRule;
+  },
+
+  async updateSeasonRule(id: string, updates: Partial<Pick<SeasonRule, 'season_name' | 'date_start' | 'date_end' | 'season_type'>>) {
+    const { data, error } = await supabase
+      .from('season_rules')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data as SeasonRule;
+  },
+
+  async deleteSeasonRule(id: string) {
+    const { error } = await supabase
+      .from('season_rules')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  },
+
   async getQuotes() {
     const { data, error } = await supabase
       .from('quotes')
