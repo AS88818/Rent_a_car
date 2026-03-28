@@ -6,7 +6,7 @@ export function BottomNav() {
   const location = useLocation();
   const { userRole } = useAuth();
 
-  const canAccessBookings = ['admin', 'manager', 'staff'].includes(userRole || '');
+  const canAccessBookings = ['admin', 'manager'].includes(userRole || '');
 
   const navItems = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },

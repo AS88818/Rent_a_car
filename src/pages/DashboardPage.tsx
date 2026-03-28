@@ -62,7 +62,7 @@ interface CategoryBreakdown {
 export function DashboardPage() {
   const { branchId, userRole } = useAuth();
   const navigate = useNavigate();
-  const canAccessBookings = ['admin', 'manager', 'staff'].includes(userRole || '');
+  const canAccessBookings = ['admin', 'manager'].includes(userRole || '');
   const [vehicles, setVehicles] = useState<VehicleWithBranch[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [snags, setSnags] = useState<Snag[]>([]);

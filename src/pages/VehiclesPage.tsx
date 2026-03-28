@@ -295,7 +295,7 @@ export function VehiclesPage() {
           </div>
           <p className="text-sm text-gray-600 mt-1">{vehicles.length} vehicles total</p>
         </div>
-        {userRole && ['admin', 'fleet_manager'].includes(userRole) && (
+        {userRole && ['admin', 'manager'].includes(userRole) && (
           <button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md"

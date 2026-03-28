@@ -28,7 +28,7 @@ export function Layout({ children }: LayoutProps) {
     }
   };
 
-  const canAccessBookings = ['admin', 'manager', 'staff'].includes(userRole || '');
+  const canAccessBookings = ['admin', 'manager'].includes(userRole || '');
 
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },

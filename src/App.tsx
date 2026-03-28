@@ -64,7 +64,7 @@ function AppRoutes() {
       <Route
         path="/bookings"
         element={
-          <ProtectedRoute requiredRoles={['admin', 'manager', 'staff']}>
+          <ProtectedRoute requiredRoles={['admin', 'manager']}>
             <Layout>
               <BookingListPage />
             </Layout>
@@ -75,7 +75,7 @@ function AppRoutes() {
       <Route
         path="/bookings/create"
         element={
-          <ProtectedRoute requiredRoles={['admin', 'manager', 'staff']}>
+          <ProtectedRoute requiredRoles={['admin', 'manager']}>
             <Layout>
               <BookingCreatePage />
             </Layout>
@@ -185,7 +185,7 @@ function AppRoutes() {
       <Route
         path="/quotation"
         element={
-          <ProtectedRoute requiredRoles={['admin', 'manager', 'staff']}>
+          <ProtectedRoute requiredRoles={['admin', 'manager']}>
             <Layout>
               <QuotationCalculatorPage />
             </Layout>
