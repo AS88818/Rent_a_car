@@ -236,16 +236,50 @@ export const vehicleService = {
 };
 
 export const bookingService = {
-  // Auto-complete Active bookings whose end_datetime has passed.
-  // Fires the DB trigger on each row, which resets vehicle status automatically.
-  // Called on app load so no SQL editor or pg_cron access is required.
+  // Auto-complete Active bookings whose end_datetime has passed, then directly
+  // reset any vehicle still showing On Hire with no current active booking.
+  // Does not rely on the DB trigger — works even if migrations were never applied.
   async autoCompleteOverdueBookings(): Promise<void> {
-    const { error } = await supabase
+    const now = new Date().toISOString();
+
+    // Step 1: Mark expired Active bookings as Completed
+    const { error: bookingError } = await supabase
       .from('bookings')
       .update({ status: 'Completed' })
       .eq('status', 'Active')
-      .lt('end_datetime', new Date().toISOString());
-    if (error) console.warn('autoCompleteOverdueBookings:', error.message);
+      .lt('end_datetime', now);
+    if (bookingError) console.warn('autoCompleteOverdueBookings (bookings):', bookingError.message);
+
+    // Step 2: Find all vehicles still showing On Hire
+    const { data: onHireVehicles, error: vehicleError } = await supabase
+      .from('vehicles')
+      .select('id, health_flag')
+      .eq('status', 'On Hire');
+    if (vehicleError) {
+      console.warn('autoCompleteOverdueBookings (vehicles):', vehicleError.message);
+      return;
+    }
+    if (!onHireVehicles || onHireVehicles.length === 0) return;
+
+    // Step 3: For each On Hire vehicle, check if it has a truly current Active booking
+    for (const vehicle of onHireVehicles) {
+      const { data: activeBookings } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('vehicle_id', vehicle.id)
+        .eq('status', 'Active')
+        .gt('end_datetime', now)
+        .limit(1);
+
+      if (!activeBookings || activeBookings.length === 0) {
+        // No live booking — reset vehicle status directly
+        const newStatus = vehicle.health_flag === 'Grounded' ? 'Grounded' : 'Available';
+        await supabase
+          .from('vehicles')
+          .update({ status: newStatus })
+          .eq('id', vehicle.id);
+      }
+    }
   },
 
   async getBookings(branchId?: string) {
