@@ -227,7 +227,9 @@ export function QuotationCalculatorPage() {
       { max: pricing.tier9_days, discount: pricing.tier9_discount },
     ];
 
-    let remainingDays = totalDays;
+    // Add half-day to total upfront so it falls in the correct tier,
+    // not always forced into tier 1 regardless of booking length.
+    let remainingDays = addHalfDay ? totalDays + 0.5 : totalDays;
     let totalCost = 0;
     const breakdown: Array<{ tier: number; days: number; rate: number; discount: number; amount: number }> = [];
     let previousMax = 0;
@@ -235,11 +237,7 @@ export function QuotationCalculatorPage() {
     for (let i = 0; i < bands.length && remainingDays > 0; i++) {
       const band = bands[i];
       const bandCapacity = band.max - previousMax;
-      let tierDays = Math.min(bandCapacity, remainingDays);
-
-      if (i === 0 && addHalfDay) {
-        tierDays += 0.5;
-      }
+      const tierDays = Math.min(bandCapacity, remainingDays);
 
       const discountedRate = baseRate * (1 - band.discount);
       const tierCost = tierDays * discountedRate;
@@ -253,7 +251,7 @@ export function QuotationCalculatorPage() {
           amount: tierCost,
         });
         totalCost += tierCost;
-        remainingDays -= (i === 0 && addHalfDay) ? tierDays - 0.5 : tierDays;
+        remainingDays -= tierDays;
       }
 
       previousMax = band.max;
