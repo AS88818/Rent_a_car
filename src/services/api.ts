@@ -902,6 +902,12 @@ export const quotationService = {
       notes: `Created from quote ${quote.quote_reference}`,
     };
 
+    // Check for booking conflicts before inserting
+    const existingBookings = await bookingService.getBookingsByVehicle(vehicleId);
+    if (checkBookingConflict(existingBookings, bookingData.start_datetime, bookingData.end_datetime)) {
+      throw new Error('This vehicle is already booked for the selected dates. Please choose a different vehicle.');
+    }
+
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
       .insert([bookingData])
