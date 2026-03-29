@@ -1280,9 +1280,9 @@ export function DashboardPage() {
                                 ({vehicle?.reg_number})
                               </span>
                             )}
-                            {booking.health_at_booking && (
-                              <span className={`text-xs font-semibold px-2 py-1 rounded ${getHealthBadgeColor(booking.health_at_booking)}`}>
-                                {booking.health_at_booking}
+                            {vehicle?.health_flag && (
+                              <span className={`text-xs font-semibold px-2 py-1 rounded ${getHealthBadgeColor(vehicle.health_flag)}`}>
+                                {vehicle.health_flag}
                               </span>
                             )}
                             {hasInsuranceIssue && (

@@ -211,8 +211,8 @@ export function BookingsPage() {
                   <p className="text-sm text-gray-600">Vehicle: {vehicle?.reg_number}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 rounded text-xs font-semibold ${getHealthColor(booking.health_at_booking || 'Excellent')}`}>
-                    {booking.health_at_booking}
+                  <span className={`px-2 py-1 rounded text-xs font-semibold ${getHealthColor(vehicle?.health_flag || 'Excellent')}`}>
+                    {vehicle?.health_flag}
                   </span>
                   <span className={`px-2 py-1 rounded text-xs font-semibold ${
                     booking.status === 'Active' ? 'bg-green-100 text-green-800' :

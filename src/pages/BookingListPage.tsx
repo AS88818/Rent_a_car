@@ -239,7 +239,7 @@ export function BookingListPage() {
 
     if (filterBranch && booking.vehicle?.branch_id !== filterBranch) return false;
     if (filterCategory && booking.category_id !== filterCategory) return false;
-    if (filterHealth && booking.health_at_booking !== filterHealth) return false;
+    if (filterHealth && booking.vehicle?.health_flag !== filterHealth) return false;
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -256,7 +256,7 @@ export function BookingListPage() {
     return true;
   });
 
-  const uniqueHealthValues = Array.from(new Set(bookings.map(b => b.health_at_booking).filter(Boolean)));
+  const uniqueHealthValues = Array.from(new Set(bookings.map(b => b.vehicle?.health_flag).filter(Boolean)));
 
   if (loading) {
     return (
@@ -499,8 +499,8 @@ export function BookingListPage() {
                           ({booking.vehicle?.reg_number})
                         </span>
                       )}
-                      <span className={`text-xs font-semibold px-2 py-1 rounded border ${getHealthBadgeColor(booking.health_at_booking)}`}>
-                        {booking.health_at_booking}
+                      <span className={`text-xs font-semibold px-2 py-1 rounded border ${getHealthBadgeColor(booking.vehicle?.health_flag)}`}>
+                        {booking.vehicle?.health_flag}
                       </span>
                       <span className={`text-xs font-semibold px-2 py-1 rounded ${
                         booking.status === 'Active' ? 'bg-green-100 text-green-800' :
