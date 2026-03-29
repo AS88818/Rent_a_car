@@ -113,7 +113,8 @@ export function DashboardPage() {
 
       const vehiclesWithBranch = vehiclesData.map(v => ({
         ...v,
-        branch_name: branchesData.find(b => b.id === v.branch_id)?.branch_name || 'Not assigned'
+        branch_name: branchesData.find(b => b.id === v.branch_id)?.branch_name || 'Not assigned',
+        category: categoriesData.find(c => c.id === v.category_id)?.category_name,
       }));
 
       setVehicles(vehiclesWithBranch);

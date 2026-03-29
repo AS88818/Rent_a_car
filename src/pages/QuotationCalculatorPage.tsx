@@ -260,7 +260,11 @@ export function QuotationCalculatorPage() {
     return { totalCost, breakdown };
   };
 
-  const checkVehicleAvailability = async (categoryName: string): Promise<{
+  const checkVehicleAvailability = (
+    categoryName: string,
+    allVehicles: Vehicle[],
+    allBookings: Booking[]
+  ): {
     available: boolean;
     branchAvailability: Array<{
       branchId: string;
@@ -268,27 +272,16 @@ export function QuotationCalculatorPage() {
       availableCount: number;
       vehicleIds: string[];
     }>;
-  }> => {
+  } => {
     try {
       // Validate dates
       if (!inputs.startDateTime || !inputs.endDateTime) {
-        console.warn('No dates provided for availability check');
         return { available: false, branchAvailability: [] };
       }
 
-      // Find the category ID from the category name
       const category = vehicleCategories.find(c => c.category_name === categoryName);
-      if (!category) {
-        console.warn(`Category ${categoryName} not found`);
-        return { available: false, branchAvailability: [] };
-      }
+      if (!category) return { available: false, branchAvailability: [] };
 
-      // Get all vehicles in this category
-      // Note: do NOT pre-filter by status === 'Available' here — vehicles with status
-      // 'On Hire' are still bookable for future date ranges. The booking-overlap check
-      // below correctly determines real availability. Only exclude Grounded vehicles
-      // and personal vehicles which can never be booked.
-      const allVehicles = await vehicleService.getVehicles();
       const categoryVehicles = allVehicles.filter(
         v => v.category_id === category.id && v.status !== 'Grounded' && !v.is_personal
       );
@@ -296,9 +289,6 @@ export function QuotationCalculatorPage() {
       if (categoryVehicles.length === 0) {
         return { available: false, branchAvailability: [] };
       }
-
-      // Get bookings within a 90-day lookback — enough to catch all active bookings
-      const allBookings = await bookingService.getBookings(undefined, new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString());
       const start = new Date(inputs.startDateTime);
       const end = new Date(inputs.endDateTime);
 
@@ -424,6 +414,14 @@ export function QuotationCalculatorPage() {
       const chauffeurFeePerDay = inputs.chauffeurChargePerDay || 4000;
       const results: CategoryQuoteResult[] = [];
 
+      // Hoist fetches outside the loop (PERF-2: single fetch for all categories)
+      const dateFrom = new Date();
+      dateFrom.setDate(dateFrom.getDate() - 90);
+      const [allVehicles, allBookings] = await Promise.all([
+        vehicleService.getVehicles(),
+        bookingService.getBookings(undefined, dateFrom.toISOString()),
+      ]);
+
       for (const pricing of categoryPricing) {
         let rentalFee = 0;
 
@@ -462,7 +460,7 @@ export function QuotationCalculatorPage() {
         const vat = subtotal * 0.16;
         const grandTotal = Math.ceil((subtotal + vat) / 10) * 10;
 
-        const availabilityResult = await checkVehicleAvailability(pricing.category_name);
+        const availabilityResult = checkVehicleAvailability(pricing.category_name, allVehicles, allBookings);
 
         // Security deposit: Fixed amount for self-drive only (refundable, held against damage)
         const securityDepositValue = !inputs.hasChauffeur ? pricing.self_drive_deposit : 0;

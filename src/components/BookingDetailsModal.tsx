@@ -215,9 +215,9 @@ export function BookingDetailsModal({
                       )}
                       <p className="text-sm text-gray-600">{vehicle?.make} {vehicle?.model}</p>
                     </div>
-                    {booking.health_at_booking ? (
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded ${getHealthBadgeColor(booking.health_at_booking)}`}>
-                        {booking.health_at_booking}
+                    {vehicle?.health_flag ? (
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded ${getHealthBadgeColor(vehicle.health_flag)}`}>
+                        {vehicle.health_flag}
                       </span>
                     ) : (
                       <span className="text-xs px-2.5 py-1 rounded bg-gray-100 text-gray-500">

@@ -82,7 +82,10 @@ export function CalendarPage() {
         ]);
 
         setCategories(categoriesData);
-        setVehicles(vehiclesData);
+        setVehicles(vehiclesData.map(v => ({
+          ...v,
+          category: categoriesData.find(c => c.id === v.category_id)?.category_name,
+        })));
         setBranches(branchesData);
 
         if (userRole === 'driver') {

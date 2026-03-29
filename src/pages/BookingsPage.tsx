@@ -64,7 +64,11 @@ export function BookingsPage() {
       const vehicle = vehicles.find(v => v.id === bookingData.vehicle_id);
 
       if (editingBooking) {
-        const updatedBooking = await bookingService.updateBooking(editingBooking.id, bookingData);
+        const vehicleChanged = bookingData.vehicle_id !== editingBooking.vehicle_id;
+        const updatedBooking = await bookingService.updateBooking(editingBooking.id, {
+          ...bookingData,
+          ...(vehicleChanged && { health_at_booking: vehicle?.health_flag }),
+        });
         setBookings(bookings.map(b => (b.id === editingBooking.id ? updatedBooking : b)));
         showToast('Booking updated successfully', 'success');
 

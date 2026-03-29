@@ -1591,9 +1591,11 @@ export const invoiceService = {
 
 export const activityLogService = {
   async logActivity(activity: Omit<VehicleActivityLog, 'id' | 'created_at'>) {
+    // SEC-4: enforce auth.uid() so caller cannot forge a different user_id
+    const { data: { user } } = await supabase.auth.getUser();
     const { data, error } = await supabase
       .from('vehicle_activity_logs')
-      .insert([activity])
+      .insert([{ ...activity, user_id: user?.id ?? activity.user_id }])
       .select()
       .single();
     if (error) throw error;
@@ -1677,6 +1679,17 @@ export const imageService = {
       .from('vehicle_images')
       .select('*')
       .eq('vehicle_id', vehicleId)
+      .order('is_primary', { ascending: false });
+    if (error) throw error;
+    return data as VehicleImage[];
+  },
+
+  async getVehicleImagesBatch(vehicleIds: string[]): Promise<VehicleImage[]> {
+    if (vehicleIds.length === 0) return [];
+    const { data, error } = await supabase
+      .from('vehicle_images')
+      .select('*')
+      .in('vehicle_id', vehicleIds)
       .order('is_primary', { ascending: false });
     if (error) throw error;
     return data as VehicleImage[];

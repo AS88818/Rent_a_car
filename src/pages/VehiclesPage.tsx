@@ -78,18 +78,12 @@ export function VehiclesPage() {
       setBranches(branchesData);
 
       const imagesMap = new Map<string, VehicleImage[]>();
-      await Promise.all(
-        vehiclesData.map(async (vehicle) => {
-          try {
-            const images = await imageService.getVehicleImages(vehicle.id);
-            if (images.length > 0) {
-              imagesMap.set(vehicle.id, images);
-            }
-          } catch (error) {
-            console.error(`Failed to fetch images for vehicle ${vehicle.id}`);
-          }
-        })
-      );
+      const allImages = await imageService.getVehicleImagesBatch(vehiclesData.map(v => v.id));
+      for (const img of allImages) {
+        const list = imagesMap.get(img.vehicle_id) || [];
+        list.push(img);
+        imagesMap.set(img.vehicle_id, list);
+      }
       setVehicleImages(imagesMap);
     } catch (error) {
       showToast('Failed to fetch data', 'error');
