@@ -81,7 +81,7 @@ export function BookingFormModal({
         return `${year}-${month}-${day}T${hours}:${minutes}`;
       };
 
-      setStep(2);
+      setStep(1);
       setDateData({
         start_datetime: formatForDatetimeLocal(editingBooking.start_datetime),
         end_datetime: formatForDatetimeLocal(editingBooking.end_datetime),
@@ -100,6 +100,25 @@ export function BookingFormModal({
         invoice_number: editingBooking.invoice_number || '',
       });
 
+      // Restore location select state so the dropdowns show the correct pre-selected values
+      const startBranch = branches.find(b => b.branch_name === editingBooking.start_location);
+      if (startBranch) {
+        setStartLocationType('branch');
+        setSelectedStartBranchId(startBranch.id);
+      } else {
+        setStartLocationType('other');
+        setCustomStartLocation(editingBooking.start_location);
+      }
+
+      const endBranch = branches.find(b => b.branch_name === editingBooking.end_location);
+      if (endBranch) {
+        setEndLocationType('branch');
+        setSelectedEndBranchId(endBranch.id);
+      } else {
+        setEndLocationType('other');
+        setCustomEndLocation(editingBooking.end_location);
+      }
+
       const available = getAvailableVehicles(
         vehicles,
         bookings,
@@ -113,7 +132,7 @@ export function BookingFormModal({
       }
       setAvailableVehicles(available);
     }
-  }, [editingBooking, vehicles, bookings]);
+  }, [editingBooking, vehicles, bookings, branches]);
 
   useEffect(() => {
     const fetchUsers = async () => {
