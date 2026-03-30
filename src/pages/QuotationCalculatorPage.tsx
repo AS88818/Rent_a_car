@@ -536,6 +536,7 @@ export function QuotationCalculatorPage() {
     setResults([]);
     setVisibleCategories([]);
     setSavedQuoteReference(null);
+    setCurrentStep(1);
   };
 
   const formatQuoteMessage = () => {
