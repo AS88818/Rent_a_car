@@ -68,6 +68,7 @@ export function getExpiryStatus(expiryDate: string): 'red' | 'orange' | 'green' 
 export function formatDate(date: string | Date): string {
   const d = new Date(date);
   return d.toLocaleDateString('en-KE', {
+    weekday: 'short',
     year: 'numeric',
     month: 'short',
     day: 'numeric',

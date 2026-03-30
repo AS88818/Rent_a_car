@@ -955,30 +955,7 @@ export function QuotationCalculatorPage() {
             <button
               onClick={() => {
                 setQuoteCreated(false);
-                setSavedQuoteReference(null);
-                setCurrentStep(1);
-                setResults([]);
-                setInputs({
-                  startDateTime: '',
-                  endDateTime: '',
-                  hasHalfDay: false,
-                  hasChauffeur: false,
-                  quoteType: 'self_drive',
-                  chauffeurChargePerDay: 4000,
-                  clientName: '',
-                  clientEmail: '',
-                  clientPhone: '',
-                  pickupLocation: '',
-                  dropoffLocation: '',
-                  differentLocationCharge: 0,
-                  outsideHoursCharge: 0,
-                  otherFees: [],
-                  additionalNotes: '',
-                  otherFee1Desc: '',
-                  otherFee1Amount: 0,
-                  otherFee2Desc: '',
-                  otherFee2Amount: 0,
-                });
+                resetCalculator();
               }}
               className="flex-1 border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors font-medium"
             >
@@ -1321,6 +1298,7 @@ export function QuotationCalculatorPage() {
               <input
                 type="date"
                 value={inputs.endDateTime.split('T')[0] || ''}
+                min={inputs.startDateTime.split('T')[0] || ''}
                 onChange={(e) => {
                   const date = e.target.value;
                   const time = inputs.endDateTime.split('T')[1] || '18:00';

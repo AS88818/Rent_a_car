@@ -369,7 +369,7 @@ export function MaintenancePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mileage at Service</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mileage at Service <span className="text-red-500">*</span></label>
                 <input
                   type="number"
                   placeholder="Enter mileage"

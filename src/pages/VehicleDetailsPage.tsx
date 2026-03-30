@@ -262,6 +262,26 @@ export function VehicleDetailsPage() {
     }
   };
 
+  const getSnagPriorityBorderColor = (priority: string | null) => {
+    switch (priority) {
+      case 'Dangerous': return 'border-red-500';
+      case 'Important': return 'border-orange-500';
+      case 'Nice to Fix': return 'border-yellow-500';
+      case 'Aesthetic': return 'border-blue-500';
+      default: return 'border-gray-400';
+    }
+  };
+
+  const getSnagPriorityBadgeColor = (priority: string | null) => {
+    switch (priority) {
+      case 'Dangerous': return 'bg-red-100 text-red-800';
+      case 'Important': return 'bg-orange-100 text-orange-800';
+      case 'Nice to Fix': return 'bg-yellow-100 text-yellow-800';
+      case 'Aesthetic': return 'bg-blue-100 text-blue-800';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
   const getHealthBadgeColor = (health: string) => {
     switch (health) {
       case 'Excellent':
@@ -739,11 +759,11 @@ export function VehicleDetailsPage() {
                 <button
                   key={snag.id}
                   onClick={() => navigate('/snags')}
-                  className="w-full text-left border-l-4 border-red-500 pl-3 py-2 hover:bg-gray-50 transition-colors"
+                  className={`w-full text-left border-l-4 ${getSnagPriorityBorderColor(snag.priority)} pl-3 py-2 hover:bg-gray-50 transition-colors`}
                 >
                   <p className="font-medium text-gray-900">{snag.description}</p>
                   {snag.priority && (
-                    <span className="text-xs px-2 py-0.5 bg-red-100 text-red-800 rounded mt-1 inline-block">
+                    <span className={`text-xs px-2 py-0.5 rounded mt-1 inline-block ${getSnagPriorityBadgeColor(snag.priority)}`}>
                       {snag.priority}
                     </span>
                   )}

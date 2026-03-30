@@ -29,8 +29,12 @@ export function VehiclesPage() {
   const [filterHealth, setFilterHealth] = useState('');
   const [filterType, setFilterType] = useState('');
 
-  const [sortField, setSortField] = useState<'reg_number' | 'branch_id' | 'current_mileage' | 'updated_at'>('reg_number');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [sortField, setSortField] = useState<'reg_number' | 'branch_id' | 'current_mileage' | 'updated_at'>(
+    () => (localStorage.getItem('vehicleSortField') as 'reg_number' | 'branch_id' | 'current_mileage' | 'updated_at') || 'reg_number'
+  );
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(
+    () => (localStorage.getItem('vehicleSortDirection') as 'asc' | 'desc') || 'asc'
+  );
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -206,10 +210,14 @@ export function VehiclesPage() {
 
   const handleSort = (field: typeof sortField) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      const newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+      setSortDirection(newDirection);
+      localStorage.setItem('vehicleSortDirection', newDirection);
     } else {
       setSortField(field);
       setSortDirection('asc');
+      localStorage.setItem('vehicleSortField', field);
+      localStorage.setItem('vehicleSortDirection', 'asc');
     }
   };
 

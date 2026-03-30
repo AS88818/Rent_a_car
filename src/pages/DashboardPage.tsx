@@ -89,6 +89,11 @@ export function DashboardPage() {
     return saved !== null ? saved === 'true' : true;
   });
 
+  const [bookingFilter, setBookingFilter] = useState<'all' | 'current' | 'upcoming'>(() => {
+    const saved = localStorage.getItem('dashboard_booking_filter');
+    return (saved as 'all' | 'current' | 'upcoming') || 'all';
+  });
+
   const [categoryView, setCategoryView] = useState<'cards' | 'table'>(() => {
     const saved = localStorage.getItem('dashboard_category_view');
     return (saved as 'cards' | 'table') || 'cards';
@@ -168,6 +173,10 @@ export function DashboardPage() {
   useEffect(() => {
     localStorage.setItem('dashboard_bookings_expanded', String(bookingsExpanded));
   }, [bookingsExpanded]);
+
+  useEffect(() => {
+    localStorage.setItem('dashboard_booking_filter', bookingFilter);
+  }, [bookingFilter]);
 
   useEffect(() => {
     localStorage.setItem('dashboard_category_view', categoryView);
@@ -329,7 +338,12 @@ export function DashboardPage() {
       return aStart.getTime() - bStart.getTime();
     });
 
-  const upcomingBookings = activeBookings.slice(0, 10);
+  const filteredBookings = activeBookings.filter(booking => {
+    const start = new Date(booking.start_datetime);
+    if (bookingFilter === 'current') return start <= now;
+    if (bookingFilter === 'upcoming') return start > now;
+    return true;
+  }).slice(0, 10);
 
   // Handler for snoozing an alert
   const handleSnoozeAlert = async (
@@ -732,6 +746,224 @@ export function DashboardPage() {
                   </tbody>
                 </table>
                 <p className="text-xs text-gray-500 mt-2">* Excludes personal vehicles</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="card overflow-hidden p-0">
+        <div className="flex items-center justify-between p-6">
+          <button
+            onClick={() => setBookingsExpanded(!bookingsExpanded)}
+            className="flex-1 flex items-center gap-3 hover:bg-cream-50 -m-2 p-2 rounded-lg transition-all duration-200"
+          >
+            <Calendar className="w-6 h-6 text-lime-600" />
+            <h2 className="text-xl font-bold text-neutral-900">Current & Upcoming Bookings</h2>
+            {filteredBookings.length > 0 && (
+              <span className="bg-lime-500 text-neutral-900 text-sm font-bold px-3 py-1 rounded-full">
+                {filteredBookings.length}
+              </span>
+            )}
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+              {(['all', 'current', 'upcoming'] as const).map(filter => (
+                <button
+                  key={filter}
+                  onClick={() => setBookingFilter(filter)}
+                  className={`px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
+                    bookingFilter === filter
+                      ? 'bg-lime-500 text-neutral-900'
+                      : 'bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                </button>
+              ))}
+            </div>
+            {bookingsExpanded ? (
+              <ChevronUp className="w-5 h-5 text-gray-500" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-500" />
+            )}
+          </div>
+        </div>
+
+        {bookingsExpanded && (
+          <div className="p-4 md:p-6 pt-0">
+            {filteredBookings.length > 0 ? (
+              <div className="space-y-3">
+                {filteredBookings.map(booking => {
+                  const vehicle = vehicles.find(v => v.id === booking.vehicle_id);
+
+                  let vehicleBranch = branches.find(b => b.id === vehicle?.branch_id);
+
+                  if (!vehicleBranch && vehicle?.branch_name &&
+                      !['Not assigned', 'Unknown'].includes(vehicle.branch_name)) {
+                    vehicleBranch = branches.find(b =>
+                      b.branch_name.toLowerCase().trim() === vehicle.branch_name!.toLowerCase().trim() ||
+                      b.branch_name.toLowerCase().includes(vehicle.branch_name!.toLowerCase()) ||
+                      vehicle.branch_name!.toLowerCase().includes(b.branch_name.toLowerCase())
+                    );
+                  }
+
+                  const startLocationBranch = booking.start_location ? branches.find(b => {
+                    const branchName = b.branch_name.toLowerCase().trim();
+                    const startLoc = booking.start_location.toLowerCase().trim();
+                    if (branchName === startLoc) return true;
+                    if (branchName.includes(startLoc) || startLoc.includes(branchName)) return true;
+                    const branchFirstWord = branchName.split(' ')[0];
+                    const locationFirstWord = startLoc.split(' ')[0];
+                    if (branchFirstWord.length >= 3 && locationFirstWord.length >= 3 &&
+                        branchFirstWord === locationFirstWord) return true;
+                    return false;
+                  }) : null;
+
+                  const vehicleLocationName = vehicleBranch?.branch_name || vehicle?.branch_name || '';
+                  const hasLocationMismatch = checkLocationMismatch(
+                    vehicleLocationName,
+                    booking.start_location || '',
+                    booking.status,
+                    vehicle?.status
+                  );
+
+                  const daysUntilStart = Math.ceil(
+                    (new Date(booking.start_datetime).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+                  );
+
+                  const bookingType = booking.booking_type || 'self_drive';
+
+                  const hasInsuranceIssue = vehicle?.insurance_expiry &&
+                    (booking.status === 'Active') &&
+                    checkInsuranceExpiryDuringBooking(
+                      vehicle.insurance_expiry,
+                      booking.start_datetime,
+                      booking.end_datetime
+                    );
+
+                  return (
+                    <div
+                      key={booking.id}
+                      onClick={() => {
+                        setSelectedBooking(booking);
+                        setIsDetailsModalOpen(true);
+                      }}
+                      className="border border-gray-200 rounded-xl p-5 hover:shadow-hover transition-all duration-200 cursor-pointer bg-white hover:bg-cream-50"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap min-w-0">
+                            <p className="font-semibold text-gray-900 text-base sm:text-lg truncate max-w-[180px] sm:max-w-[280px]">
+                              {booking.booking_reference || vehicle?.reg_number || 'Unknown'}
+                            </p>
+                            {booking.booking_reference && (
+                              <span className="text-xs text-gray-500 flex-shrink-0">
+                                ({vehicle?.reg_number})
+                              </span>
+                            )}
+                            {vehicle?.health_flag && (
+                              <span className={`text-xs font-semibold px-2 py-1 rounded ${getHealthBadgeColor(vehicle.health_flag)}`}>
+                                {vehicle.health_flag}
+                              </span>
+                            )}
+                            {hasInsuranceIssue && (
+                              <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-red-100 text-red-800">
+                                <AlertCircle className="w-3 h-3" />
+                                <span className="hidden sm:inline">Insurance Expiry</span>
+                              </span>
+                            )}
+                            {bookingType === 'self_drive' && (
+                              <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-blue-100 text-blue-800">
+                                <Car className="w-3 h-3" />
+                                <span className="hidden sm:inline">Self Drive</span>
+                              </span>
+                            )}
+                            {bookingType === 'chauffeur' && (
+                              <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-green-100 text-green-800">
+                                <User className="w-3 h-3" />
+                                <span className="hidden sm:inline">Chauffeur</span>
+                              </span>
+                            )}
+                            {bookingType === 'transfer' && (
+                              <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-orange-100 text-orange-800">
+                                <ArrowRightLeft className="w-3 h-3" />
+                                <span className="hidden sm:inline">Transfer</span>
+                              </span>
+                            )}
+                          </div>
+
+                          {hasLocationMismatch && (
+                            <div className="flex items-start gap-2 mb-2 p-2 bg-orange-50 border border-orange-200 rounded text-xs">
+                              <AlertTriangle className="w-4 h-4 text-orange-600 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <p className="font-semibold text-orange-900">Location Mismatch</p>
+                                <p className="text-orange-700">
+                                  Vehicle at {vehicleLocationName}, pickup at {booking.start_location || 'unknown'}
+                                  {daysUntilStart > 0 && ` (${daysUntilStart} days)`}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          <p className="text-sm font-medium text-gray-700 mb-1">{booking.client_name}</p>
+
+                          {bookingType === 'chauffeur' && (
+                            <div className="flex items-center gap-1.5 text-xs text-gray-600 mb-1">
+                              {booking.chauffeur_name ? (
+                                <>
+                                  <User className="w-3.5 h-3.5 text-green-600" />
+                                  <span className="text-green-700 font-medium">{booking.chauffeur_name}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <AlertTriangle className="w-3.5 h-3.5 text-orange-600" />
+                                  <span className="text-orange-700 font-medium">No chauffeur assigned</span>
+                                </>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                            <span>{formatDate(booking.start_datetime)}</span>
+                            <span>→</span>
+                            <span>{formatDate(booking.end_datetime)}</span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                            <MapPin className="w-3.5 h-3.5" />
+                            <span>{booking.start_location} → {booking.end_location}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {canAccessBookings && (
+                  <button
+                    onClick={() => navigate('/bookings')}
+                    className="w-full mt-4 py-3 text-lime-600 hover:text-lime-700 font-semibold text-sm hover:bg-lime-50 rounded-lg transition-all duration-200"
+                  >
+                    View All Bookings →
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-600">
+                  {bookingFilter === 'current' ? 'No current bookings' :
+                   bookingFilter === 'upcoming' ? 'No upcoming bookings' :
+                   'No current or upcoming bookings'}
+                </p>
+                {canAccessBookings && (
+                  <button
+                    onClick={() => navigate('/bookings/create')}
+                    className="btn-primary mt-4 px-6 py-3"
+                  >
+                    Create New Booking
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -1170,214 +1402,6 @@ export function DashboardPage() {
                 </div>
                 <p className="text-lg font-semibold text-gray-900">All Clear!</p>
                 <p className="text-gray-600 mt-1">No alerts at this time.</p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="card overflow-hidden p-0">
-        <button
-          onClick={() => setBookingsExpanded(!bookingsExpanded)}
-          className="w-full flex items-center justify-between p-6 hover:bg-cream-50 transition-all duration-200"
-        >
-          <div className="flex items-center gap-3">
-            <Calendar className="w-6 h-6 text-lime-600" />
-            <h2 className="text-xl font-bold text-neutral-900">Current & Upcoming Bookings</h2>
-            {upcomingBookings.length > 0 && (
-              <span className="bg-lime-500 text-neutral-900 text-sm font-bold px-3 py-1 rounded-full">
-                {upcomingBookings.length}
-              </span>
-            )}
-          </div>
-          {bookingsExpanded ? (
-            <ChevronUp className="w-5 h-5 text-gray-500" />
-          ) : (
-            <ChevronDown className="w-5 h-5 text-gray-500" />
-          )}
-        </button>
-
-        {bookingsExpanded && (
-          <div className="p-4 md:p-6 pt-0">
-            {upcomingBookings.length > 0 ? (
-              <div className="space-y-3">
-                {upcomingBookings.map(booking => {
-                  const vehicle = vehicles.find(v => v.id === booking.vehicle_id);
-
-                  // Find vehicle's branch - first by branch_id, then fallback to branch_name matching
-                  let vehicleBranch = branches.find(b => b.id === vehicle?.branch_id);
-
-                  // Fallback: if branch_id lookup failed but vehicle has a valid branch_name, match by name
-                  if (!vehicleBranch && vehicle?.branch_name &&
-                      !['Not assigned', 'Unknown'].includes(vehicle.branch_name)) {
-                    vehicleBranch = branches.find(b =>
-                      b.branch_name.toLowerCase().trim() === vehicle.branch_name!.toLowerCase().trim() ||
-                      b.branch_name.toLowerCase().includes(vehicle.branch_name!.toLowerCase()) ||
-                      vehicle.branch_name!.toLowerCase().includes(b.branch_name.toLowerCase())
-                    );
-                  }
-
-                  // Find the branch matching the booking's start location
-                  // Handle various formats: full name, partial name, abbreviations
-                  const startLocationBranch = booking.start_location ? branches.find(b => {
-                    const branchName = b.branch_name.toLowerCase().trim();
-                    const startLoc = booking.start_location.toLowerCase().trim();
-
-                    // Direct match
-                    if (branchName === startLoc) return true;
-
-                    // Partial match (one contains the other)
-                    if (branchName.includes(startLoc) || startLoc.includes(branchName)) return true;
-
-                    // First word match (e.g., "Nanyuki" matches "Nanyuki Branch")
-                    const branchFirstWord = branchName.split(' ')[0];
-                    const locationFirstWord = startLoc.split(' ')[0];
-                    if (branchFirstWord.length >= 3 && locationFirstWord.length >= 3 &&
-                        branchFirstWord === locationFirstWord) return true;
-
-                    return false;
-                  }) : null;
-
-                  const vehicleLocationName = vehicleBranch?.branch_name || vehicle?.branch_name || '';
-                  const hasLocationMismatch = checkLocationMismatch(
-                    vehicleLocationName,
-                    booking.start_location || '',
-                    booking.status,
-                    vehicle?.status
-                  );
-
-                  const daysUntilStart = Math.ceil(
-                    (new Date(booking.start_datetime).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-                  );
-
-                  const bookingType = booking.booking_type || 'self_drive';
-
-                  const hasInsuranceIssue = vehicle?.insurance_expiry &&
-                    (booking.status === 'Active') &&
-                    checkInsuranceExpiryDuringBooking(
-                      vehicle.insurance_expiry,
-                      booking.start_datetime,
-                      booking.end_datetime
-                    );
-
-                  return (
-                    <div
-                      key={booking.id}
-                      onClick={() => {
-                        setSelectedBooking(booking);
-                        setIsDetailsModalOpen(true);
-                      }}
-                      className="border border-gray-200 rounded-xl p-5 hover:shadow-hover transition-all duration-200 cursor-pointer bg-white hover:bg-cream-50"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2 flex-wrap min-w-0">
-                            <p className="font-semibold text-gray-900 text-base sm:text-lg truncate max-w-[180px] sm:max-w-[280px]">
-                              {booking.booking_reference || vehicle?.reg_number || 'Unknown'}
-                            </p>
-                            {booking.booking_reference && (
-                              <span className="text-xs text-gray-500 flex-shrink-0">
-                                ({vehicle?.reg_number})
-                              </span>
-                            )}
-                            {vehicle?.health_flag && (
-                              <span className={`text-xs font-semibold px-2 py-1 rounded ${getHealthBadgeColor(vehicle.health_flag)}`}>
-                                {vehicle.health_flag}
-                              </span>
-                            )}
-                            {hasInsuranceIssue && (
-                              <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-red-100 text-red-800">
-                                <AlertCircle className="w-3 h-3" />
-                                <span className="hidden sm:inline">Insurance Expiry</span>
-                              </span>
-                            )}
-                            {bookingType === 'self_drive' && (
-                              <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-blue-100 text-blue-800">
-                                <Car className="w-3 h-3" />
-                                <span className="hidden sm:inline">Self Drive</span>
-                              </span>
-                            )}
-                            {bookingType === 'chauffeur' && (
-                              <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-green-100 text-green-800">
-                                <User className="w-3 h-3" />
-                                <span className="hidden sm:inline">Chauffeur</span>
-                              </span>
-                            )}
-                            {bookingType === 'transfer' && (
-                              <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-orange-100 text-orange-800">
-                                <ArrowRightLeft className="w-3 h-3" />
-                                <span className="hidden sm:inline">Transfer</span>
-                              </span>
-                            )}
-                          </div>
-
-                          {hasLocationMismatch && (
-                            <div className="flex items-start gap-2 mb-2 p-2 bg-orange-50 border border-orange-200 rounded text-xs">
-                              <AlertTriangle className="w-4 h-4 text-orange-600 flex-shrink-0 mt-0.5" />
-                              <div>
-                                <p className="font-semibold text-orange-900">Location Mismatch</p>
-                                <p className="text-orange-700">
-                                  Vehicle at {vehicleLocationName}, pickup at {booking.start_location || 'unknown'}
-                                  {daysUntilStart > 0 && ` (${daysUntilStart} days)`}
-                                </p>
-                              </div>
-                            </div>
-                          )}
-
-                          <p className="text-sm font-medium text-gray-700 mb-1">{booking.client_name}</p>
-
-                          {bookingType === 'chauffeur' && (
-                            <div className="flex items-center gap-1.5 text-xs text-gray-600 mb-1">
-                              {booking.chauffeur_name ? (
-                                <>
-                                  <User className="w-3.5 h-3.5 text-green-600" />
-                                  <span className="text-green-700 font-medium">{booking.chauffeur_name}</span>
-                                </>
-                              ) : (
-                                <>
-                                  <AlertTriangle className="w-3.5 h-3.5 text-orange-600" />
-                                  <span className="text-orange-700 font-medium">No chauffeur assigned</span>
-                                </>
-                              )}
-                            </div>
-                          )}
-
-                          <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                            <span>{formatDate(booking.start_datetime)}</span>
-                            <span>→</span>
-                            <span>{formatDate(booking.end_datetime)}</span>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                            <MapPin className="w-3.5 h-3.5" />
-                            <span>{booking.start_location} → {booking.end_location}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                {canAccessBookings && (
-                  <button
-                    onClick={() => navigate('/bookings')}
-                    className="w-full mt-4 py-3 text-lime-600 hover:text-lime-700 font-semibold text-sm hover:bg-lime-50 rounded-lg transition-all duration-200"
-                  >
-                    View All Bookings →
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-600">No current or upcoming bookings</p>
-                {canAccessBookings && (
-                  <button
-                    onClick={() => navigate('/bookings/create')}
-                    className="btn-primary mt-4 px-6 py-3"
-                  >
-                    Create New Booking
-                  </button>
-                )}
               </div>
             )}
           </div>

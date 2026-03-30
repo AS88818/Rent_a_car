@@ -310,6 +310,7 @@ export function BookingFormModal({
                     <input
                       type="datetime-local"
                       value={dateData.end_datetime}
+                      min={dateData.start_datetime || ''}
                       onChange={e => setDateData({ ...dateData, end_datetime: e.target.value })}
                       required
                       disabled={submitting}
