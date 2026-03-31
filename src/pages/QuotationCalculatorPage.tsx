@@ -1800,6 +1800,25 @@ export function QuotationCalculatorPage() {
                     ))}
                   </tr>
 
+                  <tr className="border-b border-gray-200 bg-blue-50/50">
+                    <td className="px-4 py-2 text-sm font-medium text-gray-700 sticky left-0 bg-blue-50/50">
+                      Effective Daily Rate
+                      <span className="text-xs text-gray-500 ml-1">(incl. VAT & fees)</span>
+                    </td>
+                    {results.filter(r => visibleCategories.includes(r.categoryName)).map(result => {
+                      const rentalDays = calculateRentalDays() + (inputs.hasHalfDay ? 0.5 : 0);
+                      const dailyRate = rentalDays > 0 ? result.grandTotal / rentalDays : 0;
+                      return (
+                        <td
+                          key={result.categoryName}
+                          className="px-4 py-2 text-sm text-right font-semibold text-blue-600"
+                        >
+                          {formatCurrency(dailyRate)}
+                        </td>
+                      );
+                    })}
+                  </tr>
+
                   <tr className="border-b border-gray-200 bg-green-50">
                     <td className="px-4 py-3 text-sm font-medium text-gray-900 sticky left-0 bg-green-50">
                       <div className="flex items-center gap-2">

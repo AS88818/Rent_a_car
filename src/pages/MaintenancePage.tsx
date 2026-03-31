@@ -424,12 +424,16 @@ export function MaintenancePage() {
                           className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                         >
                           <option value="">No Category</option>
+                          <option value="Accessories">Accessories</option>
+                          <option value="Body">Body</option>
+                          <option value="Cooling">Cooling</option>
+                          <option value="Electrical">Electrical</option>
                           <option value="Engine / Fuel">Engine / Fuel</option>
                           <option value="Gearbox">Gearbox</option>
+                          <option value="Service">Service</option>
+                          <option value="Steering">Steering</option>
                           <option value="Suspension">Suspension</option>
-                          <option value="Electrical">Electrical</option>
-                          <option value="Body">Body</option>
-                          <option value="Accessories">Accessories</option>
+                          <option value="Wheels">Wheels</option>
                         </select>
                       </div>
                     </div>

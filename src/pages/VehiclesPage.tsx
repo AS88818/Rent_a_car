@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { vehicleService, categoryService, branchService, imageService } from '../services/api';
 import { Vehicle, VehicleCategory, Branch, VehicleImage } from '../types/database';
-import { Search, Car, Gauge, Plus, X, ArrowUpDown, RefreshCw } from 'lucide-react';
+import { Search, Car, Gauge, Plus, X, ArrowUpDown, RefreshCw, AlertTriangle } from 'lucide-react';
+import { daysUntilExpiry } from '../lib/utils';
 import { showToast } from '../lib/toast';
 import { VehicleTypeBadge } from '../components/VehicleTypeBadge';
 
@@ -540,6 +541,24 @@ export function VehiclesPage() {
                   </span>
                   <span className="font-semibold text-gray-900">{vehicle.current_mileage.toLocaleString()} km</span>
                 </div>
+
+                {vehicle.insurance_expiry && (() => {
+                  const days = daysUntilExpiry(vehicle.insurance_expiry);
+                  if (days <= 30) {
+                    return (
+                      <div className={`flex items-center justify-between text-sm px-2 py-1.5 rounded ${days <= 0 ? 'bg-red-50 border border-red-200' : 'bg-orange-50 border border-orange-200'}`}>
+                        <span className={`flex items-center gap-1 font-semibold ${days <= 0 ? 'text-red-700' : 'text-orange-700'}`}>
+                          <AlertTriangle className="w-4 h-4" />
+                          {days <= 0 ? 'INSURANCE EXPIRED' : 'Insurance'}
+                        </span>
+                        <span className={`text-xs font-bold ${days <= 0 ? 'text-red-700' : 'text-orange-700'}`}>
+                          {days <= 0 ? `${Math.abs(days)}d overdue` : `${days}d left`}
+                        </span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
 
               <div className="pt-4 border-t border-gray-100">

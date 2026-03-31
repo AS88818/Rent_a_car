@@ -934,6 +934,18 @@ export function DashboardPage() {
                             <MapPin className="w-3.5 h-3.5" />
                             <span>{booking.start_location} → {booking.end_location}</span>
                           </div>
+
+                          <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                            <span>{Math.ceil((new Date(booking.end_datetime).getTime() - new Date(booking.start_datetime).getTime()) / 86400000)} days</span>
+                            {vehicle?.next_service_mileage && vehicle?.current_mileage && (
+                              <span>Service in {(vehicle.next_service_mileage - vehicle.current_mileage).toLocaleString()} km</span>
+                            )}
+                            <span>Current Location: {vehicleLocationName || 'Unknown'}</span>
+                          </div>
+
+                          {booking.notes && (
+                            <p className="text-xs text-gray-500 mt-1 italic line-clamp-2">{booking.notes}</p>
+                          )}
                         </div>
                       </div>
                     </div>

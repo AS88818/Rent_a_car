@@ -229,7 +229,7 @@ export function BookingDetailsModal({
                     <p><span className="font-medium">Category:</span> {vehicle?.category || 'N/A'}</p>
                     <p><span className="font-medium">Colour:</span> {vehicle?.colour || 'N/A'}</p>
                     <p><span className="font-medium">Transmission:</span> {vehicle?.transmission || 'N/A'}</p>
-                    <p><span className="font-medium">Current Branch:</span> {vehicleBranch?.branch_name || 'Not assigned'}</p>
+                    <p><span className="font-medium">Current Location:</span> {vehicleBranch?.branch_name || 'Not assigned'}</p>
                   </div>
                 </div>
               </div>
