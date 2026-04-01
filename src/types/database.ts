@@ -76,6 +76,19 @@ export interface VehicleActivityLog {
   created_at: string;
 }
 
+export interface BookingAmendment {
+  id: string;
+  booking_id: string;
+  user_id: string;
+  user_name: string;
+  user_role: string;
+  field_changed: string;
+  old_value?: string;
+  new_value?: string;
+  notes?: string;
+  created_at: string;
+}
+
 export interface Booking {
   id: string;
   booking_reference?: string;
@@ -144,6 +157,20 @@ export interface BookingDocument {
   updated_at: string;
 }
 
+export interface VehicleDocument {
+  id: string;
+  vehicle_id: string;
+  document_type: 'registration' | 'insurance_certificate' | 'mot_certificate' | 'other';
+  document_name: string;
+  document_url: string;
+  file_size: number;
+  uploaded_by?: string;
+  uploaded_at: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface MileageLog {
   id: string;
   vehicle_id: string;
@@ -185,6 +212,7 @@ export interface MaintenanceWorkItem {
 export interface Snag {
   id: string;
   vehicle_id: string;
+  snag_number?: number;
   priority: 'Dangerous' | 'Important' | 'Nice to Fix' | 'Aesthetic' | null;
   status: 'Open' | 'Closed';
   date_opened: string;

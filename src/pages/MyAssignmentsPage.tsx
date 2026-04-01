@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../lib/auth-context';
-import { snagAssignmentService, snagService } from '../services/api';
-import { Snag } from '../types/database';
+import { snagAssignmentService, snagService, userService } from '../services/api';
+import { Snag, AuthUser } from '../types/database';
 import { showToast } from '../lib/toast';
-import { Calendar, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
+import { Calendar, AlertCircle, CheckCircle, RefreshCw, ChevronDown } from 'lucide-react';
 import { formatDate, getPriorityColor } from '../lib/utils';
 import { SnagResolutionModal } from '../components/SnagResolutionModal';
+import { AssignSnagModal } from '../components/AssignSnagModal';
 
 interface Assignment {
   id: string;
@@ -29,22 +30,40 @@ interface Assignment {
 }
 
 export function MyAssignmentsPage() {
-  const { user, branchId } = useAuth();
+  const { user, branchId, userRole } = useAuth();
+  const isAdminOrManager = userRole === 'admin' || userRole === 'manager';
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [resolveSnag, setResolveSnag] = useState<Snag | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [reassignAssignment, setReassignAssignment] = useState<Assignment | null>(null);
+  const [reassigning, setReassigning] = useState(false);
+  const [teamUsers, setTeamUsers] = useState<AuthUser[]>([]);
+  const [viewingUserId, setViewingUserId] = useState<string>('');
 
   useEffect(() => {
-    fetchAssignments();
+    if (user?.id) {
+      setViewingUserId(user.id);
+    }
   }, [user?.id]);
 
+  useEffect(() => {
+    userService.getAllUsers().then(users => {
+      setTeamUsers(users.filter(u => u.status === 'active' && u.id !== user?.id));
+    }).catch(() => {});
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (viewingUserId) fetchAssignments();
+  }, [viewingUserId]);
+
   const fetchAssignments = async () => {
-    if (!user?.id) return;
+    const targetUserId = viewingUserId || user?.id;
+    if (!targetUserId) return;
 
     try {
-      const data = await snagAssignmentService.getAssignmentsByUser(user.id);
+      const data = await snagAssignmentService.getAssignmentsByUser(targetUserId);
       setAssignments(data);
     } catch (error: any) {
       showToast(error.message || 'Failed to fetch assignments', 'error');
@@ -108,6 +127,32 @@ export function MyAssignmentsPage() {
     }
   };
 
+  const handleReassign = async (data: {
+    snagId: string;
+    assignedTo: string;
+    deadline?: string;
+    notes?: string;
+  }) => {
+    if (!user?.id) return;
+    setReassigning(true);
+    try {
+      await snagAssignmentService.reassignSnag(
+        data.snagId,
+        data.assignedTo,
+        user.id,
+        data.deadline,
+        data.notes
+      );
+      showToast('Snag reassigned successfully', 'success');
+      setReassignAssignment(null);
+      fetchAssignments();
+    } catch (error: any) {
+      showToast(error.message || 'Failed to reassign snag', 'error');
+    } finally {
+      setReassigning(false);
+    }
+  };
+
   const isOverdue = (deadline: string | null) => {
     if (!deadline) return false;
     return new Date(deadline) < new Date();
@@ -142,18 +187,44 @@ export function MyAssignmentsPage() {
   return (
     <div className="p-4 md:p-8">
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <h1 className="text-3xl font-bold text-gray-900">My Assignments</h1>
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Refresh data"
-          >
-            <RefreshCw className={`w-5 h-5 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
-          </button>
+        <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-gray-900">
+              {viewingUserId === user?.id
+                ? 'My Assignments'
+                : `${teamUsers.find(u => u.id === viewingUserId)?.full_name || 'Team Member'}'s Assignments`}
+            </h1>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Refresh data"
+            >
+              <RefreshCw className={`w-5 h-5 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+
+          {isAdminOrManager && teamUsers.length > 0 && (
+            <div className="relative">
+              <select
+                value={viewingUserId}
+                onChange={e => setViewingUserId(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+              >
+                <option value={user?.id}>My Assignments</option>
+                <optgroup label="Team Members">
+                  {teamUsers.map(u => (
+                    <option key={u.id} value={u.id}>{u.full_name} ({u.role})</option>
+                  ))}
+                </optgroup>
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+            </div>
+          )}
         </div>
-        <p className="text-gray-600">Snags assigned to you</p>
+        <p className="text-gray-600">
+          {viewingUserId === user?.id ? 'Snags assigned to you' : 'Snags assigned to this team member'}
+        </p>
       </div>
 
       <div className="grid gap-6 mb-6 md:grid-cols-3">
@@ -206,6 +277,7 @@ export function MyAssignmentsPage() {
                 key={assignment.id}
                 assignment={assignment}
                 onResolve={setResolveSnag}
+                onReassign={setReassignAssignment}
               />
             ))}
           </div>
@@ -221,6 +293,7 @@ export function MyAssignmentsPage() {
                 key={assignment.id}
                 assignment={assignment}
                 onResolve={setResolveSnag}
+                onReassign={setReassignAssignment}
               />
             ))}
           </div>
@@ -243,6 +316,26 @@ export function MyAssignmentsPage() {
         branchId={branchId || undefined}
         submitting={submitting}
       />
+
+      <AssignSnagModal
+        isOpen={reassignAssignment !== null}
+        onClose={() => setReassignAssignment(null)}
+        onSubmit={handleReassign}
+        snag={reassignAssignment ? {
+          id: reassignAssignment.snags.id,
+          vehicle_id: '',
+          description: reassignAssignment.snags.description,
+          priority: reassignAssignment.snags.priority as any,
+          status: 'Open',
+          date_opened: reassignAssignment.snags.date_opened,
+          branch_id: reassignAssignment.snags.vehicles.branch_id,
+          assigned_to: reassignAssignment.assigned_to,
+          created_at: '',
+          updated_at: '',
+        } as Snag : null}
+        users={teamUsers}
+        submitting={reassigning}
+      />
     </div>
   );
 }
@@ -250,9 +343,10 @@ export function MyAssignmentsPage() {
 interface AssignmentCardProps {
   assignment: Assignment;
   onResolve: (snag: Snag) => void;
+  onReassign: (assignment: Assignment) => void;
 }
 
-function AssignmentCard({ assignment, onResolve }: AssignmentCardProps) {
+function AssignmentCard({ assignment, onResolve, onReassign }: AssignmentCardProps) {
   const isOverdue = assignment.deadline && new Date(assignment.deadline) < new Date();
   const daysUntil = assignment.deadline
     ? Math.ceil(
@@ -325,6 +419,12 @@ function AssignmentCard({ assignment, onResolve }: AssignmentCardProps) {
           className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
         >
           Resolve Snag
+        </button>
+        <button
+          onClick={() => onReassign(assignment)}
+          className="px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+        >
+          Reassign
         </button>
       </div>
     </div>

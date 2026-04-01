@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, User, Phone, Mail, Car, AlertTriangle, FileText, Edit, Download, Eye, XCircle } from 'lucide-react';
+import { X, Calendar, MapPin, User, Phone, Mail, Car, AlertTriangle, FileText, Edit, Download, Eye, XCircle, History, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Booking, Vehicle, Branch, BookingDocument } from '../types/database';
+import { Booking, Vehicle, Branch, BookingDocument, BookingAmendment } from '../types/database';
 import { formatDate, checkInsuranceExpiryDuringBooking } from '../lib/utils';
-import { bookingDocumentService } from '../services/api';
+import { bookingDocumentService, bookingAmendmentService } from '../services/api';
 
 interface BookingDetailsModalProps {
   isOpen: boolean;
@@ -29,12 +29,25 @@ export function BookingDetailsModal({
   const navigate = useNavigate();
   const [documents, setDocuments] = useState<BookingDocument[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
+  const [amendments, setAmendments] = useState<BookingAmendment[]>([]);
+  const [showAmendments, setShowAmendments] = useState(false);
 
   useEffect(() => {
     if (isOpen && booking) {
       loadDocuments();
+      loadAmendments();
     }
   }, [isOpen, booking?.id]);
+
+  const loadAmendments = async () => {
+    if (!booking) return;
+    try {
+      const data = await bookingAmendmentService.getAmendments(booking.id);
+      setAmendments(data || []);
+    } catch {
+      // non-critical
+    }
+  };
 
   const loadDocuments = async () => {
     if (!booking) return;
@@ -415,6 +428,33 @@ export function BookingDetailsModal({
                   </div>
                 )}
               </div>
+
+              {amendments.length > 0 && (
+                <div>
+                  <button
+                    onClick={() => setShowAmendments(!showAmendments)}
+                    className="flex items-center gap-2 text-sm font-semibold text-gray-500 uppercase tracking-wide hover:text-gray-700 transition-colors"
+                  >
+                    <History className="w-4 h-4" />
+                    Amendment History ({amendments.length})
+                    {showAmendments ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+                  {showAmendments && (
+                    <div className="mt-3 space-y-2">
+                      {amendments.map(a => (
+                        <div key={a.id} className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded p-3">
+                          <span className="font-medium text-gray-800">{a.user_name}</span>
+                          <span className="text-gray-500"> ({a.user_role})</span>
+                          {' '}changed <span className="font-medium">{a.field_changed}</span>
+                          {a.old_value && <> from <span className="line-through text-red-600">{a.old_value}</span></>}
+                          {a.new_value && <> to <span className="text-green-700 font-medium">{a.new_value}</span></>}
+                          <span className="text-gray-400 ml-2">{formatDate(a.created_at)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -136,6 +136,9 @@ export function VehicleSnagCard({
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
+                      {snag.snag_number && (
+                        <span className="text-xs font-mono font-bold text-gray-400">#{String(snag.snag_number).padStart(3, '0')}</span>
+                      )}
                       {snag.priority && (
                         <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getPriorityColor(snag.priority)}`}>
                           {snag.priority}

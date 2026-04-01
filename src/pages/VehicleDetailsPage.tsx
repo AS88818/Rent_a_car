@@ -55,6 +55,7 @@ import { SnagFormModal } from '../components/SnagFormModal';
 import { canDeleteVehicle } from '../lib/permissions';
 import { VehicleTypeBadge } from '../components/VehicleTypeBadge';
 import { useAuth } from '../lib/auth-context';
+import { VehicleDocumentUpload } from '../components/VehicleDocumentUpload';
 
 export function VehicleDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -415,6 +416,7 @@ export function VehicleDetailsPage() {
                   src={primaryImage.image_url}
                   alt={vehicle.reg_number}
                   className="w-32 h-32 rounded-lg object-cover border-2 border-gray-200"
+                  loading="lazy"
                 />
               ) : (
                 <div className="w-32 h-32 rounded-lg bg-gray-100 flex items-center justify-center border-2 border-gray-200">
@@ -761,7 +763,12 @@ export function VehicleDetailsPage() {
                   onClick={() => navigate('/snags')}
                   className={`w-full text-left border-l-4 ${getSnagPriorityBorderColor(snag.priority)} pl-3 py-2 hover:bg-gray-50 transition-colors`}
                 >
-                  <p className="font-medium text-gray-900">{snag.description}</p>
+                  <div className="flex items-center gap-2">
+                    {snag.snag_number && (
+                      <span className="text-xs font-mono font-bold text-gray-400">#{String(snag.snag_number).padStart(3, '0')}</span>
+                    )}
+                    <p className="font-medium text-gray-900">{snag.description}</p>
+                  </div>
                   {snag.priority && (
                     <span className={`text-xs px-2 py-0.5 rounded mt-1 inline-block ${getSnagPriorityBadgeColor(snag.priority)}`}>
                       {snag.priority}
@@ -773,6 +780,14 @@ export function VehicleDetailsPage() {
           ) : (
             <p className="text-sm text-gray-500">No open snags</p>
           )}
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <FileText className="w-5 h-5 text-gray-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Vehicle Documents</h3>
+          </div>
+          <VehicleDocumentUpload vehicleId={id} />
         </div>
       </div>
 

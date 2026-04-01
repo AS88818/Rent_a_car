@@ -58,6 +58,34 @@ export function ImageUpload({
     }
   };
 
+  const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const img = new Image();
+      img.onload = () => {
+        // Scale down to max 1200px wide while keeping aspect ratio
+        const maxWidth = 1200;
+        const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+            } else {
+              resolve(file);
+            }
+          },
+          'image/jpeg',
+          0.75 // 75% quality
+        );
+      };
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const handleFile = async (file: File) => {
     if (file.size > maxFileSize) {
       showToast('File size must be 4MB or less', 'error');
@@ -72,7 +100,8 @@ export function ImageUpload({
 
     setUploading(true);
     try {
-      const newImage = await imageService.uploadVehicleImage(vehicleId, file);
+      const compressed = await compressImage(file);
+      const newImage = await imageService.uploadVehicleImage(vehicleId, compressed);
       onImageUploaded(newImage);
       showToast('Image uploaded successfully', 'success');
     } catch (error: any) {
@@ -187,6 +216,7 @@ export function ImageUpload({
                   src={image.image_url}
                   alt="Vehicle"
                   className="w-full h-48 object-cover"
+                  loading="lazy"
                 />
               </button>
 

@@ -20,12 +20,14 @@ import {
   InvoiceSelectedCategory,
   VehicleImage,
   VehicleActivityLog,
+  BookingAmendment,
   SnagAssignment,
   SnagResolution,
   Notification,
   VehicleWithSnagCount,
   PaymentMethod,
   BookingDeposit,
+  VehicleDocument,
 } from '../types/database';
 import { checkBookingConflict, calculateVehicleHealth } from '../lib/utils';
 
@@ -337,7 +339,7 @@ export const bookingService = {
     return data as Booking;
   },
 
-  async updateBooking(id: string, updates: Partial<Booking>) {
+  async updateBooking(id: string, updates: Partial<Booking>, userInfo?: { id: string; name: string; role: string }) {
     const booking = await this.getBookingById(id);
     const otherBookings = (await this.getBookingsByVehicle(booking.vehicle_id)).filter(
       b => b.id !== id
@@ -366,6 +368,29 @@ export const bookingService = {
       `)
       .single();
     if (error) throw error;
+
+    // Log amendments if userInfo provided
+    if (userInfo) {
+      const trackFields = [
+        'start_datetime', 'end_datetime', 'vehicle_id', 'status',
+        'start_location', 'end_location', 'client_name', 'contact',
+        'notes', 'booking_type', 'chauffeur_name',
+      ] as const;
+      const amendmentEntries = trackFields
+        .filter(field => field in updates && String(updates[field]) !== String((booking as any)[field]))
+        .map(field => ({
+          booking_id: id,
+          user_id: userInfo.id,
+          user_name: userInfo.name,
+          user_role: userInfo.role,
+          field_changed: field,
+          old_value: String((booking as any)[field] ?? ''),
+          new_value: String((updates as any)[field] ?? ''),
+        }));
+      if (amendmentEntries.length > 0) {
+        await supabase.from('booking_amendments').insert(amendmentEntries);
+      }
+    }
 
     // Flatten the branch_name from nested object
     if (data) {
@@ -499,6 +524,22 @@ export const maintenanceService = {
         .insert(workItemsToInsert);
 
       if (itemsError) throw itemsError;
+
+      // Auto-update next service mileage when a Service work item is logged
+      const hasServiceWork = work_items.some(item => item.work_category === 'Service');
+      if (hasServiceWork && maintenanceLogData.vehicle_id && maintenanceLogData.mileage) {
+        try {
+          const vehicle = await vehicleService.getVehicleById(maintenanceLogData.vehicle_id);
+          const interval = vehicle.service_interval_km || 5000;
+          await vehicleService.updateVehicle(maintenanceLogData.vehicle_id, {
+            next_service_mileage: maintenanceLogData.mileage + interval,
+            last_service_mileage: maintenanceLogData.mileage,
+          });
+        } catch {
+          // Non-critical: log failure doesn't block maintenance record creation
+          console.warn('Failed to auto-update next service mileage');
+        }
+      }
     }
 
     return createdLog as MaintenanceLog;
@@ -545,9 +586,20 @@ export const snagService = {
   },
 
   async createSnag(snag: Omit<Snag, 'id' | 'created_at' | 'updated_at'>) {
+    // Assign next snag_number for this vehicle
+    const { data: maxRow } = await supabase
+      .from('snags')
+      .select('snag_number')
+      .eq('vehicle_id', snag.vehicle_id)
+      .is('deleted_at', null)
+      .order('snag_number', { ascending: false })
+      .limit(1)
+      .single();
+    const nextNumber = ((maxRow as any)?.snag_number ?? 0) + 1;
+
     const { data, error } = await supabase
       .from('snags')
-      .insert([snag])
+      .insert([{ ...snag, snag_number: nextNumber }])
       .select()
       .single();
     if (error) throw error;
@@ -1627,6 +1679,27 @@ export const activityLogService = {
   },
 };
 
+export const bookingAmendmentService = {
+  async getAmendments(bookingId: string) {
+    const { data, error } = await supabase
+      .from('booking_amendments')
+      .select('*')
+      .eq('booking_id', bookingId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data as BookingAmendment[];
+  },
+
+  async hasAmendments(bookingId: string) {
+    const { count, error } = await supabase
+      .from('booking_amendments')
+      .select('id', { count: 'exact', head: true })
+      .eq('booking_id', bookingId);
+    if (error) return false;
+    return (count ?? 0) > 0;
+  },
+};
+
 export const imageService = {
   async uploadVehicleImage(vehicleId: string, file: File) {
     const existingImages = await this.getVehicleImages(vehicleId);
@@ -1802,6 +1875,41 @@ export const snagAssignmentService = {
       .select()
       .single();
     if (error) throw error;
+    return data as SnagAssignment;
+  },
+
+  async reassignSnag(
+    snagId: string,
+    newAssigneeId: string,
+    assignedById: string,
+    deadline?: string,
+    notes?: string
+  ) {
+    // Mark current active assignments as reassigned
+    await supabase
+      .from('snag_assignments')
+      .update({ status: 'reassigned' })
+      .eq('snag_id', snagId)
+      .in('status', ['assigned', 'overdue']);
+
+    // Create new assignment
+    const { data, error } = await supabase
+      .from('snag_assignments')
+      .insert([{
+        snag_id: snagId,
+        assigned_to: newAssigneeId,
+        assigned_by: assignedById,
+        status: 'assigned',
+        deadline: deadline || null,
+        assignment_notes: notes || null,
+      }])
+      .select()
+      .single();
+    if (error) throw error;
+
+    // Update snag.assigned_to
+    await snagService.updateSnag(snagId, { assigned_to: newAssigneeId });
+
     return data as SnagAssignment;
   },
 };
@@ -1997,6 +2105,77 @@ export const bookingDocumentService = {
 
     const { error } = await supabase
       .from('booking_documents')
+      .delete()
+      .eq('id', documentId);
+
+    if (error) throw error;
+  },
+};
+
+export const vehicleDocumentService = {
+  async getDocuments(vehicleId: string) {
+    const { data, error } = await supabase
+      .from('vehicle_documents')
+      .select('*')
+      .eq('vehicle_id', vehicleId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data as VehicleDocument[];
+  },
+
+  async uploadDocument(vehicleId: string, file: File, documentType: string, notes?: string) {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${vehicleId}/${Date.now()}.${fileExt}`;
+    const filePath = `vehicle-documents/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('documents')
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('documents')
+      .getPublicUrl(filePath);
+
+    const { data: authUser } = await supabase.auth.getUser();
+
+    const { data, error } = await supabase
+      .from('vehicle_documents')
+      .insert({
+        vehicle_id: vehicleId,
+        document_type: documentType,
+        document_name: file.name,
+        document_url: publicUrl,
+        file_size: file.size,
+        uploaded_by: authUser?.user?.id,
+        notes,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as VehicleDocument;
+  },
+
+  async deleteDocument(documentId: string) {
+    const { data: doc } = await supabase
+      .from('vehicle_documents')
+      .select('document_url')
+      .eq('id', documentId)
+      .single();
+
+    if (doc?.document_url) {
+      const path = doc.document_url.split('/vehicle-documents/')[1];
+      if (path) {
+        await supabase.storage
+          .from('documents')
+          .remove([`vehicle-documents/${path}`]);
+      }
+    }
+
+    const { error } = await supabase
+      .from('vehicle_documents')
       .delete()
       .eq('id', documentId);
 

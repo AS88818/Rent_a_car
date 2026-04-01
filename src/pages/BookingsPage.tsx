@@ -10,7 +10,7 @@ import { ConfirmModal } from '../components/ConfirmModal';
 import { BookingFormModal } from '../components/BookingFormModal';
 
 export function BookingsPage() {
-  const { branchId, userRole } = useAuth();
+  const { branchId, userRole, user } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -65,10 +65,11 @@ export function BookingsPage() {
 
       if (editingBooking) {
         const vehicleChanged = bookingData.vehicle_id !== editingBooking.vehicle_id;
-        const updatedBooking = await bookingService.updateBooking(editingBooking.id, {
-          ...bookingData,
-          ...(vehicleChanged && { health_at_booking: vehicle?.health_flag }),
-        });
+        const updatedBooking = await bookingService.updateBooking(
+          editingBooking.id,
+          { ...bookingData, ...(vehicleChanged && { health_at_booking: vehicle?.health_flag }) },
+          user ? { id: user.id, name: (user as any).full_name || user.email || 'Unknown', role: userRole || 'user' } : undefined
+        );
         setBookings(bookings.map(b => (b.id === editingBooking.id ? updatedBooking : b)));
         showToast('Booking updated successfully', 'success');
 

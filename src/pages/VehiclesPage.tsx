@@ -495,6 +495,7 @@ export function VehiclesPage() {
                           src={primaryImage.image_url}
                           alt={vehicle.reg_number}
                           className="w-full h-full object-cover"
+                          loading="lazy"
                         />
                       </div>
                     ) : (
