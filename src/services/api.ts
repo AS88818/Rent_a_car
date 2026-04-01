@@ -1778,11 +1778,10 @@ export const imageService = {
       .from('vehicle_images')
       .update({ is_primary: true })
       .eq('id', imageId)
-      .select()
-      .single();
+      .select();
 
     if (error) throw error;
-    return data as VehicleImage;
+    return (data?.[0]) as VehicleImage;
   },
 
   async deleteVehicleImage(imageId: string) {
