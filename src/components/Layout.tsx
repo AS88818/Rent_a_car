@@ -32,7 +32,7 @@ export function Layout({ children }: LayoutProps) {
 
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    ...(userRole === 'mechanic' ? [
+    ...(userRole === 'mechanic' || userRole === 'admin' || userRole === 'manager' ? [
       { label: 'My Assignments', href: '/my-assignments', icon: ClipboardList }
     ] : []),
     { label: 'Vehicles', href: '/vehicles', icon: Car },

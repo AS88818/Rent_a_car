@@ -542,6 +542,20 @@ export function VehiclesPage() {
                   </span>
                   <span className="font-semibold text-gray-900">{vehicle.current_mileage.toLocaleString()} km</span>
                 </div>
+                {vehicle.next_service_mileage && vehicle.current_mileage && (() => {
+                  const kmToService = vehicle.next_service_mileage - vehicle.current_mileage;
+                  return (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className={`flex items-center gap-1 ${kmToService <= 0 ? 'text-red-600 font-semibold' : kmToService <= 500 ? 'text-orange-600 font-medium' : 'text-gray-600'}`}>
+                        <Gauge className="w-4 h-4" />
+                        {kmToService <= 0 ? 'SERVICE OVERDUE:' : 'To service:'}
+                      </span>
+                      <span className={`font-semibold ${kmToService <= 0 ? 'text-red-600' : kmToService <= 500 ? 'text-orange-600' : 'text-gray-900'}`}>
+                        {kmToService <= 0 ? `${Math.abs(kmToService).toLocaleString()} km overdue` : `${kmToService.toLocaleString()} km`}
+                      </span>
+                    </div>
+                  );
+                })()}
 
                 {vehicle.insurance_expiry && (() => {
                   const days = daysUntilExpiry(vehicle.insurance_expiry);

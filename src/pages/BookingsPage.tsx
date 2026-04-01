@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../lib/auth-context';
-import { bookingService, vehicleService, branchService } from '../services/api';
-import { Booking, Vehicle, Branch } from '../types/database';
+import { bookingService, vehicleService, branchService, categoryService } from '../services/api';
+import { Booking, Vehicle, Branch, VehicleCategory } from '../types/database';
 import { calculateBookingDuration, formatDateTime, getHealthColor } from '../lib/utils';
 import { Plus, Edit } from 'lucide-react';
 import { showToast } from '../lib/toast';
@@ -14,6 +14,7 @@ export function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [categories, setCategories] = useState<VehicleCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -25,15 +26,17 @@ export function BookingsPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [bookingsData, vehiclesData, branchesData] = await Promise.all([
+        const [bookingsData, vehiclesData, branchesData, categoriesData] = await Promise.all([
           bookingService.getBookings(branchId || undefined),
           vehicleService.getVehicles(branchId || undefined),
           branchService.getBranches(),
+          categoryService.getCategories(),
         ]);
 
         setBookings(bookingsData);
         setVehicles(vehiclesData);
         setBranches(branchesData);
+        setCategories(categoriesData);
       } catch (error) {
         showToast('Failed to fetch bookings', 'error');
       } finally {
@@ -275,6 +278,7 @@ export function BookingsPage() {
         vehicles={vehicles}
         bookings={bookings}
         branches={branches}
+        categories={categories}
         editingBooking={editingBooking}
         submitting={submitting}
       />

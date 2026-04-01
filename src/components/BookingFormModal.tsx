@@ -581,7 +581,14 @@ export function BookingFormModal({
                               <div className="flex items-start justify-between mb-2">
                                 <div>
                                   <h4 className="font-semibold text-gray-900">{vehicle.reg_number}</h4>
-                                  <p className="text-sm text-gray-600">{vehicle.make} {vehicle.model}</p>
+                                  {(vehicle.make || vehicle.model) && (
+                                    <p className="text-xs text-gray-500">{vehicle.make} {vehicle.model}</p>
+                                  )}
+                                  {vehicle.branch_id && (
+                                    <p className="text-xs text-gray-500">
+                                      {branches.find(b => b.id === vehicle.branch_id)?.branch_name || ''}
+                                    </p>
+                                  )}
                                 </div>
                                 <span className={`px-2 py-1 rounded text-xs font-semibold ${getHealthColor(vehicle.health_flag)}`}>
                                   {vehicle.health_flag}
@@ -589,8 +596,11 @@ export function BookingFormModal({
                               </div>
 
                               <div className="space-y-1 text-xs text-gray-500 mb-2">
+                                <p>{vehicle.current_mileage.toLocaleString()} km</p>
                                 {kmToService !== null && (
-                                  <p>{kmToService > 0 ? `Service in ${kmToService.toLocaleString()} km` : '⚠️ SERVICE OVERDUE'}</p>
+                                  <p className={kmToService <= 0 ? 'text-red-600 font-medium' : kmToService <= 500 ? 'text-orange-500 font-medium' : ''}>
+                                    {kmToService > 0 ? `Service in ${kmToService.toLocaleString()} km` : '⚠️ SERVICE OVERDUE'}
+                                  </p>
                                 )}
                                 {daysToInsurance !== null && (
                                   <p className={daysToInsurance <= 30 ? 'text-orange-600 font-medium' : ''}>
