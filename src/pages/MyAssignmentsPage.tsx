@@ -88,6 +88,7 @@ export function MyAssignmentsPage() {
     snagId: string;
     resolutionMethod: any;
     resolutionNotes: string;
+    checkedByUserId?: string;
     photoUrls?: string[];
     maintenanceLog?: any;
   }) => {
@@ -104,6 +105,7 @@ export function MyAssignmentsPage() {
             resolution_method: resolution.resolutionMethod,
             resolution_notes: resolution.resolutionNotes,
             resolved_by: user.id,
+            checked_by: resolution.checkedByUserId,
             photo_urls: resolution.photoUrls,
           },
           resolution.maintenanceLog
@@ -114,6 +116,7 @@ export function MyAssignmentsPage() {
           resolution_method: resolution.resolutionMethod,
           resolution_notes: resolution.resolutionNotes,
           resolved_by: user.id,
+          checked_by: resolution.checkedByUserId,
           photo_urls: resolution.photoUrls,
         });
       }
@@ -315,6 +318,8 @@ export function MyAssignmentsPage() {
         vehicleId={resolveSnag?.vehicle_id}
         branchId={branchId || undefined}
         submitting={submitting}
+        users={teamUsers}
+        currentUserId={user?.id}
       />
 
       <AssignSnagModal

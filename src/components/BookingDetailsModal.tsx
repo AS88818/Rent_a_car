@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Booking, Vehicle, Branch, BookingDocument, BookingAmendment } from '../types/database';
 import { formatDate, checkInsuranceExpiryDuringBooking } from '../lib/utils';
 import { bookingDocumentService, bookingAmendmentService } from '../services/api';
+import { BookingDocumentUpload } from './BookingDocumentUpload';
 
 interface BookingDetailsModalProps {
   isOpen: boolean;
@@ -381,7 +382,9 @@ export function BookingDetailsModal({
 
               <div>
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Documents</h3>
-                {loadingDocs ? (
+                {userRole && ['admin', 'manager'].includes(userRole) ? (
+                  <BookingDocumentUpload bookingId={booking?.id} onDocumentUploaded={loadDocuments} />
+                ) : loadingDocs ? (
                   <p className="text-sm text-gray-500">Loading documents...</p>
                 ) : documents.length === 0 ? (
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">

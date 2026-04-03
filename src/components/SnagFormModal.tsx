@@ -181,7 +181,7 @@ export function SnagFormModal({
                   onChange={e => setVehicleId(e.target.value)}
                   required
                   disabled={submitting}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="">Select Vehicle</option>
                   {vehicles.map(v => (
@@ -202,7 +202,7 @@ export function SnagFormModal({
                     onChange={e => setSelectedBranchId(e.target.value)}
                     required
                     disabled={submitting}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value="">Select Branch</option>
                     {branches.map(b => (
@@ -227,7 +227,7 @@ export function SnagFormModal({
                   onChange={e => setMileage(e.target.value)}
                   disabled={submitting}
                   placeholder="Enter current mileage when snag was noticed"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   min="0"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -253,14 +253,14 @@ export function SnagFormModal({
                             value={issue.description}
                             onChange={e => handleIssueChange(index, 'description', e.target.value)}
                             disabled={submitting}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full px-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                           />
                         </div>
                         <select
                           value={issue.priority}
                           onChange={e => handleIssueChange(index, 'priority', e.target.value)}
                           disabled={submitting}
-                          className="w-40 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-40 px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <option value="">No Priority</option>
                           <option value="Dangerous">Dangerous</option>

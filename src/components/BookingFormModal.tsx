@@ -71,16 +71,10 @@ export function BookingFormModal({
 
   useEffect(() => {
     if (editingBooking) {
-      // Convert ISO datetime to local datetime-local format (YYYY-MM-DDThh:mm)
-      const formatForDatetimeLocal = (isoString: string) => {
-        const date = new Date(isoString);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return `${year}-${month}-${day}T${hours}:${minutes}`;
-      };
+      // Convert ISO datetime to datetime-local format (YYYY-MM-DDThh:mm).
+      // Slice the first 16 chars to avoid timezone conversion — data is stored
+      // as the user originally typed it (no tz offset applied on save).
+      const formatForDatetimeLocal = (isoString: string) => isoString.substring(0, 16);
 
       setStep(3);
       const editingVehicle = vehicles.find(v => v.id === editingBooking.vehicle_id);

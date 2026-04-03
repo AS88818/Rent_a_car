@@ -954,6 +954,75 @@ export function CalendarPage() {
           ))}
         </div>
 
+        {highlightedDateRange && quickPeriod !== 'this_month' && quickPeriod !== 'custom' && (() => {
+          const rangeStart = new Date(highlightedDateRange.start);
+          rangeStart.setHours(0, 0, 0, 0);
+          const rangeEnd = new Date(highlightedDateRange.end);
+          rangeEnd.setHours(23, 59, 59, 999);
+
+          const periodBookings = bookings.filter(b => {
+            if (b.status === 'Cancelled' || b.status === 'Completed') return false;
+            const bStart = new Date(b.start_datetime);
+            const bEnd = new Date(b.end_datetime);
+            return bStart <= rangeEnd && bEnd >= rangeStart;
+          }).map(b => {
+            const vehicle = vehicles.find(v => v.id === b.vehicle_id);
+            const category = vehicle ? categories.find(c => c.id === vehicle.category_id) : undefined;
+            const catIdx = category ? categories.indexOf(category) : 0;
+            return { ...b, vehicle, category, categoryColor: category ? getCategoryColor(category.category_name, catIdx) : undefined };
+          }).sort((a, b) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime());
+
+          const periodLabel = {
+            today: 'Today',
+            this_week: 'This Week',
+            next_week: 'Next Week',
+            next_2_weeks: 'Next 2 Weeks',
+            next_month: 'Next Month',
+          }[quickPeriod] || quickPeriod;
+
+          return (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                Bookings — {periodLabel} ({periodBookings.length})
+              </h3>
+              {periodBookings.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">No bookings in this period</p>
+              ) : (
+                <div className="space-y-2">
+                  {periodBookings.map(booking => (
+                    <button
+                      key={booking.id}
+                      onClick={() => setSelectedBooking(booking)}
+                      className="w-full text-left bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg px-4 py-3 transition-colors"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          {booking.categoryColor && (
+                            <div className={`w-3 h-3 rounded-full flex-shrink-0 ${booking.categoryColor.dot}`} />
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate">{booking.client_name}</p>
+                            <p className="text-xs text-gray-500">{booking.vehicle?.reg_number} · {booking.category?.category_name}</p>
+                          </div>
+                        </div>
+                        <div className="flex-shrink-0 text-right">
+                          <p className="text-xs text-gray-700">{new Date(booking.start_datetime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</p>
+                          <p className="text-xs text-gray-500">→ {new Date(booking.end_datetime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</p>
+                        </div>
+                        <span className={`flex-shrink-0 text-xs px-2 py-1 rounded font-medium ${
+                          booking.status === 'Active' ? 'bg-green-100 text-green-800' :
+                          booking.status === 'Draft' ? 'bg-gray-100 text-gray-700' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>{booking.status}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         <div className="mt-6 pt-6 border-t border-gray-200">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">Legend</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

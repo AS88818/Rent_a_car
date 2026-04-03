@@ -111,6 +111,18 @@ export function PricingAdminPage() {
       tier8_discount: category.tier8_discount * 100,
       tier9_days: category.tier9_days,
       tier9_discount: category.tier9_discount * 100,
+      tier10_days: category.tier10_days,
+      tier10_discount: category.tier10_discount * 100,
+      tier11_days: category.tier11_days,
+      tier11_discount: category.tier11_discount * 100,
+      tier12_days: category.tier12_days,
+      tier12_discount: category.tier12_discount * 100,
+      tier13_days: category.tier13_days,
+      tier13_discount: category.tier13_discount * 100,
+      tier14_days: category.tier14_days,
+      tier14_discount: category.tier14_discount * 100,
+      tier15_days: category.tier15_days,
+      tier15_discount: category.tier15_discount * 100,
     });
   };
 
@@ -147,6 +159,18 @@ export function PricingAdminPage() {
         tier8_discount: (categoryForm.tier8_discount || 0) / 100,
         tier9_days: categoryForm.tier9_days,
         tier9_discount: (categoryForm.tier9_discount || 0) / 100,
+        tier10_days: categoryForm.tier10_days,
+        tier10_discount: (categoryForm.tier10_discount || 0) / 100,
+        tier11_days: categoryForm.tier11_days,
+        tier11_discount: (categoryForm.tier11_discount || 0) / 100,
+        tier12_days: categoryForm.tier12_days,
+        tier12_discount: (categoryForm.tier12_discount || 0) / 100,
+        tier13_days: categoryForm.tier13_days,
+        tier13_discount: (categoryForm.tier13_discount || 0) / 100,
+        tier14_days: categoryForm.tier14_days,
+        tier14_discount: (categoryForm.tier14_discount || 0) / 100,
+        tier15_days: categoryForm.tier15_days,
+        tier15_discount: (categoryForm.tier15_discount || 0) / 100,
       };
 
       const updated = await quotationService.updateCategoryPricing(editingCategory, updates);
@@ -174,6 +198,12 @@ export function PricingAdminPage() {
       categoryForm.tier7_days || 0,
       categoryForm.tier8_days || 0,
       categoryForm.tier9_days || 0,
+      categoryForm.tier10_days || 0,
+      categoryForm.tier11_days || 0,
+      categoryForm.tier12_days || 0,
+      categoryForm.tier13_days || 0,
+      categoryForm.tier14_days || 0,
+      categoryForm.tier15_days || 0,
     ];
 
     for (let i = 1; i < tiers.length; i++) {
@@ -429,7 +459,7 @@ export function PricingAdminPage() {
                     <div>
                       <h4 className="font-medium text-gray-900 mb-3">Discount Tiers</h4>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((tier) => (
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((tier) => (
                           <div key={tier} className="border border-gray-200 rounded p-3">
                             <p className="text-sm font-medium text-gray-700 mb-2">Tier {tier}</p>
                             <div className="space-y-2">
@@ -495,8 +525,8 @@ export function PricingAdminPage() {
                         <p className="text-lg font-semibold text-gray-900">{formatCurrency(category.self_drive_deposit)}</p>
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 md:grid-cols-9 gap-2">
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((tier) => {
+                    <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((tier) => {
                         const days = category[`tier${tier}_days` as keyof CategoryPricing] as number;
                         const discount = (category[`tier${tier}_discount` as keyof CategoryPricing] as number) * 100;
                         return (

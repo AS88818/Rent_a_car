@@ -12,6 +12,7 @@ interface VehicleSnagCardProps {
   onAssignSnag: (snag: Snag) => void;
   onResolveSnag: (snag: Snag) => void;
   showClosedSnags?: boolean;
+  userRole?: string | null;
 }
 
 export function VehicleSnagCard({
@@ -22,6 +23,7 @@ export function VehicleSnagCard({
   onAssignSnag,
   onResolveSnag,
   showClosedSnags = false,
+  userRole,
 }: VehicleSnagCardProps) {
   const [expanded, setExpanded] = useState(false);
   const navigate = useNavigate();
@@ -198,24 +200,28 @@ export function VehicleSnagCard({
                     >
                       {snag.assigned_to ? 'Reassign' : 'Assign'}
                     </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (snag.assigned_to) {
-                          onResolveSnag(snag);
-                        }
-                      }}
-                      disabled={!snag.assigned_to}
-                      title={!snag.assigned_to ? 'Snag must be assigned before it can be resolved' : 'Resolve this snag'}
-                      className={`px-3 py-1 text-xs rounded transition-colors flex items-center gap-1 ${
-                        snag.assigned_to
-                          ? 'bg-green-50 text-green-700 hover:bg-green-100 cursor-pointer'
-                          : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
-                      }`}
-                    >
-                      <Wrench className="w-3 h-3" />
-                      Resolve
-                    </button>
+                    {(() => {
+                      const isAdminOrManager = userRole === 'admin' || userRole === 'manager';
+                      const canResolve = snag.assigned_to || isAdminOrManager;
+                      return (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (canResolve) onResolveSnag(snag);
+                          }}
+                          disabled={!canResolve}
+                          title={canResolve ? 'Resolve this snag' : 'Snag must be assigned before it can be resolved'}
+                          className={`px-3 py-1 text-xs rounded transition-colors flex items-center gap-1 ${
+                            canResolve
+                              ? 'bg-green-50 text-green-700 hover:bg-green-100 cursor-pointer'
+                              : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
+                          }`}
+                        >
+                          <Wrench className="w-3 h-3" />
+                          Resolve
+                        </button>
+                      );
+                    })()}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

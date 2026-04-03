@@ -1,6 +1,6 @@
-import { X, CheckCircle, Plus } from 'lucide-react';
+import { X, CheckCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Snag, MaintenanceLog, ResolutionMethod } from '../types/database';
+import { Snag, MaintenanceLog, ResolutionMethod, AuthUser } from '../types/database';
 import { PhotoUpload } from './PhotoUpload';
 
 interface SnagResolutionModalProps {
@@ -10,6 +10,7 @@ interface SnagResolutionModalProps {
     snagId: string;
     resolutionMethod: ResolutionMethod;
     resolutionNotes: string;
+    checkedByUserId?: string;
     photoUrls?: string[];
     maintenanceLog?: Omit<MaintenanceLog, 'id' | 'created_at'>;
   }) => Promise<void>;
@@ -18,6 +19,8 @@ interface SnagResolutionModalProps {
   currentMileage?: number;
   branchId?: string;
   submitting?: boolean;
+  users?: AuthUser[];
+  currentUserId?: string;
 }
 
 export function SnagResolutionModal({
@@ -29,9 +32,12 @@ export function SnagResolutionModal({
   currentMileage,
   branchId,
   submitting = false,
+  users = [],
+  currentUserId,
 }: SnagResolutionModalProps) {
   const [resolutionMethod, setResolutionMethod] = useState<ResolutionMethod>('Repaired');
   const [resolutionNotes, setResolutionNotes] = useState('');
+  const [checkedByUserId, setCheckedByUserId] = useState('');
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [createMaintenanceLog, setCreateMaintenanceLog] = useState(false);
 
@@ -39,6 +45,7 @@ export function SnagResolutionModal({
   const [mileage, setMileage] = useState('');
   const [workDone, setWorkDone] = useState('');
   const [performedBy, setPerformedBy] = useState('');
+  const [maintenanceCheckedByUserId, setMaintenanceCheckedByUserId] = useState('');
   const [maintenanceNotes, setMaintenanceNotes] = useState('');
   const [maintenancePhotoUrls, setMaintenancePhotoUrls] = useState<string[]>([]);
 
@@ -69,12 +76,14 @@ export function SnagResolutionModal({
   const handleClose = () => {
     setResolutionMethod('Repaired');
     setResolutionNotes('');
+    setCheckedByUserId('');
     setPhotoUrls([]);
     setCreateMaintenanceLog(false);
     setServiceDate(new Date().toISOString().split('T')[0]);
     setMileage(currentMileage?.toString() || '');
     setWorkDone('');
     setPerformedBy('');
+    setMaintenanceCheckedByUserId('');
     setMaintenanceNotes('');
     setMaintenancePhotoUrls([]);
     onClose();
@@ -88,6 +97,7 @@ export function SnagResolutionModal({
       snagId: snag.id,
       resolutionMethod,
       resolutionNotes,
+      checkedByUserId: checkedByUserId || undefined,
       photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
     };
 
@@ -98,6 +108,7 @@ export function SnagResolutionModal({
         mileage: parseInt(mileage),
         work_done: workDone,
         performed_by: performedBy,
+        checked_by_user_id: maintenanceCheckedByUserId || undefined,
         notes: maintenanceNotes || undefined,
         photo_urls: maintenancePhotoUrls.length > 0 ? maintenancePhotoUrls : undefined,
         branch_id: branchId,
@@ -107,6 +118,9 @@ export function SnagResolutionModal({
     await onSubmit(resolution);
     handleClose();
   };
+
+  // Users available for "checked by" — exclude the current user (can't check own work)
+  const checkableUsers = users.filter(u => u.id !== currentUserId);
 
   if (!isOpen || !snag) return null;
 
@@ -174,6 +188,25 @@ export function SnagResolutionModal({
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed resize-none"
               />
             </div>
+
+            {checkableUsers.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Work Checked By <span className="text-gray-400 text-xs font-normal">(optional — cannot be yourself)</span>
+                </label>
+                <select
+                  value={checkedByUserId}
+                  onChange={e => setCheckedByUserId(e.target.value)}
+                  disabled={submitting}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="">— Not checked yet —</option>
+                  {checkableUsers.map(u => (
+                    <option key={u.id} value={u.id}>{u.full_name} ({u.role})</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -264,6 +297,25 @@ export function SnagResolutionModal({
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50"
                     />
                   </div>
+
+                  {checkableUsers.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Work Checked By <span className="text-gray-400 text-xs font-normal">(optional)</span>
+                      </label>
+                      <select
+                        value={maintenanceCheckedByUserId}
+                        onChange={e => setMaintenanceCheckedByUserId(e.target.value)}
+                        disabled={submitting}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50"
+                      >
+                        <option value="">— Not checked yet —</option>
+                        {checkableUsers.map(u => (
+                          <option key={u.id} value={u.id}>{u.full_name} ({u.role})</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">

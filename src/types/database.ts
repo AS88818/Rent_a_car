@@ -276,6 +276,7 @@ export interface SnagResolution {
   resolution_notes: string;
   maintenance_log_id?: string;
   resolved_by: string;
+  checked_by?: string;
   resolved_at: string;
   photo_urls?: string[];
   created_at: string;
@@ -375,6 +376,18 @@ export interface CategoryPricing {
   tier8_discount: number;
   tier9_days: number;
   tier9_discount: number;
+  tier10_days: number;
+  tier10_discount: number;
+  tier11_days: number;
+  tier11_discount: number;
+  tier12_days: number;
+  tier12_discount: number;
+  tier13_days: number;
+  tier13_discount: number;
+  tier14_days: number;
+  tier14_discount: number;
+  tier15_days: number;
+  tier15_discount: number;
   created_at: string;
   updated_at: string;
 }

@@ -161,7 +161,8 @@ export function QuotationCalculatorPage() {
     if (!inputs.startDateTime || !inputs.endDateTime) return 0;
     const start = new Date(inputs.startDateTime);
     const end = new Date(inputs.endDateTime);
-    const days = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const diffMs = end.getTime() - start.getTime();
+    const days = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
     return days;
   };
 
@@ -225,7 +226,13 @@ export function QuotationCalculatorPage() {
       { max: pricing.tier7_days, discount: pricing.tier7_discount },
       { max: pricing.tier8_days, discount: pricing.tier8_discount },
       { max: pricing.tier9_days, discount: pricing.tier9_discount },
-    ];
+      { max: pricing.tier10_days, discount: pricing.tier10_discount },
+      { max: pricing.tier11_days, discount: pricing.tier11_discount },
+      { max: pricing.tier12_days, discount: pricing.tier12_discount },
+      { max: pricing.tier13_days, discount: pricing.tier13_discount },
+      { max: pricing.tier14_days, discount: pricing.tier14_discount },
+      { max: pricing.tier15_days, discount: pricing.tier15_discount },
+    ].filter(b => b.max > 0);
 
     // Add half-day to total upfront so it falls in the correct tier,
     // not always forced into tier 1 regardless of booking length.
@@ -304,11 +311,13 @@ export function QuotationCalculatorPage() {
           b => b.vehicle_id === vehicle.id && (b.status === 'Active' || b.status === 'Advance Payment Not Paid')
         );
 
+        const now = new Date();
         const isAvailable = !vehicleBookings.some(booking => {
           const bookingStart = new Date(booking.start_datetime);
           const bookingEnd = new Date(booking.end_datetime);
-          // Check if date ranges overlap
-          return start <= bookingEnd && end >= bookingStart;
+          // Active booking already ended — treat as over, doesn't block
+          if (booking.status === 'Active' && bookingEnd <= now) return false;
+          return start < bookingEnd && end > bookingStart;
         });
 
         if (isAvailable) {

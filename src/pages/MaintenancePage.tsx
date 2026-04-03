@@ -746,7 +746,7 @@ export function MaintenancePage() {
 
                 <div className="mb-4 pb-4 border-b border-gray-200">
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Work Performed</h4>
-                  <p className="text-gray-900">{log.work_done}</p>
+                  <p className="text-gray-900 whitespace-pre-line">{log.work_done}</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -829,7 +829,7 @@ export function MaintenancePage() {
 
               <div>
                 <h4 className="text-sm font-medium text-gray-700 mb-2">Work Performed</h4>
-                <p className="text-gray-900">{selectedLog.work_done}</p>
+                <p className="text-gray-900 whitespace-pre-line">{selectedLog.work_done}</p>
               </div>
 
               <div>

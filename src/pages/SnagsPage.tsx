@@ -186,6 +186,7 @@ export function SnagsPage() {
     snagId: string;
     resolutionMethod: any;
     resolutionNotes: string;
+    checkedByUserId?: string;
     photoUrls?: string[];
     maintenanceLog?: any;
   }) => {
@@ -200,6 +201,7 @@ export function SnagsPage() {
             resolution_method: resolution.resolutionMethod,
             resolution_notes: resolution.resolutionNotes,
             resolved_by: user.id,
+            checked_by: resolution.checkedByUserId,
             photo_urls: resolution.photoUrls,
           },
           resolution.maintenanceLog
@@ -210,6 +212,7 @@ export function SnagsPage() {
           resolution_method: resolution.resolutionMethod,
           resolution_notes: resolution.resolutionNotes,
           resolved_by: user.id,
+          checked_by: resolution.checkedByUserId,
           photo_urls: resolution.photoUrls,
         });
       }
@@ -397,6 +400,7 @@ export function SnagsPage() {
             onAssignSnag={setAssignSnag}
             onResolveSnag={setResolveSnag}
             showClosedSnags={showClosedSnags}
+            userRole={userRole}
           />
         ))}
       </div>
@@ -449,6 +453,8 @@ export function SnagsPage() {
         vehicleId={resolveSnag?.vehicle_id}
         branchId={branchId || undefined}
         submitting={submitting}
+        users={users}
+        currentUserId={user?.id}
       />
     </div>
   );

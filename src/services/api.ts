@@ -630,6 +630,30 @@ export const snagService = {
     return data as Snag;
   },
 
+  async createMultipleSnags(vehicleId: string, issues: Array<{ description: string; priority: string; photos: string[]; mileage?: number }>, selectedBranchId?: string) {
+    const vehicle = await vehicleService.getVehicleById(vehicleId);
+    const branchId = selectedBranchId || vehicle.branch_id;
+
+    if (!branchId) {
+      throw new Error('Branch ID is required to create a snag');
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+
+    for (const issue of issues) {
+      await this.createSnag({
+        vehicle_id: vehicleId,
+        description: issue.description,
+        priority: (issue.priority || null) as any,
+        status: 'Open',
+        date_opened: today,
+        branch_id: branchId,
+        photo_urls: issue.photos.length > 0 ? issue.photos : undefined,
+        mileage: issue.mileage || undefined,
+      } as any);
+    }
+  },
+
   async deleteSnag(id: string, userId: string, reason: string) {
     const { data: snagData, error: fetchError } = await supabase
       .from('snags')
