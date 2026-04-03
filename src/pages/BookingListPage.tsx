@@ -4,7 +4,7 @@ import { useAuth } from '../lib/auth-context';
 import { bookingService, vehicleService, branchService, categoryService, bookingDocumentService } from '../services/api';
 import { Booking, Vehicle, Branch, VehicleCategory, BookingDocument } from '../types/database';
 import { checkInsuranceExpiryDuringBooking, checkLocationMismatch } from '../lib/utils';
-import { Plus, X, Car, Calendar, MapPin, Phone, Search, RefreshCw, AlertCircle, AlertTriangle, User } from 'lucide-react';
+import { Plus, X, Car, Calendar, MapPin, Phone, Search, RefreshCw, AlertCircle, AlertTriangle, User, ArrowUpDown } from 'lucide-react';
 import { showToast } from '../lib/toast';
 import { autoSyncToCompanyCalendar, autoDeleteFromCompanyCalendar } from '../services/calendar-service';
 import { ConfirmModal } from '../components/ConfirmModal';
@@ -46,6 +46,7 @@ export function BookingListPage() {
   const [searchQuery, setSearchQuery] = useState(searchParams.get('vehicle') || '');
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
+  const [sortBy, setSortBy] = useState<'start_soonest' | 'start_latest' | 'client_name'>('start_soonest');
 
   const fetchData = async () => {
     try {
@@ -264,6 +265,17 @@ export function BookingListPage() {
     }
 
     return true;
+  }).sort((a, b) => {
+    switch (sortBy) {
+      case 'start_soonest':
+        return new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime();
+      case 'start_latest':
+        return new Date(b.start_datetime).getTime() - new Date(a.start_datetime).getTime();
+      case 'client_name':
+        return a.client_name.localeCompare(b.client_name);
+      default:
+        return 0;
+    }
   });
 
   const uniqueHealthValues = Array.from(new Set(bookings.map(b => b.vehicle?.health_flag).filter(Boolean)));
@@ -448,6 +460,28 @@ export function BookingListPage() {
             >
               {health}
               {filterHealth === health && <X className="inline w-3 h-3 ml-1" />}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
+          <ArrowUpDown className="w-4 h-4 text-gray-500 flex-shrink-0" />
+          <span className="text-sm text-gray-600 mr-1">Sort:</span>
+          {([
+            { value: 'start_soonest', label: 'Start Soonest' },
+            { value: 'start_latest', label: 'Start Latest' },
+            { value: 'client_name', label: 'Client Name' },
+          ] as const).map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setSortBy(opt.value)}
+              className={`px-3 py-1 rounded text-sm transition-colors ${
+                sortBy === opt.value
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {opt.label}
             </button>
           ))}
         </div>
