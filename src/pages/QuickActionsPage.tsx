@@ -291,7 +291,7 @@ export function QuickActionsPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search by registration, make, or model..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
           />
         </div>
 
@@ -413,7 +413,7 @@ export function QuickActionsPage() {
                           <select
                             value={vehicle.branch_id || ''}
                             onChange={(e) => handleLocationChange(vehicle.id, e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                             disabled={isSaving}
                           >
                             <option value="">Select location...</option>
@@ -449,7 +449,7 @@ export function QuickActionsPage() {
                               setEditingMileage(prev => new Map(prev).set(vehicle.id, e.target.value));
                             }}
                             placeholder="Enter mileage"
-                            className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                             min="0"
                             disabled={isSaving}
                           />

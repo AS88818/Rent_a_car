@@ -301,7 +301,7 @@ export function BookingFormModal({
                       onChange={e => setDateData({ ...dateData, start_datetime: e.target.value })}
                       required
                       disabled={submitting}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
                     />
                   </div>
 
@@ -319,7 +319,7 @@ export function BookingFormModal({
                       onChange={e => setDateData({ ...dateData, end_datetime: e.target.value })}
                       required
                       disabled={submitting}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
                     />
                   </div>
                 </div>
@@ -355,7 +355,7 @@ export function BookingFormModal({
                         }
                       }}
                       disabled={submitting}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
                       required
                     >
                       <option value="">Select start location</option>
@@ -373,7 +373,7 @@ export function BookingFormModal({
                           setDateData({ ...dateData, start_location: e.target.value });
                         }}
                         disabled={submitting}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed mt-2 text-base"
                         placeholder="Enter custom start location"
                         required
                       />
@@ -402,7 +402,7 @@ export function BookingFormModal({
                         }
                       }}
                       disabled={submitting}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
                       required
                     >
                       <option value="">Select end location</option>
@@ -420,7 +420,7 @@ export function BookingFormModal({
                           setDateData({ ...dateData, end_location: e.target.value });
                         }}
                         disabled={submitting}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed mt-2 text-base"
                         placeholder="Enter custom end location"
                         required
                       />
@@ -682,7 +682,7 @@ export function BookingFormModal({
                           });
                         }}
                         disabled={submitting}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
                       >
                         <option value="">Select a driver (optional)</option>
                         {users.map(user => (
@@ -712,7 +712,7 @@ export function BookingFormModal({
                         onChange={e => setClientData({ ...clientData, client_name: e.target.value })}
                         required
                         disabled={submitting}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
                       />
                     </div>
 
@@ -729,7 +729,7 @@ export function BookingFormModal({
                         value={clientData.contact}
                         onChange={e => setClientData({ ...clientData, contact: e.target.value })}
                         disabled={submitting}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
                       />
                       <p className="text-xs text-gray-500 mt-1">Required if email not provided</p>
                     </div>
@@ -748,7 +748,7 @@ export function BookingFormModal({
                       value={clientData.client_email}
                       onChange={e => setClientData({ ...clientData, client_email: e.target.value })}
                       disabled={submitting}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
                     />
                     <p className="text-xs text-gray-500 mt-1">Required if phone not provided. We'll send booking confirmation to this email</p>
                   </div>
@@ -763,7 +763,7 @@ export function BookingFormModal({
                       value={clientData.invoice_number}
                       onChange={e => setClientData({ ...clientData, invoice_number: e.target.value })}
                       disabled={submitting}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
                     />
                   </div>
 
@@ -776,7 +776,7 @@ export function BookingFormModal({
                       value={clientData.notes}
                       onChange={e => setClientData({ ...clientData, notes: e.target.value })}
                       disabled={submitting}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed resize-none"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed resize-none text-base"
                       rows={3}
                     />
                   </div>

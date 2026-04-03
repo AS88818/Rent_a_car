@@ -1088,7 +1088,7 @@ export function QuotationCalculatorPage() {
               type="text"
               value={inputs.clientName}
               onChange={e => setInputs({ ...inputs, clientName: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               placeholder="Enter client name"
             />
           </div>
@@ -1101,7 +1101,7 @@ export function QuotationCalculatorPage() {
               type="email"
               value={inputs.clientEmail}
               onChange={e => setInputs({ ...inputs, clientEmail: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               placeholder="client@example.com"
             />
             <p className="text-xs text-gray-500 mt-1">Required if phone not provided</p>
@@ -1117,7 +1117,7 @@ export function QuotationCalculatorPage() {
               type="tel"
               value={inputs.clientPhone}
               onChange={e => setInputs({ ...inputs, clientPhone: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               placeholder="+254 XXX XXXXXX"
             />
             <p className="text-xs text-gray-500 mt-1">Required if email not provided</p>
@@ -1144,7 +1144,7 @@ export function QuotationCalculatorPage() {
                   setInputs({ ...inputs, pickupLocation: branch?.branch_name || '' });
                 }
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
             >
               <option value="">Select pickup location</option>
               {branches.map(branch => (
@@ -1160,7 +1160,7 @@ export function QuotationCalculatorPage() {
                   setCustomPickupLocation(e.target.value);
                   setInputs({ ...inputs, pickupLocation: e.target.value });
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mt-2"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mt-2 text-base"
                 placeholder="Enter custom pickup location"
               />
             )}
@@ -1187,7 +1187,7 @@ export function QuotationCalculatorPage() {
                   setInputs({ ...inputs, dropoffLocation: branch?.branch_name || '' });
                 }
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
             >
               <option value="">Select drop-off location</option>
               {branches.map(branch => (
@@ -1203,7 +1203,7 @@ export function QuotationCalculatorPage() {
                   setCustomDropoffLocation(e.target.value);
                   setInputs({ ...inputs, dropoffLocation: e.target.value });
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mt-2"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mt-2 text-base"
                 placeholder="Enter custom drop-off location"
               />
             )}
@@ -1224,7 +1224,7 @@ export function QuotationCalculatorPage() {
                   onChange={e =>
                     setInputs({ ...inputs, differentLocationCharge: parseFloat(e.target.value) || 0 })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                   placeholder="Enter amount (e.g., 2000)"
                 />
               </div>
@@ -1254,7 +1254,7 @@ export function QuotationCalculatorPage() {
                   const time = inputs.startDateTime.split('T')[1] || '09:00';
                   setInputs({ ...inputs, startDateTime: `${date}T${time}` });
                 }}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               />
               <select
                 value={inputs.startDateTime.split('T')[1] || '09:00'}
@@ -1262,7 +1262,7 @@ export function QuotationCalculatorPage() {
                   const date = inputs.startDateTime.split('T')[0] || new Date().toISOString().split('T')[0];
                   setInputs({ ...inputs, startDateTime: `${date}T${e.target.value}` });
                 }}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               >
                 <option value="06:00">6:00 AM</option>
                 <option value="06:30">6:30 AM</option>
@@ -1314,7 +1314,7 @@ export function QuotationCalculatorPage() {
                   const time = inputs.endDateTime.split('T')[1] || '18:00';
                   setInputs({ ...inputs, endDateTime: `${date}T${time}` });
                 }}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               />
               <select
                 value={inputs.endDateTime.split('T')[1] || '18:00'}
@@ -1322,7 +1322,7 @@ export function QuotationCalculatorPage() {
                   const date = inputs.endDateTime.split('T')[0] || new Date().toISOString().split('T')[0];
                   setInputs({ ...inputs, endDateTime: `${date}T${e.target.value}` });
                 }}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               >
                 <option value="06:00">6:00 AM</option>
                 <option value="06:30">6:30 AM</option>
@@ -1415,7 +1415,7 @@ export function QuotationCalculatorPage() {
                 type="checkbox"
                 checked={inputs.hasHalfDay}
                 onChange={e => setInputs({ ...inputs, hasHalfDay: e.target.checked })}
-                className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 text-base"
               />
               <span className="text-sm font-medium text-gray-700">
                 Additional Half Day?
@@ -1432,7 +1432,7 @@ export function QuotationCalculatorPage() {
                 type="number"
                 value={inputs.chauffeurChargePerDay || ''}
                 onChange={e => setInputs({ ...inputs, chauffeurChargePerDay: parseFloat(e.target.value) || 0 })}
-                className="w-full md:w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full md:w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                 placeholder="4000"
               />
               <p className="text-xs text-gray-500 mt-1">Default: KES 4,000 per day</p>
@@ -1451,7 +1451,7 @@ export function QuotationCalculatorPage() {
                   value={inputs.outsideHoursCharge || ''}
                   onChange={e => setInputs({ ...inputs, outsideHoursCharge: parseFloat(e.target.value) || 0 })}
                   placeholder="0"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                 />
               </div>
               <p className="text-xs text-amber-600 mt-1">
@@ -1468,7 +1468,7 @@ export function QuotationCalculatorPage() {
               type="text"
               value={inputs.otherFee1Desc}
               onChange={e => setInputs({ ...inputs, otherFee1Desc: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               placeholder="e.g., Delivery Fee"
             />
           </div>
@@ -1483,7 +1483,7 @@ export function QuotationCalculatorPage() {
               onChange={e =>
                 setInputs({ ...inputs, otherFee1Amount: parseFloat(e.target.value) || 0 })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               placeholder="0"
             />
           </div>
@@ -1496,7 +1496,7 @@ export function QuotationCalculatorPage() {
               type="text"
               value={inputs.otherFee2Desc}
               onChange={e => setInputs({ ...inputs, otherFee2Desc: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               placeholder="e.g., Insurance Fee"
             />
           </div>
@@ -1511,7 +1511,7 @@ export function QuotationCalculatorPage() {
               onChange={e =>
                 setInputs({ ...inputs, otherFee2Amount: parseFloat(e.target.value) || 0 })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
               placeholder="0"
             />
           </div>
@@ -1541,7 +1541,7 @@ export function QuotationCalculatorPage() {
                       type="text"
                       value={fee.description}
                       onChange={(e) => updateOtherFee(fee.id, 'description', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                       placeholder="Fee description"
                     />
                   </div>
@@ -1550,7 +1550,7 @@ export function QuotationCalculatorPage() {
                       type="number"
                       value={fee.amount || ''}
                       onChange={(e) => updateOtherFee(fee.id, 'amount', parseFloat(e.target.value) || 0)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                       placeholder="0"
                     />
                   </div>
@@ -1575,7 +1575,7 @@ export function QuotationCalculatorPage() {
             value={inputs.additionalNotes}
             onChange={(e) => setInputs({ ...inputs, additionalNotes: e.target.value })}
             rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-base"
             placeholder="Add any additional information or special requirements for this quote..."
           />
         </div>
@@ -1658,7 +1658,7 @@ export function QuotationCalculatorPage() {
                         setVisibleCategories(visibleCategories.filter(c => c !== result.categoryName));
                       }
                     }}
-                    className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 text-base"
                   />
                   <span className="text-sm font-medium text-gray-700">{result.categoryName}</span>
                   {result.branchAvailability && result.branchAvailability.length > 0 ? (

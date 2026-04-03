@@ -157,7 +157,7 @@ export function VehicleFormModal({
                 value={formData.reg_number}
                 onChange={(e) => setFormData({ ...formData, reg_number: e.target.value })}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
               />
             </div>
 
@@ -169,7 +169,7 @@ export function VehicleFormModal({
                 value={formData.category_id}
                 onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
               >
                 <option value="">Select Category</option>
                 {categories.map((cat) => (
@@ -188,7 +188,7 @@ export function VehicleFormModal({
                 value={formData.branch_id}
                 onChange={(e) => setFormData({ ...formData, branch_id: e.target.value })}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
               >
                 <option value="">Select Branch</option>
                 {branches.map((branch) => (
@@ -207,7 +207,7 @@ export function VehicleFormModal({
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
               >
                 <option value="Excellent">Excellent</option>
                 <option value="OK">OK</option>
@@ -222,7 +222,7 @@ export function VehicleFormModal({
                   id="is_personal"
                   checked={formData.is_personal}
                   onChange={(e) => setFormData({ ...formData, is_personal: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-base"
                 />
                 <label htmlFor="is_personal" className="text-sm font-medium text-gray-700">
                   Personal Vehicle (not available for hire)
@@ -244,7 +244,7 @@ export function VehicleFormModal({
                 onChange={(e) => setFormData({ ...formData, current_mileage: e.target.value })}
                 required
                 min="0"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
               />
             </div>
 
@@ -256,7 +256,7 @@ export function VehicleFormModal({
                 type="date"
                 value={formData.last_mileage_update}
                 onChange={(e) => setFormData({ ...formData, last_mileage_update: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
               />
             </div>
 
@@ -269,7 +269,7 @@ export function VehicleFormModal({
                 value={formData.insurance_expiry}
                 onChange={(e) => setFormData({ ...formData, insurance_expiry: e.target.value })}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
               />
             </div>
 
@@ -284,7 +284,7 @@ export function VehicleFormModal({
                   onChange={(e) => setFormData({ ...formData, mot_expiry: e.target.value })}
                   required={!formData.mot_not_applicable}
                   disabled={formData.mot_not_applicable}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 text-base"
                 />
                 <div className="flex items-center gap-2">
                   <input
@@ -292,7 +292,7 @@ export function VehicleFormModal({
                     id="mot_not_applicable"
                     checked={formData.mot_not_applicable}
                     onChange={(e) => setFormData({ ...formData, mot_not_applicable: e.target.checked })}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-base"
                   />
                   <label htmlFor="mot_not_applicable" className="text-xs text-gray-600">
                     MOT Not Applicable
@@ -311,7 +311,7 @@ export function VehicleFormModal({
                 value={formData.next_service_mileage}
                 onChange={(e) => setFormData({ ...formData, next_service_mileage: e.target.value })}
                 min="0"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
               />
             </div>
 
@@ -324,7 +324,7 @@ export function VehicleFormModal({
                 placeholder="e.g., Toyota"
                 value={formData.make}
                 onChange={(e) => setFormData({ ...formData, make: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
               />
             </div>
 
@@ -337,7 +337,7 @@ export function VehicleFormModal({
                 placeholder="e.g., Corolla"
                 value={formData.model}
                 onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
               />
             </div>
 
@@ -350,7 +350,7 @@ export function VehicleFormModal({
                 placeholder="e.g., 1HGBH41JXMN109186"
                 value={formData.chassis_number}
                 onChange={(e) => setFormData({ ...formData, chassis_number: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
               />
             </div>
 
@@ -363,7 +363,7 @@ export function VehicleFormModal({
                 placeholder="e.g., White"
                 value={formData.colour}
                 onChange={(e) => setFormData({ ...formData, colour: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
               />
             </div>
 
@@ -374,7 +374,7 @@ export function VehicleFormModal({
               <select
                 value={formData.fuel_type}
                 onChange={(e) => setFormData({ ...formData, fuel_type: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
               >
                 <option value="">Select Fuel Type</option>
                 <option value="Petrol">Petrol</option>
@@ -391,7 +391,7 @@ export function VehicleFormModal({
               <select
                 value={formData.transmission}
                 onChange={(e) => setFormData({ ...formData, transmission: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
               >
                 <option value="">Select Transmission</option>
                 <option value="Manual">Manual</option>
@@ -409,7 +409,7 @@ export function VehicleFormModal({
                 value={formData.no_of_passengers}
                 onChange={(e) => setFormData({ ...formData, no_of_passengers: e.target.value })}
                 min="1"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
               />
             </div>
 
@@ -422,7 +422,7 @@ export function VehicleFormModal({
                 placeholder="e.g., 2 Large bags"
                 value={formData.luggage_space}
                 onChange={(e) => setFormData({ ...formData, luggage_space: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
               />
             </div>
 
@@ -435,7 +435,7 @@ export function VehicleFormModal({
                 placeholder="e.g., John Smith"
                 value={formData.owner_name}
                 onChange={(e) => setFormData({ ...formData, owner_name: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
               />
             </div>
 
@@ -449,7 +449,7 @@ export function VehicleFormModal({
                 value={formData.market_value}
                 onChange={(e) => setFormData({ ...formData, market_value: e.target.value })}
                 min="0"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
               />
             </div>
 
@@ -460,7 +460,7 @@ export function VehicleFormModal({
                   id="spare_key"
                   checked={formData.spare_key}
                   onChange={(e) => setFormData({ ...formData, spare_key: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-base"
                 />
                 <label htmlFor="spare_key" className="text-sm font-medium text-gray-700">
                   Spare Key Available
@@ -472,7 +472,7 @@ export function VehicleFormModal({
                   placeholder="Spare key location (e.g., Office safe)"
                   value={formData.spare_key_location}
                   onChange={(e) => setFormData({ ...formData, spare_key_location: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
                 />
               )}
             </div>

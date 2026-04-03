@@ -122,7 +122,7 @@ export function AssignSnagModal({
                 onChange={e => setAssignedTo(e.target.value)}
                 required
                 disabled={submitting}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
               >
                 <option value="">Select User</option>
                 {availableUsers.map(u => (
@@ -152,7 +152,7 @@ export function AssignSnagModal({
                 onChange={e => setDeadline(e.target.value)}
                 disabled={submitting}
                 min={new Date().toISOString().split('T')[0]}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
               />
             </div>
 
@@ -166,7 +166,7 @@ export function AssignSnagModal({
                 disabled={submitting}
                 rows={3}
                 placeholder="Any special instructions or notes..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed resize-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed resize-none text-base"
               />
             </div>
           </div>

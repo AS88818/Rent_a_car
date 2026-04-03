@@ -164,7 +164,7 @@ export function SnagResolutionModal({
                 onChange={e => setResolutionMethod(e.target.value as ResolutionMethod)}
                 required
                 disabled={submitting}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
               >
                 <option value="Repaired">Repaired</option>
                 <option value="Replaced Part">Replaced Part</option>
@@ -185,7 +185,7 @@ export function SnagResolutionModal({
                 disabled={submitting}
                 rows={4}
                 placeholder="Describe how the snag was resolved..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed resize-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed resize-none text-base"
               />
             </div>
 
@@ -198,7 +198,7 @@ export function SnagResolutionModal({
                   value={checkedByUserId}
                   onChange={e => setCheckedByUserId(e.target.value)}
                   disabled={submitting}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
                 >
                   <option value="">— Not checked yet —</option>
                   {checkableUsers.map(u => (
@@ -227,7 +227,7 @@ export function SnagResolutionModal({
                     checked={createMaintenanceLog}
                     onChange={e => setCreateMaintenanceLog(e.target.checked)}
                     disabled={submitting}
-                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500 text-base"
                   />
                   <span className="text-sm font-medium text-gray-700">
                     Create Maintenance Log Entry
@@ -248,7 +248,7 @@ export function SnagResolutionModal({
                         onChange={e => setServiceDate(e.target.value)}
                         required={createMaintenanceLog}
                         disabled={submitting}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 text-base"
                       />
                     </div>
 
@@ -263,7 +263,7 @@ export function SnagResolutionModal({
                         required={createMaintenanceLog}
                         disabled={submitting}
                         min="0"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 text-base"
                       />
                     </div>
                   </div>
@@ -279,7 +279,7 @@ export function SnagResolutionModal({
                       disabled={submitting}
                       rows={2}
                       placeholder="Describe the work performed..."
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 resize-none"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 resize-none text-base"
                     />
                   </div>
 
@@ -294,7 +294,7 @@ export function SnagResolutionModal({
                       required={createMaintenanceLog}
                       disabled={submitting}
                       placeholder="Mechanic or service provider name"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 text-base"
                     />
                   </div>
 
@@ -307,7 +307,7 @@ export function SnagResolutionModal({
                         value={maintenanceCheckedByUserId}
                         onChange={e => setMaintenanceCheckedByUserId(e.target.value)}
                         disabled={submitting}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 text-base"
                       >
                         <option value="">— Not checked yet —</option>
                         {checkableUsers.map(u => (
@@ -327,7 +327,7 @@ export function SnagResolutionModal({
                       disabled={submitting}
                       rows={2}
                       placeholder="Any additional notes..."
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 resize-none"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 resize-none text-base"
                     />
                   </div>
 

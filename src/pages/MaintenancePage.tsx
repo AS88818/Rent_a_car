@@ -346,7 +346,7 @@ export function MaintenancePage() {
                     setSelectedVehicle(e.target.value);
                     handleVehicleChange(e.target.value);
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
                   required
                 >
                   {vehicles.map(v => (
@@ -364,7 +364,7 @@ export function MaintenancePage() {
                   value={formData.service_date}
                   onChange={e => setFormData({ ...formData, service_date: e.target.value })}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
                 />
               </div>
 
@@ -377,7 +377,7 @@ export function MaintenancePage() {
                   onChange={e => setFormData({ ...formData, mileage: e.target.value })}
                   required
                   min="0"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
                 />
               </div>
             </div>
@@ -413,7 +413,7 @@ export function MaintenancePage() {
                           placeholder={`Describe the work performed...`}
                           value={workItem.work_description}
                           onChange={e => handleWorkItemChange(index, 'work_description', e.target.value)}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
                         />
                       </div>
                       <div>
@@ -421,7 +421,7 @@ export function MaintenancePage() {
                         <select
                           value={workItem.work_category}
                           onChange={e => handleWorkItemChange(index, 'work_category', e.target.value)}
-                          className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                          className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
                         >
                           <option value="">No Category</option>
                           <option value="Accessories">Accessories</option>
@@ -460,7 +460,7 @@ export function MaintenancePage() {
                             setWorkItems(newWorkItems);
                           }}
                           required
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
                         >
                           <option value="">Select performer...</option>
                           <optgroup label="Registered Mechanics">
@@ -486,7 +486,7 @@ export function MaintenancePage() {
                               setWorkItems(newWorkItems);
                             }}
                             required
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none mt-2"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none mt-2 text-base"
                           />
                         )}
                       </div>
@@ -502,7 +502,7 @@ export function MaintenancePage() {
                             newWorkItems[index].checked_by_user_id = e.target.value;
                             setWorkItems(newWorkItems);
                           }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
                         >
                           <option value="">No quality check</option>
                           {mechanics.length > 0 && (
@@ -571,7 +571,7 @@ export function MaintenancePage() {
                 placeholder="Use the 'Report a Snag' function to report additional issues found during maintenance"
                 value={formData.notes}
                 onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
                 rows={2}
               />
             </div>
@@ -622,7 +622,7 @@ export function MaintenancePage() {
         <select
           value={selectedVehicle}
           onChange={(e) => handleVehicleChange(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
         >
           <option value="">All Vehicles</option>
           {vehicles.map(v => (
