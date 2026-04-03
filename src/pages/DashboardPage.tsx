@@ -257,18 +257,6 @@ export function DashboardPage() {
   const businessVehicles = vehicles.filter(v => !v.is_personal);
   const totalVehicles = businessVehicles.length;
 
-  // Determine actual on-hire status from active bookings covering right now
-  const now = new Date();
-  const currentlyOnHireIds = new Set(
-    bookings
-      .filter(b =>
-        (b.status === 'Active' || b.status === 'Advance Payment Not Paid') &&
-        new Date(b.start_datetime) <= now &&
-        new Date(b.end_datetime) >= now
-      )
-      .map(b => b.vehicle_id)
-  );
-
   const isGrounded = (v: typeof businessVehicles[0]) => v.health_flag === 'Grounded';
   const isOnHire = (v: typeof businessVehicles[0]) => !isGrounded(v) && (v.status === 'On Hire' || currentlyOnHireIds.has(v.id));
   const isAvailable = (v: typeof businessVehicles[0]) => !isGrounded(v) && !isOnHire(v);
@@ -328,6 +316,17 @@ export function DashboardPage() {
 
   const now = new Date();
   const threeDaysFromNow = new Date(now.getTime() + (3 * 24 * 60 * 60 * 1000));
+
+  // Determine actual on-hire status by cross-referencing active bookings covering right now
+  const currentlyOnHireIds = new Set(
+    bookings
+      .filter(b =>
+        (b.status === 'Active' || b.status === 'Advance Payment Not Paid') &&
+        new Date(b.start_datetime) <= now &&
+        new Date(b.end_datetime) >= now
+      )
+      .map(b => b.vehicle_id)
+  );
   const fiveDaysFromNow = new Date(now.getTime() + (5 * 24 * 60 * 60 * 1000));
 
   const bookingsNeedingDriverAllocation = bookings.filter(b => {
