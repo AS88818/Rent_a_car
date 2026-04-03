@@ -172,13 +172,19 @@ export function CalendarPage() {
 
     setSubmitting(true);
     try {
-      const updatedBooking = await bookingService.updateBooking(editingBooking.id, bookingData);
+      const vehicle = vehicles.find(v => v.id === bookingData.vehicle_id);
+      const vehicleChanged = bookingData.vehicle_id !== editingBooking.vehicle_id;
+
+      const updatedBooking = await bookingService.updateBooking(
+        editingBooking.id,
+        { ...bookingData, ...(vehicleChanged && { health_at_booking: vehicle?.health_flag }) },
+        user ? { id: user.id, name: (user as any).full_name || user.email || 'Unknown', role: userRole || 'user' } : undefined
+      );
       setBookings(bookings.map(b => (b.id === editingBooking.id ? updatedBooking : b)));
       showToast('Booking updated successfully', 'success');
       setShowEditModal(false);
       setEditingBooking(null);
 
-      const vehicle = vehicles.find(v => v.id === updatedBooking.vehicle_id);
       autoSyncToCompanyCalendar(updatedBooking, vehicle).then(result => {
         if (!result.synced && result.error && userRole === 'admin') {
           showToast(`Calendar sync failed: ${result.error}`, 'warning');

@@ -22,7 +22,7 @@ interface BookingWithDetails extends Booking {
 export function BookingListPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { branchId, userRole } = useAuth();
+  const { branchId, userRole, user } = useAuth();
   const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -127,9 +127,15 @@ export function BookingListPage() {
 
     setSubmitting(true);
     try {
-      const updatedBooking = await bookingService.updateBooking(editingBooking.id, bookingData);
+      const vehicle = vehicles.find(v => v.id === bookingData.vehicle_id);
+      const vehicleChanged = bookingData.vehicle_id !== editingBooking.vehicle_id;
 
-      const vehicle = vehicles.find(v => v.id === updatedBooking.vehicle_id);
+      const updatedBooking = await bookingService.updateBooking(
+        editingBooking.id,
+        { ...bookingData, ...(vehicleChanged && { health_at_booking: vehicle?.health_flag }) },
+        user ? { id: user.id, name: (user as any).full_name || user.email || 'Unknown', role: userRole || 'user' } : undefined
+      );
+
       const branch = branches.find(b => b.id === vehicle?.branch_id);
 
       const updatedBookingWithDetails = {
@@ -171,7 +177,11 @@ export function BookingListPage() {
     setCancelling(true);
     try {
       const cancelledBooking = bookings.find(b => b.id === confirmCancel);
-      await bookingService.updateBooking(confirmCancel, { status: 'Cancelled' });
+      await bookingService.updateBooking(
+        confirmCancel,
+        { status: 'Cancelled' },
+        user ? { id: user.id, name: (user as any).full_name || user.email || 'Unknown', role: userRole || 'user' } : undefined
+      );
       setBookings(bookings.filter(b => b.id !== confirmCancel));
       showToast('Booking cancelled', 'success');
       setConfirmCancel(null);
