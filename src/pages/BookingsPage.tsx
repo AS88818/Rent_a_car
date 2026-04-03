@@ -3,7 +3,7 @@ import { useAuth } from '../lib/auth-context';
 import { bookingService, vehicleService, branchService, categoryService } from '../services/api';
 import { Booking, Vehicle, Branch, VehicleCategory } from '../types/database';
 import { calculateBookingDuration, formatDateTime, getHealthColor } from '../lib/utils';
-import { Plus, Edit } from 'lucide-react';
+import { Plus, Edit, ArrowUpDown } from 'lucide-react';
 import { showToast } from '../lib/toast';
 import { autoSyncToCompanyCalendar, autoDeleteFromCompanyCalendar } from '../services/calendar-service';
 import { ConfirmModal } from '../components/ConfirmModal';
@@ -22,6 +22,7 @@ export function BookingsPage() {
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [sortBy, setSortBy] = useState<'start_soonest' | 'start_latest' | 'client_name'>('start_soonest');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -151,9 +152,20 @@ export function BookingsPage() {
     setEditingBooking(null);
   };
 
-  const filteredBookings = bookings.filter(b =>
-    !filterStatus || b.status === filterStatus
-  );
+  const filteredBookings = bookings
+    .filter(b => !filterStatus || b.status === filterStatus)
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'start_soonest':
+          return new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime();
+        case 'start_latest':
+          return new Date(b.start_datetime).getTime() - new Date(a.start_datetime).getTime();
+        case 'client_name':
+          return a.client_name.localeCompare(b.client_name);
+        default:
+          return 0;
+      }
+    });
 
   if (loading) {
     return (
@@ -186,7 +198,7 @@ export function BookingsPage() {
       </div>
 
 
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <div className="bg-white rounded-lg shadow p-4 mb-6 space-y-3">
         <div className="flex gap-2 flex-wrap">
           {['Active', 'Draft', 'Advance Payment Not Paid', 'Completed', 'Cancelled', ''].map(status => (
             <button
@@ -199,6 +211,27 @@ export function BookingsPage() {
               }`}
             >
               {status || 'All'}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+          <ArrowUpDown className="w-4 h-4 text-gray-500" />
+          <span className="text-sm text-gray-600 mr-1">Sort:</span>
+          {[
+            { value: 'start_soonest', label: 'Start Soonest' },
+            { value: 'start_latest', label: 'Start Latest' },
+            { value: 'client_name', label: 'Client Name' },
+          ].map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setSortBy(opt.value as typeof sortBy)}
+              className={`px-3 py-1 rounded text-sm transition-colors ${
+                sortBy === opt.value
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {opt.label}
             </button>
           ))}
         </div>

@@ -256,12 +256,26 @@ export function DashboardPage() {
 
   const businessVehicles = vehicles.filter(v => !v.is_personal);
   const totalVehicles = businessVehicles.length;
-  // A vehicle is grounded if health_flag is 'Grounded' (primary indicator)
-  const groundedVehicles = businessVehicles.filter(v => v.health_flag === 'Grounded').length;
-  const onHireVehicles = businessVehicles.filter(v => v.status === 'On Hire' && v.health_flag !== 'Grounded').length;
-  const availableVehicles = businessVehicles.filter(v =>
-    v.status === 'Available' && v.health_flag !== 'Grounded'
-  ).length;
+
+  // Determine actual on-hire status from active bookings covering right now
+  const now = new Date();
+  const currentlyOnHireIds = new Set(
+    bookings
+      .filter(b =>
+        (b.status === 'Active' || b.status === 'Advance Payment Not Paid') &&
+        new Date(b.start_datetime) <= now &&
+        new Date(b.end_datetime) >= now
+      )
+      .map(b => b.vehicle_id)
+  );
+
+  const isGrounded = (v: typeof businessVehicles[0]) => v.health_flag === 'Grounded';
+  const isOnHire = (v: typeof businessVehicles[0]) => !isGrounded(v) && (v.status === 'On Hire' || currentlyOnHireIds.has(v.id));
+  const isAvailable = (v: typeof businessVehicles[0]) => !isGrounded(v) && !isOnHire(v);
+
+  const groundedVehicles = businessVehicles.filter(isGrounded).length;
+  const onHireVehicles = businessVehicles.filter(isOnHire).length;
+  const availableVehicles = businessVehicles.filter(isAvailable).length;
 
   const branchBreakdown = branches
     .map(branch => {
@@ -272,9 +286,9 @@ export function DashboardPage() {
         name: branch.branch_name,
         shortName: branch.branch_name.includes('Nairobi') ? 'NRB' : 'NYK',
         total: branchVehicles.length,
-        available: branchVehicles.filter(v => v.status === 'Available' && v.health_flag !== 'Grounded').length,
-        onHire: branchVehicles.filter(v => v.status === 'On Hire' && v.health_flag !== 'Grounded').length,
-        grounded: branchVehicles.filter(v => v.health_flag === 'Grounded').length,
+        available: branchVehicles.filter(isAvailable).length,
+        onHire: branchVehicles.filter(isOnHire).length,
+        grounded: branchVehicles.filter(isGrounded).length,
       };
     });
 
@@ -287,9 +301,9 @@ export function DashboardPage() {
 
       byBranch[branch.id] = {
         total: branchCategoryVehicles.length,
-        available: branchCategoryVehicles.filter(v => v.status === 'Available' && v.health_flag !== 'Grounded').length,
-        onHire: branchCategoryVehicles.filter(v => v.status === 'On Hire' && v.health_flag !== 'Grounded').length,
-        grounded: branchCategoryVehicles.filter(v => v.health_flag === 'Grounded').length,
+        available: branchCategoryVehicles.filter(isAvailable).length,
+        onHire: branchCategoryVehicles.filter(isOnHire).length,
+        grounded: branchCategoryVehicles.filter(isGrounded).length,
       };
     });
 
@@ -297,9 +311,9 @@ export function DashboardPage() {
       category_id: category.id,
       category_name: category.category_name,
       total: categoryVehicles.length,
-      available: categoryVehicles.filter(v => v.status === 'Available' && v.health_flag !== 'Grounded').length,
-      onHire: categoryVehicles.filter(v => v.status === 'On Hire' && v.health_flag !== 'Grounded').length,
-      grounded: categoryVehicles.filter(v => v.health_flag === 'Grounded').length,
+      available: categoryVehicles.filter(isAvailable).length,
+      onHire: categoryVehicles.filter(isOnHire).length,
+      grounded: categoryVehicles.filter(isGrounded).length,
       byBranch,
     };
   }).filter(cat => cat.total > 0);

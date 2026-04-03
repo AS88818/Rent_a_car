@@ -405,19 +405,25 @@ export function QuickActionsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <select
-                          value={vehicle.branch_id || ''}
-                          onChange={(e) => handleLocationChange(vehicle.id, e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                          disabled={isSaving}
-                        >
-                          <option value="">Select location...</option>
-                          {branches.map((branch) => (
-                            <option key={branch.id} value={branch.id}>
-                              {branch.branch_name}
-                            </option>
-                          ))}
-                        </select>
+                        {vehicle.status === 'On Hire' ? (
+                          <div className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm font-medium text-gray-400 cursor-not-allowed">
+                            ON HIRE
+                          </div>
+                        ) : (
+                          <select
+                            value={vehicle.branch_id || ''}
+                            onChange={(e) => handleLocationChange(vehicle.id, e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            disabled={isSaving}
+                          >
+                            <option value="">Select location...</option>
+                            {branches.map((branch) => (
+                              <option key={branch.id} value={branch.id}>
+                                {branch.branch_name}
+                              </option>
+                            ))}
+                          </select>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">

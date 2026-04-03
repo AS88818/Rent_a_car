@@ -130,7 +130,18 @@ export const vehicleService = {
       notes,
     });
 
-    return await this.updateVehicle(id, { health_flag: healthFlag, health_override: true });
+    const updates: Partial<Vehicle> = { health_flag: healthFlag, health_override: true };
+
+    // Sync vehicle status with health changes:
+    // - Setting health to Grounded → status becomes Grounded
+    // - Clearing Grounded health → status becomes Available (unless currently On Hire)
+    if (healthFlag === 'Grounded') {
+      updates.status = 'Grounded';
+    } else if (vehicle.status === 'Grounded') {
+      updates.status = 'Available';
+    }
+
+    return await this.updateVehicle(id, updates);
   },
 
   async updateVehicleLocation(
@@ -510,6 +521,20 @@ export const maintenanceService = {
 
     if (logError) throw logError;
 
+    // Auto-update vehicle current_mileage if maintenance log mileage is higher
+    if (maintenanceLogData.vehicle_id && maintenanceLogData.mileage) {
+      try {
+        const vehicle = await vehicleService.getVehicleById(maintenanceLogData.vehicle_id);
+        if (maintenanceLogData.mileage > (vehicle.current_mileage || 0)) {
+          await vehicleService.updateVehicle(maintenanceLogData.vehicle_id, {
+            current_mileage: maintenanceLogData.mileage,
+          });
+        }
+      } catch {
+        console.warn('Failed to auto-update vehicle mileage from maintenance log');
+      }
+    }
+
     if (work_items && work_items.length > 0) {
       const workItemsToInsert = work_items.map((item, index) => ({
         maintenance_log_id: createdLog.id,
@@ -555,7 +580,15 @@ async function updateVehicleHealthFlag(vehicleId: string): Promise<void> {
 
   const snags = await snagService.getSnags(vehicleId);
   const health = calculateVehicleHealth(snags);
-  await vehicleService.updateVehicle(vehicleId, { health_flag: health });
+  const updates: Partial<Vehicle> = { health_flag: health };
+
+  if (health === 'Grounded') {
+    updates.status = 'Grounded';
+  } else if (vehicle.status === 'Grounded') {
+    updates.status = 'Available';
+  }
+
+  await vehicleService.updateVehicle(vehicleId, updates);
 }
 
 export const snagService = {
@@ -1939,9 +1972,13 @@ export const snagAssignmentService = {
 
 export const snagResolutionService = {
   async createResolution(resolution: Omit<SnagResolution, 'id' | 'created_at' | 'resolved_at'>) {
+    // Strip undefined fields so Supabase doesn't reject unknown/null columns
+    const cleanResolution = Object.fromEntries(
+      Object.entries(resolution).filter(([, v]) => v !== undefined)
+    );
     const { data, error } = await supabase
       .from('snag_resolutions')
-      .insert([resolution])
+      .insert([cleanResolution])
       .select()
       .single();
     if (error) throw error;
@@ -1960,14 +1997,12 @@ export const snagResolutionService = {
   ) {
     const createdLog = await maintenanceService.createMaintenanceLog(maintenanceLog);
 
+    const cleanResolution = Object.fromEntries(
+      Object.entries({ ...resolution, maintenance_log_id: createdLog.id }).filter(([, v]) => v !== undefined)
+    );
     const { data, error } = await supabase
       .from('snag_resolutions')
-      .insert([
-        {
-          ...resolution,
-          maintenance_log_id: createdLog.id,
-        },
-      ])
+      .insert([cleanResolution])
       .select()
       .single();
     if (error) throw error;
