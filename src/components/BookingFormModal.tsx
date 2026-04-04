@@ -71,10 +71,17 @@ export function BookingFormModal({
 
   useEffect(() => {
     if (editingBooking) {
-      // Extract YYYY-MM-DDTHH:MM from the stored naive-UTC string without any
-      // timezone conversion — the DB stores Kenya local time as if it were UTC.
-      const formatForDatetimeLocal = (isoString: string) =>
-        isoString.replace(' ', 'T').replace(/(\.\d+)?(Z|[+-]\d{2}(:\d{2})?)$/, '').substring(0, 16);
+      // Extract date + snap time to nearest 30-min slot for the dropdown.
+      // DB stores Kenya local time as naive UTC — no timezone conversion needed.
+      const formatForDatetimeLocal = (isoString: string) => {
+        const base = isoString.replace(' ', 'T').replace(/(\.\d+)?(Z|[+-]\d{2}(:\d{2})?)$/, '').substring(0, 16);
+        const [datePart, timePart] = base.split('T');
+        if (!timePart) return base;
+        const [h, m] = timePart.split(':').map(Number);
+        const snappedMin = m < 15 ? 0 : m < 45 ? 30 : 0;
+        const snappedHour = m >= 45 ? h + 1 : h;
+        return `${datePart}T${String(snappedHour).padStart(2, '0')}:${String(snappedMin).padStart(2, '0')}`;
+      };
 
       setStep(3);
       const editingVehicle = vehicles.find(v => v.id === editingBooking.vehicle_id);
@@ -295,14 +302,62 @@ export function BookingFormModal({
                         Start Date & Time <span className="text-red-500">*</span>
                       </div>
                     </label>
-                    <input
-                      type="datetime-local"
-                      value={dateData.start_datetime}
-                      onChange={e => setDateData({ ...dateData, start_datetime: e.target.value })}
-                      required
-                      disabled={submitting}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="date"
+                        value={dateData.start_datetime.split('T')[0] || ''}
+                        onChange={e => {
+                          const date = e.target.value;
+                          const time = dateData.start_datetime.split('T')[1] || '09:00';
+                          setDateData({ ...dateData, start_datetime: `${date}T${time}` });
+                        }}
+                        required
+                        disabled={submitting}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
+                      />
+                      <select
+                        value={dateData.start_datetime.split('T')[1] || '09:00'}
+                        onChange={e => {
+                          const date = dateData.start_datetime.split('T')[0] || new Date().toISOString().split('T')[0];
+                          setDateData({ ...dateData, start_datetime: `${date}T${e.target.value}` });
+                        }}
+                        disabled={submitting}
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
+                      >
+                        <option value="06:00">6:00 AM</option>
+                        <option value="06:30">6:30 AM</option>
+                        <option value="07:00">7:00 AM</option>
+                        <option value="07:30">7:30 AM</option>
+                        <option value="08:00">8:00 AM</option>
+                        <option value="08:30">8:30 AM</option>
+                        <option value="09:00">9:00 AM</option>
+                        <option value="09:30">9:30 AM</option>
+                        <option value="10:00">10:00 AM</option>
+                        <option value="10:30">10:30 AM</option>
+                        <option value="11:00">11:00 AM</option>
+                        <option value="11:30">11:30 AM</option>
+                        <option value="12:00">12:00 PM</option>
+                        <option value="12:30">12:30 PM</option>
+                        <option value="13:00">1:00 PM</option>
+                        <option value="13:30">1:30 PM</option>
+                        <option value="14:00">2:00 PM</option>
+                        <option value="14:30">2:30 PM</option>
+                        <option value="15:00">3:00 PM</option>
+                        <option value="15:30">3:30 PM</option>
+                        <option value="16:00">4:00 PM</option>
+                        <option value="16:30">4:30 PM</option>
+                        <option value="17:00">5:00 PM</option>
+                        <option value="17:30">5:30 PM</option>
+                        <option value="18:00">6:00 PM</option>
+                        <option value="18:30">6:30 PM</option>
+                        <option value="19:00">7:00 PM</option>
+                        <option value="19:30">7:30 PM</option>
+                        <option value="20:00">8:00 PM</option>
+                        <option value="20:30">8:30 PM</option>
+                        <option value="21:00">9:00 PM</option>
+                      </select>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Operating hours: 9:00 AM - 6:00 PM (Kenya Time)</p>
                   </div>
 
                   <div>
@@ -312,15 +367,62 @@ export function BookingFormModal({
                         End Date & Time <span className="text-red-500">*</span>
                       </div>
                     </label>
-                    <input
-                      type="datetime-local"
-                      value={dateData.end_datetime}
-                      min={dateData.start_datetime || ''}
-                      onChange={e => setDateData({ ...dateData, end_datetime: e.target.value })}
-                      required
-                      disabled={submitting}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="date"
+                        value={dateData.end_datetime.split('T')[0] || ''}
+                        onChange={e => {
+                          const date = e.target.value;
+                          const time = dateData.end_datetime.split('T')[1] || '18:00';
+                          setDateData({ ...dateData, end_datetime: `${date}T${time}` });
+                        }}
+                        required
+                        disabled={submitting}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
+                      />
+                      <select
+                        value={dateData.end_datetime.split('T')[1] || '18:00'}
+                        onChange={e => {
+                          const date = dateData.end_datetime.split('T')[0] || new Date().toISOString().split('T')[0];
+                          setDateData({ ...dateData, end_datetime: `${date}T${e.target.value}` });
+                        }}
+                        disabled={submitting}
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
+                      >
+                        <option value="06:00">6:00 AM</option>
+                        <option value="06:30">6:30 AM</option>
+                        <option value="07:00">7:00 AM</option>
+                        <option value="07:30">7:30 AM</option>
+                        <option value="08:00">8:00 AM</option>
+                        <option value="08:30">8:30 AM</option>
+                        <option value="09:00">9:00 AM</option>
+                        <option value="09:30">9:30 AM</option>
+                        <option value="10:00">10:00 AM</option>
+                        <option value="10:30">10:30 AM</option>
+                        <option value="11:00">11:00 AM</option>
+                        <option value="11:30">11:30 AM</option>
+                        <option value="12:00">12:00 PM</option>
+                        <option value="12:30">12:30 PM</option>
+                        <option value="13:00">1:00 PM</option>
+                        <option value="13:30">1:30 PM</option>
+                        <option value="14:00">2:00 PM</option>
+                        <option value="14:30">2:30 PM</option>
+                        <option value="15:00">3:00 PM</option>
+                        <option value="15:30">3:30 PM</option>
+                        <option value="16:00">4:00 PM</option>
+                        <option value="16:30">4:30 PM</option>
+                        <option value="17:00">5:00 PM</option>
+                        <option value="17:30">5:30 PM</option>
+                        <option value="18:00">6:00 PM</option>
+                        <option value="18:30">6:30 PM</option>
+                        <option value="19:00">7:00 PM</option>
+                        <option value="19:30">7:30 PM</option>
+                        <option value="20:00">8:00 PM</option>
+                        <option value="20:30">8:30 PM</option>
+                        <option value="21:00">9:00 PM</option>
+                      </select>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Operating hours: 9:00 AM - 6:00 PM (Kenya Time)</p>
                   </div>
                 </div>
 
