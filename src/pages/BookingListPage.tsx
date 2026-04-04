@@ -611,15 +611,17 @@ export function BookingListPage() {
                           month: 'short',
                           day: 'numeric'
                         })}
+                        {' '}
+                        {new Date(booking.start_datetime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                       <p className="text-gray-600">
-                        {new Date(booking.start_datetime).toLocaleTimeString('en-US', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })} → {new Date(booking.end_datetime).toLocaleTimeString('en-US', {
-                          hour: '2-digit',
-                          minute: '2-digit'
+                        → {new Date(booking.end_datetime).toLocaleDateString('en-US', {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric'
                         })}
+                        {' '}
+                        {new Date(booking.end_datetime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
                   </div>
