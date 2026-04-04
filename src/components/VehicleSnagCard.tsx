@@ -201,21 +201,14 @@ export function VehicleSnagCard({
                       {snag.assigned_to ? 'Reassign' : 'Assign'}
                     </button>
                     {(() => {
-                      const isAdminOrManager = userRole === 'admin' || userRole === 'manager';
-                      const canResolve = snag.assigned_to || isAdminOrManager;
                       return (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (canResolve) onResolveSnag(snag);
+                            onResolveSnag(snag);
                           }}
-                          disabled={!canResolve}
-                          title={canResolve ? 'Resolve this snag' : 'Snag must be assigned before it can be resolved'}
-                          className={`px-3 py-1 text-xs rounded transition-colors flex items-center gap-1 ${
-                            canResolve
-                              ? 'bg-green-50 text-green-700 hover:bg-green-100 cursor-pointer'
-                              : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
-                          }`}
+                          title={snag.assigned_to ? 'Resolve this snag' : 'Resolve snag (you will be asked to assign a resolver)'}
+                          className="px-3 py-1 text-xs rounded transition-colors flex items-center gap-1 bg-green-50 text-green-700 hover:bg-green-100 cursor-pointer"
                         >
                           <Wrench className="w-3 h-3" />
                           Resolve

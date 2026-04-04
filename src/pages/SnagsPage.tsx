@@ -186,6 +186,7 @@ export function SnagsPage() {
     snagId: string;
     resolutionMethod: any;
     resolutionNotes: string;
+    assignedToUserId?: string;
     checkedByUserId?: string;
     photoUrls?: string[];
     maintenanceLog?: any;
@@ -194,6 +195,16 @@ export function SnagsPage() {
 
     setSubmitting(true);
     try {
+      // If the snag was unassigned, assign the resolver before closing
+      if (resolution.assignedToUserId) {
+        await snagAssignmentService.createAssignment({
+          snag_id: resolution.snagId,
+          assigned_to: resolution.assignedToUserId,
+          assigned_by: user.id,
+          status: 'assigned',
+        });
+      }
+
       if (resolution.maintenanceLog) {
         await snagResolutionService.createResolutionWithMaintenanceLog(
           {

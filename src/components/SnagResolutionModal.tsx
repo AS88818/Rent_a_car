@@ -10,6 +10,7 @@ interface SnagResolutionModalProps {
     snagId: string;
     resolutionMethod: ResolutionMethod;
     resolutionNotes: string;
+    assignedToUserId?: string;
     checkedByUserId?: string;
     photoUrls?: string[];
     maintenanceLog?: Omit<MaintenanceLog, 'id' | 'created_at'>;
@@ -37,6 +38,7 @@ export function SnagResolutionModal({
 }: SnagResolutionModalProps) {
   const [resolutionMethod, setResolutionMethod] = useState<ResolutionMethod>('Repaired');
   const [resolutionNotes, setResolutionNotes] = useState('');
+  const [assignedToUserId, setAssignedToUserId] = useState('');
   const [checkedByUserId, setCheckedByUserId] = useState('');
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [createMaintenanceLog, setCreateMaintenanceLog] = useState(false);
@@ -76,6 +78,7 @@ export function SnagResolutionModal({
   const handleClose = () => {
     setResolutionMethod('Repaired');
     setResolutionNotes('');
+    setAssignedToUserId('');
     setCheckedByUserId('');
     setPhotoUrls([]);
     setCreateMaintenanceLog(false);
@@ -93,10 +96,14 @@ export function SnagResolutionModal({
     e.preventDefault();
     if (!snag) return;
 
+    const needsAssignment = !snag.assigned_to;
+    if (needsAssignment && !assignedToUserId) return;
+
     const resolution: any = {
       snagId: snag.id,
       resolutionMethod,
       resolutionNotes,
+      assignedToUserId: needsAssignment ? assignedToUserId : undefined,
       checkedByUserId: checkedByUserId || undefined,
       photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
     };
@@ -154,6 +161,26 @@ export function SnagResolutionModal({
               <p className="text-sm text-gray-600 mb-1">Snag:</p>
               <p className="text-sm text-gray-900 font-medium">{snag.description}</p>
             </div>
+
+            {!snag.assigned_to && users.length > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <p className="text-sm text-amber-800 font-medium mb-2">
+                  This snag has no assignee. Who resolved it?
+                </p>
+                <select
+                  value={assignedToUserId}
+                  onChange={e => setAssignedToUserId(e.target.value)}
+                  required
+                  disabled={submitting}
+                  className="w-full px-4 py-2 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none disabled:opacity-50 text-base bg-white"
+                >
+                  <option value="">— Select who resolved this snag —</option>
+                  {users.map(u => (
+                    <option key={u.id} value={u.id}>{u.full_name} ({u.role})</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
