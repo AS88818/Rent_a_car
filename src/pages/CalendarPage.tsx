@@ -16,6 +16,7 @@ import {
   CalendarWeek,
   CalendarDay
 } from '../lib/calendar-utils';
+import { formatBookingTime, formatBookingDate } from '../lib/utils';
 import { BookingDetailsModal } from '../components/BookingDetailsModal';
 import { BookingFormModal } from '../components/BookingFormModal';
 import { FreeVehiclesSidePanel } from '../components/FreeVehiclesSidePanel';
@@ -274,6 +275,7 @@ export function CalendarPage() {
 
       const startDate = new Date(b.start_datetime).toISOString().split('T')[0];
       const endDate = new Date(b.end_datetime).toISOString().split('T')[0];
+
 
       return dayStr >= startDate && dayStr <= endDate;
     });
@@ -788,17 +790,9 @@ export function CalendarPage() {
 
                         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
                           <div className="font-medium">
-                            {new Date(booking.start_datetime).toLocaleTimeString('en-US', {
-                              hour: 'numeric',
-                              minute: '2-digit',
-                              hour12: true
-                            })}
+                            {formatBookingTime(booking.start_datetime)}
                             {' - '}
-                            {new Date(booking.end_datetime).toLocaleTimeString('en-US', {
-                              hour: 'numeric',
-                              minute: '2-digit',
-                              hour12: true
-                            })}
+                            {formatBookingTime(booking.end_datetime)}
                           </div>
                           {booking.booking_type && (
                             <div className="capitalize">
@@ -918,11 +912,7 @@ export function CalendarPage() {
                             </div>
                           </div>
                           <div className="flex-shrink-0 text-[10px] text-gray-600 mt-0.5">
-                            {new Date(booking.start_datetime).toLocaleTimeString('en-US', {
-                              hour: 'numeric',
-                              minute: '2-digit',
-                              hour12: true
-                            })}
+                            {formatBookingTime(booking.start_datetime)}
                           </div>
                         </div>
 
@@ -1012,8 +1002,8 @@ export function CalendarPage() {
                           </div>
                         </div>
                         <div className="flex-shrink-0 text-right">
-                          <p className="text-xs text-gray-700">{new Date(booking.start_datetime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</p>
-                          <p className="text-xs text-gray-500">→ {new Date(booking.end_datetime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</p>
+                          <p className="text-xs text-gray-700">{formatBookingDate(booking.start_datetime, { day: 'numeric', month: 'short' })}</p>
+                          <p className="text-xs text-gray-500">→ {formatBookingDate(booking.end_datetime, { day: 'numeric', month: 'short' })}</p>
                         </div>
                         <span className={`flex-shrink-0 text-xs px-2 py-1 rounded font-medium ${
                           booking.status === 'Active' ? 'bg-green-100 text-green-800' :

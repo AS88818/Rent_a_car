@@ -71,10 +71,10 @@ export function BookingFormModal({
 
   useEffect(() => {
     if (editingBooking) {
-      // Convert ISO datetime to datetime-local format (YYYY-MM-DDThh:mm).
-      // Slice the first 16 chars to avoid timezone conversion — data is stored
-      // as the user originally typed it (no tz offset applied on save).
-      const formatForDatetimeLocal = (isoString: string) => isoString.substring(0, 16);
+      // Extract YYYY-MM-DDTHH:MM from the stored naive-UTC string without any
+      // timezone conversion — the DB stores Kenya local time as if it were UTC.
+      const formatForDatetimeLocal = (isoString: string) =>
+        isoString.replace(' ', 'T').replace(/(\.\d+)?(Z|[+-]\d{2}(:\d{2})?)$/, '').substring(0, 16);
 
       setStep(3);
       const editingVehicle = vehicles.find(v => v.id === editingBooking.vehicle_id);

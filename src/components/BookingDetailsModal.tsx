@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Calendar, MapPin, User, Phone, Mail, Car, AlertTriangle, FileText, Edit, Download, Eye, XCircle, History, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Booking, Vehicle, Branch, BookingDocument, BookingAmendment } from '../types/database';
-import { formatDate, checkInsuranceExpiryDuringBooking } from '../lib/utils';
+import { formatDate, formatBookingTime, checkInsuranceExpiryDuringBooking } from '../lib/utils';
 import { bookingDocumentService, bookingAmendmentService } from '../services/api';
 import { BookingDocumentUpload } from './BookingDocumentUpload';
 
@@ -296,7 +296,7 @@ export function BookingDetailsModal({
                       <div className="flex-1">
                         <p className="text-xs text-gray-600 mb-1">Start Date & Time</p>
                         <p className="font-semibold text-gray-900">{formatDate(booking.start_datetime)}</p>
-                        <p className="text-xs text-gray-600 mt-0.5">{new Date(booking.start_datetime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="text-xs text-gray-600 mt-0.5">{formatBookingTime(booking.start_datetime)}</p>
                       </div>
                     </div>
                   </div>
@@ -309,7 +309,7 @@ export function BookingDetailsModal({
                       <div className="flex-1">
                         <p className="text-xs text-gray-600 mb-1">End Date & Time</p>
                         <p className="font-semibold text-gray-900">{formatDate(booking.end_datetime)}</p>
-                        <p className="text-xs text-gray-600 mt-0.5">{new Date(booking.end_datetime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="text-xs text-gray-600 mt-0.5">{formatBookingTime(booking.end_datetime)}</p>
                       </div>
                     </div>
                   </div>

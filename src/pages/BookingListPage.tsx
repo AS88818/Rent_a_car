@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { bookingService, vehicleService, branchService, categoryService, bookingDocumentService } from '../services/api';
 import { Booking, Vehicle, Branch, VehicleCategory, BookingDocument } from '../types/database';
-import { checkInsuranceExpiryDuringBooking, checkLocationMismatch } from '../lib/utils';
+import { checkInsuranceExpiryDuringBooking, checkLocationMismatch, formatBookingDate, formatBookingTime } from '../lib/utils';
 import { Plus, X, Car, Calendar, MapPin, Phone, Search, RefreshCw, AlertCircle, AlertTriangle, User, ArrowUpDown } from 'lucide-react';
 import { showToast } from '../lib/toast';
 import { autoSyncToCompanyCalendar, autoDeleteFromCompanyCalendar } from '../services/calendar-service';
@@ -606,22 +606,10 @@ export function BookingListPage() {
                     <Calendar className="w-4 h-4 text-gray-400 mt-0.5" />
                     <div>
                       <p className="font-medium text-gray-900">
-                        {new Date(booking.start_datetime).toLocaleDateString('en-US', {
-                          weekday: 'short',
-                          month: 'short',
-                          day: 'numeric'
-                        })}
-                        {' '}
-                        {new Date(booking.start_datetime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                        {formatBookingDate(booking.start_datetime)} {formatBookingTime(booking.start_datetime)}
                       </p>
                       <p className="text-gray-600">
-                        → {new Date(booking.end_datetime).toLocaleDateString('en-US', {
-                          weekday: 'short',
-                          month: 'short',
-                          day: 'numeric'
-                        })}
-                        {' '}
-                        {new Date(booking.end_datetime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                        → {formatBookingDate(booking.end_datetime)} {formatBookingTime(booking.end_datetime)}
                       </p>
                     </div>
                   </div>

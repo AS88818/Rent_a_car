@@ -65,8 +65,17 @@ export function getExpiryStatus(expiryDate: string): 'red' | 'orange' | 'green' 
   return 'green';
 }
 
+// Parse a booking datetime string as Kenya local time.
+// The DB stores times as naive UTC: "09:00:00+00" means "9 AM Kenya" (not 9 AM UTC).
+// Stripping the timezone suffix before parsing makes JS treat the value as local
+// time and display the stored digits as-is, regardless of the host timezone.
+export function parseNaive(isoString: string): Date {
+  const naive = String(isoString).replace(/(\.\d+)?(Z|[+-]\d{2}(:\d{2})?)$/, '').replace(' ', 'T');
+  return new Date(naive);
+}
+
 export function formatDate(date: string | Date): string {
-  const d = new Date(date);
+  const d = typeof date === 'string' ? parseNaive(date) : date;
   return d.toLocaleDateString('en-KE', {
     weekday: 'short',
     year: 'numeric',
@@ -76,7 +85,7 @@ export function formatDate(date: string | Date): string {
 }
 
 export function formatDateTime(date: string | Date): string {
-  const d = new Date(date);
+  const d = typeof date === 'string' ? parseNaive(date) : date;
   return d.toLocaleDateString('en-KE', {
     year: 'numeric',
     month: 'short',
@@ -84,6 +93,18 @@ export function formatDateTime(date: string | Date): string {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+// Format just the time portion of a booking datetime as Kenya local time
+export function formatBookingTime(isoString: string): string {
+  const d = parseNaive(isoString);
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+
+// Format just the date portion of a booking datetime as Kenya local time
+export function formatBookingDate(isoString: string, opts?: Intl.DateTimeFormatOptions): string {
+  const d = parseNaive(isoString);
+  return d.toLocaleDateString('en-US', opts ?? { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
 export function getHealthColor(health: string): string {
