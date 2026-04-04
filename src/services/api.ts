@@ -645,7 +645,8 @@ export const snagService = {
       .from('snags')
       .select(`
         *,
-        deleted_by_user:users!deleted_by(full_name)
+        deleted_by_user:users!deleted_by(full_name),
+        assigned_user:users!assigned_to(full_name)
       `)
       .order('date_opened', { ascending: false });
 

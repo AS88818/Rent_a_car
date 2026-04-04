@@ -220,6 +220,7 @@ export interface Snag {
   description: string;
   branch_id: string;
   assigned_to?: string;
+  assigned_user?: { full_name: string };
   assignment_deadline?: string;
   resolution_id?: string;
   deleted_at?: string;

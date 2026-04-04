@@ -156,7 +156,7 @@ export function VehicleSnagCard({
                         </span>
                       ) : snag.assigned_to ? (
                         <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">
-                          Assigned
+                          {snag.assigned_user?.full_name ? `Assigned → ${snag.assigned_user.full_name}` : 'Assigned'}
                         </span>
                       ) : null}
                     </div>
