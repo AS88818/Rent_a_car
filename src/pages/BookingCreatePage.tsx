@@ -78,7 +78,7 @@ export function BookingCreatePage() {
             branch_name: branchesData.find(b => b.id === v.branch_id)?.branch_name || 'Unknown'
           }));
 
-        setCategories(categoriesData.filter(cat => vehiclesData.some(v => v.category_id === cat.id && !v.is_personal)));
+        setCategories(categoriesData.filter(cat => cat.category_name.toUpperCase() !== 'PERSONAL' && vehiclesData.some(v => v.category_id === cat.id && !v.is_personal)));
         setVehicles(vehiclesWithBranch);
         setBranches(branchesData);
         setBookings(bookingsData);

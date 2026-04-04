@@ -443,7 +443,7 @@ export function BookingFormModal({
 
                 {(() => {
                   const categoryGroups = categories
-                    .filter(cat => vehicles.some(v => v.category_id === cat.id && !v.is_personal))
+                    .filter(cat => cat.category_name.toUpperCase() !== 'PERSONAL' && vehicles.some(v => v.category_id === cat.id && !v.is_personal))
                     .map(cat => {
                       const catVehicles = availableVehicles.filter(v => v.category_id === cat.id);
                       const branchCounts: Record<string, number> = {};

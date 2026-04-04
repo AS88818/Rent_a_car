@@ -431,10 +431,13 @@ export function QuotationCalculatorPage() {
         bookingService.getBookings(undefined, dateFrom.toISOString()),
       ]);
 
-      // Skip categories that only have personal vehicles
+      // Skip PERSONAL category and any category with only personal vehicles
       const nonPersonalCategoryNames = new Set(
         vehicleCategories
-          .filter(cat => allVehicles.some(v => v.category_id === cat.id && !v.is_personal))
+          .filter(cat =>
+            cat.category_name.toUpperCase() !== 'PERSONAL' &&
+            allVehicles.some(v => v.category_id === cat.id && !v.is_personal)
+          )
           .map(cat => cat.category_name)
       );
 

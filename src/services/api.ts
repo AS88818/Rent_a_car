@@ -390,11 +390,40 @@ export const bookingService = {
       const normalizeAmendmentValue = (val: any, field: string): string => {
         if (val === null || val === undefined || val === '') return '';
         const s = String(val);
-        // Strip timezone suffix from datetime fields to avoid false positives
         if (field === 'start_datetime' || field === 'end_datetime') {
-          return s.replace(/(\.\d+)?(Z|[+-]\d{2}:\d{2})$/, '');
+          // Strip timezone suffix and trailing :00 seconds so "T09:00:00" === "T09:00"
+          return s.replace(/(\.\d+)?(Z|[+-]\d{2}:\d{2})$/, '').replace(/:00$/, '');
         }
         return s;
+      };
+
+      // For vehicle_id changes, resolve reg_numbers for human-readable display
+      let vehicleRegMap: Record<string, string> = {};
+      if ('vehicle_id' in updates && updates.vehicle_id !== booking.vehicle_id) {
+        const ids = [booking.vehicle_id, updates.vehicle_id].filter(Boolean) as string[];
+        const { data: vehicleRows } = await supabase
+          .from('vehicles')
+          .select('id, reg_number')
+          .in('id', ids);
+        if (vehicleRows) {
+          vehicleRows.forEach((v: any) => { vehicleRegMap[v.id] = v.reg_number; });
+        }
+      }
+
+      const resolveValue = (val: any, field: string): string => {
+        if (field === 'vehicle_id' && val && vehicleRegMap[val]) return vehicleRegMap[val];
+        return normalizeAmendmentValue(val, field);
+      };
+
+      const friendlyFieldName: Record<string, string> = {
+        vehicle_id: 'vehicle',
+        start_datetime: 'start date/time',
+        end_datetime: 'end date/time',
+        start_location: 'pickup location',
+        end_location: 'drop-off location',
+        client_name: 'client name',
+        booking_type: 'booking type',
+        chauffeur_name: 'chauffeur',
       };
 
       const amendmentEntries = trackFields
@@ -407,9 +436,9 @@ export const bookingService = {
           user_id: userInfo.id,
           user_name: userInfo.name,
           user_role: userInfo.role,
-          field_changed: field,
-          old_value: normalizeAmendmentValue((booking as any)[field], field),
-          new_value: normalizeAmendmentValue((updates as any)[field], field),
+          field_changed: friendlyFieldName[field] || field,
+          old_value: resolveValue((booking as any)[field], field),
+          new_value: resolveValue((updates as any)[field], field),
         }));
       if (amendmentEntries.length > 0) {
         await supabase.from('booking_amendments').insert(amendmentEntries);
