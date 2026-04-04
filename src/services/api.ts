@@ -391,9 +391,14 @@ export const bookingService = {
         if (val === null || val === undefined || val === '') return '';
         const s = String(val);
         if (field === 'start_datetime' || field === 'end_datetime') {
-          // Strip timezone suffix then take first 16 chars (YYYY-MM-DDTHH:MM)
-          // so "2026-04-05T09:00:00+00:00" and "2026-04-05T09:00" compare equal
-          return s.replace(/(\.\d+)?(Z|[+-]\d{2}:\d{2})$/, '').substring(0, 16);
+          // Normalize to YYYY-MM-DDTHH:MM:
+          // 1. Replace PostgreSQL space separator with T
+          // 2. Strip timezone suffix (+00:00, Z, etc.)
+          // 3. Take first 16 chars only
+          return s
+            .replace(' ', 'T')
+            .replace(/(\.\d+)?(Z|[+-]\d{2}:\d{2})$/, '')
+            .substring(0, 16);
         }
         return s;
       };
