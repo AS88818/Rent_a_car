@@ -412,6 +412,7 @@ export function SnagsPage() {
             onResolveSnag={setResolveSnag}
             showClosedSnags={showClosedSnags}
             userRole={userRole}
+            users={users}
           />
         ))}
       </div>

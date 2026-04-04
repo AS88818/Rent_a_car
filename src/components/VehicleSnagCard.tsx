@@ -1,7 +1,7 @@
 import { ChevronDown, ChevronUp, AlertTriangle, Wrench, Calendar } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { VehicleWithSnagCount, Snag } from '../types/database';
+import { VehicleWithSnagCount, Snag, AuthUser } from '../types/database';
 import { formatDate, getPriorityColor } from '../lib/utils';
 
 interface VehicleSnagCardProps {
@@ -13,6 +13,7 @@ interface VehicleSnagCardProps {
   onResolveSnag: (snag: Snag) => void;
   showClosedSnags?: boolean;
   userRole?: string | null;
+  users?: AuthUser[];
 }
 
 export function VehicleSnagCard({
@@ -24,6 +25,7 @@ export function VehicleSnagCard({
   onResolveSnag,
   showClosedSnags = false,
   userRole,
+  users = [],
 }: VehicleSnagCardProps) {
   const [expanded, setExpanded] = useState(false);
   const navigate = useNavigate();
@@ -179,6 +181,32 @@ export function VehicleSnagCard({
                     </p>
                   </div>
                 </div>
+
+                {snag.status === 'Closed' && snag.snag_resolution && (
+                  <div className="mt-3 pt-3 border-t border-gray-100 space-y-1">
+                    <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-600">
+                      <span>
+                        <span className="font-medium text-gray-700">Method:</span>{' '}
+                        {snag.snag_resolution.resolution_method}
+                      </span>
+                      {snag.snag_resolution.resolved_by && (
+                        <span>
+                          <span className="font-medium text-gray-700">Resolved by:</span>{' '}
+                          {users.find(u => u.id === snag.snag_resolution!.resolved_by)?.full_name || '—'}
+                        </span>
+                      )}
+                      {snag.snag_resolution.checked_by && (
+                        <span>
+                          <span className="font-medium text-gray-700">Checked by:</span>{' '}
+                          {users.find(u => u.id === snag.snag_resolution!.checked_by)?.full_name || '—'}
+                        </span>
+                      )}
+                    </div>
+                    {snag.snag_resolution.resolution_notes && (
+                      <p className="text-xs text-gray-600 italic">"{snag.snag_resolution.resolution_notes}"</p>
+                    )}
+                  </div>
+                )}
 
                 {snag.status === 'Open' && !snag.deleted_at && (
                   <div className="flex gap-2 mt-3">

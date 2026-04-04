@@ -223,6 +223,14 @@ export interface Snag {
   assigned_user?: { full_name: string };
   assignment_deadline?: string;
   resolution_id?: string;
+  snag_resolution?: {
+    resolution_method: string;
+    resolution_notes: string;
+    resolved_by: string;
+    checked_by?: string;
+    resolved_at: string;
+    photo_urls?: string[];
+  };
   deleted_at?: string;
   deleted_by?: string;
   deleted_by_user?: { full_name: string };
