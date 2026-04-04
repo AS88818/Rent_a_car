@@ -387,16 +387,29 @@ export const bookingService = {
         'start_location', 'end_location', 'client_name', 'contact',
         'notes', 'booking_type', 'chauffeur_name',
       ] as const;
+      const normalizeAmendmentValue = (val: any, field: string): string => {
+        if (val === null || val === undefined || val === '') return '';
+        const s = String(val);
+        // Strip timezone suffix from datetime fields to avoid false positives
+        if (field === 'start_datetime' || field === 'end_datetime') {
+          return s.replace(/(\.\d+)?(Z|[+-]\d{2}:\d{2})$/, '');
+        }
+        return s;
+      };
+
       const amendmentEntries = trackFields
-        .filter(field => field in updates && String(updates[field]) !== String((booking as any)[field]))
+        .filter(field =>
+          field in updates &&
+          normalizeAmendmentValue(updates[field], field) !== normalizeAmendmentValue((booking as any)[field], field)
+        )
         .map(field => ({
           booking_id: id,
           user_id: userInfo.id,
           user_name: userInfo.name,
           user_role: userInfo.role,
           field_changed: field,
-          old_value: String((booking as any)[field] ?? ''),
-          new_value: String((updates as any)[field] ?? ''),
+          old_value: normalizeAmendmentValue((booking as any)[field], field),
+          new_value: normalizeAmendmentValue((updates as any)[field], field),
         }));
       if (amendmentEntries.length > 0) {
         await supabase.from('booking_amendments').insert(amendmentEntries);

@@ -642,6 +642,17 @@ export function BookingListPage() {
                     <span className="text-sm text-gray-700 font-medium">{booking.branch_name || 'Not assigned'}</span>
                   </div>
                 </div>
+
+                <div className="flex items-center gap-3 text-xs text-gray-500 mt-2">
+                  <span>{Math.ceil((new Date(booking.end_datetime).getTime() - new Date(booking.start_datetime).getTime()) / 86400000)} days</span>
+                  {booking.vehicle?.next_service_mileage && booking.vehicle?.current_mileage && (
+                    <span>Service in {(booking.vehicle.next_service_mileage - booking.vehicle.current_mileage).toLocaleString()} km</span>
+                  )}
+                </div>
+
+                {booking.notes && (
+                  <p className="text-xs text-gray-500 mt-1 italic line-clamp-2">{booking.notes}</p>
+                )}
               </div>
             </div>
           </div>

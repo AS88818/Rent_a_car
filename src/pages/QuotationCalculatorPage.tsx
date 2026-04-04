@@ -431,7 +431,15 @@ export function QuotationCalculatorPage() {
         bookingService.getBookings(undefined, dateFrom.toISOString()),
       ]);
 
+      // Skip categories that only have personal vehicles
+      const nonPersonalCategoryNames = new Set(
+        vehicleCategories
+          .filter(cat => allVehicles.some(v => v.category_id === cat.id && !v.is_personal))
+          .map(cat => cat.category_name)
+      );
+
       for (const pricing of categoryPricing) {
+        if (!nonPersonalCategoryNames.has(pricing.category_name)) continue;
         let rentalFee = 0;
 
         if (offPeakDays > 0) {
@@ -1666,8 +1674,8 @@ export function QuotationCalculatorPage() {
                       {result.branchAvailability.reduce((sum, b) => sum + b.availableCount, 0)} available
                     </span>
                   ) : (
-                    <span className="ml-1 text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
-                      ?
+                    <span className="ml-1 text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                      0 available
                     </span>
                   )}
                 </label>
