@@ -126,7 +126,7 @@ export function DashboardPage() {
       setBookings(bookingsData);
       setSnags(snagsData);
       setBranches(branchesData);
-      setCategories(categoriesData);
+      setCategories(categoriesData.filter(c => c.category_name.toUpperCase() !== 'PERSONAL'));
 
       const imagesMap = new Map<string, VehicleImage[]>();
       await Promise.all(
@@ -254,7 +254,7 @@ export function DashboardPage() {
     );
   }
 
-  const businessVehicles = vehicles.filter(v => !v.is_personal);
+  const businessVehicles = vehicles.filter(v => !v.is_personal && v.category?.toUpperCase() !== 'PERSONAL');
   const totalVehicles = businessVehicles.length;
 
   // Determine actual on-hire status by cross-referencing active bookings covering right now

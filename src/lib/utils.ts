@@ -74,25 +74,28 @@ export function parseNaive(isoString: string): Date {
   return new Date(naive);
 }
 
+// Parse a plain date string (YYYY-MM-DD) as local midnight so the displayed
+// date is never shifted by UTC offset regardless of the viewer's timezone.
+function parseDateOnly(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 export function formatDate(date: string | Date): string {
-  const d = typeof date === 'string' ? parseNaive(date) : date;
-  return d.toLocaleDateString('en-KE', {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  const d = typeof date === 'string'
+    ? (/^\d{4}-\d{2}-\d{2}$/.test(date) ? parseDateOnly(date) : parseNaive(date))
+    : date;
+  return `${WEEKDAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 export function formatDateTime(date: string | Date): string {
   const d = typeof date === 'string' ? parseNaive(date) : date;
-  return d.toLocaleDateString('en-KE', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const hours = d.getHours().toString().padStart(2, '0');
+  const mins = d.getMinutes().toString().padStart(2, '0');
+  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${hours}:${mins}`;
 }
 
 // Format just the time portion of a booking datetime as Kenya local time
@@ -163,7 +166,10 @@ export function calculateBookingDuration(startDate: string, endDate: string): st
 
 export function daysUntilExpiry(expiryDate: string): number {
   const today = new Date();
-  const expiry = new Date(expiryDate);
+  today.setHours(0, 0, 0, 0);
+  const expiry = /^\d{4}-\d{2}-\d{2}$/.test(expiryDate)
+    ? parseDateOnly(expiryDate)
+    : new Date(expiryDate);
   return Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 

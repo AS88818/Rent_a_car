@@ -5,7 +5,7 @@ import { bookingService, vehicleService, categoryService, branchService } from '
 import { Vehicle, VehicleCategory, Branch, Booking } from '../types/database';
 import { showToast } from '../lib/toast';
 import { autoSyncToCompanyCalendar } from '../services/calendar-service';
-import { getAvailableVehicles, calculateBookingDuration, checkInsuranceExpiryDuringBooking, formatDate } from '../lib/utils';
+import { getAvailableVehicles, calculateBookingDuration, checkInsuranceExpiryDuringBooking, formatDate, daysUntilExpiry } from '../lib/utils';
 import { ArrowLeft, Check, CheckCircle, Calendar, MapPin, AlertTriangle } from 'lucide-react';
 import { BookingDocumentUpload } from '../components/BookingDocumentUpload';
 
@@ -789,6 +789,11 @@ export function BookingCreatePage() {
                   formData.start_datetime,
                   formData.end_datetime
                 );
+                const branchCounts: Record<string, number> = {};
+                available.forEach(v => {
+                  const branchName = branches.find(b => b.id === v.branch_id)?.branch_name || 'Unknown';
+                  branchCounts[branchName] = (branchCounts[branchName] || 0) + 1;
+                });
 
                 return (
                   <button
@@ -807,9 +812,18 @@ export function BookingCreatePage() {
                     {category.description && (
                       <p className="text-sm text-gray-600 mt-1">{category.description}</p>
                     )}
-                    <p className="text-sm text-gray-500 mt-2">
+                    <p className={`text-sm mt-2 ${available.length > 0 ? 'text-green-700' : 'text-gray-500'}`}>
                       {available.length} available for selected dates
                     </p>
+                    {available.length > 0 && Object.keys(branchCounts).length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {Object.entries(branchCounts).map(([branch, count]) => (
+                          <span key={branch} className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
+                            {count} in {branch}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </button>
                 );
               })}
@@ -870,6 +884,30 @@ export function BookingCreatePage() {
                     formData.end_datetime
                   );
 
+                  const kmToService = vehicle.next_service_mileage && vehicle.current_mileage
+                    ? vehicle.next_service_mileage - vehicle.current_mileage
+                    : null;
+
+                  const daysToInsurance = vehicle.insurance_expiry ? daysUntilExpiry(vehicle.insurance_expiry) : null;
+
+                  const relevantBookings = bookings.filter(
+                    b => b.vehicle_id === vehicle.id && b.status === 'Active'
+                  );
+                  const lastBooking = relevantBookings
+                    .filter(b => new Date(b.end_datetime) < new Date(formData.start_datetime))
+                    .sort((a, b) => new Date(b.end_datetime).getTime() - new Date(a.end_datetime).getTime())[0];
+                  const nextBooking = relevantBookings
+                    .filter(b => new Date(b.start_datetime) > new Date(formData.end_datetime))
+                    .sort((a, b) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime())[0];
+
+                  const daysSinceLastBooking = lastBooking
+                    ? Math.ceil((new Date(formData.start_datetime).getTime() - new Date(lastBooking.end_datetime).getTime()) / 86400000)
+                    : null;
+
+                  const daysToNextBooking = nextBooking
+                    ? Math.ceil((new Date(nextBooking.start_datetime).getTime() - new Date(formData.end_datetime).getTime()) / 86400000)
+                    : null;
+
                   return (
                     <button
                       key={vehicle.id}
@@ -892,9 +930,27 @@ export function BookingCreatePage() {
                       <p className="text-sm text-gray-600 mt-1">
                         <span className="font-medium">Make/Model:</span> {vehicle.make} {vehicle.model}
                       </p>
-                      <p className="text-sm text-gray-600 mt-1">
-                        <span className="font-medium">Mileage:</span> {vehicle.current_mileage.toLocaleString()} km
-                      </p>
+                      <div className="space-y-0.5 mt-2">
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Mileage:</span> {vehicle.current_mileage.toLocaleString()} km
+                        </p>
+                        {kmToService !== null && (
+                          <p className={`text-sm ${kmToService <= 0 ? 'text-red-600 font-medium' : kmToService <= 500 ? 'text-orange-500 font-medium' : 'text-gray-600'}`}>
+                            {kmToService > 0 ? `Service in ${kmToService.toLocaleString()} km` : '⚠️ SERVICE OVERDUE'}
+                          </p>
+                        )}
+                        {daysToInsurance !== null && (
+                          <p className={`text-sm ${daysToInsurance <= 30 ? 'text-orange-600 font-medium' : 'text-gray-600'}`}>
+                            Insurance: {daysToInsurance > 0 ? `${daysToInsurance}d left` : `${Math.abs(daysToInsurance)}d overdue`}
+                          </p>
+                        )}
+                        {daysSinceLastBooking !== null && (
+                          <p className="text-sm text-gray-600">Last booking: {daysSinceLastBooking}d ago</p>
+                        )}
+                        {daysToNextBooking !== null && (
+                          <p className="text-sm text-gray-600">Next booking: in {daysToNextBooking}d</p>
+                        )}
+                      </div>
                       {hasInsuranceIssue && (
                         <div className="flex items-center gap-1.5 mt-3 p-2 bg-red-50 border border-red-200 rounded">
                           <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
