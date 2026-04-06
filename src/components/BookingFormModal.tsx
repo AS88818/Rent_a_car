@@ -645,13 +645,12 @@ export function BookingFormModal({
 
                           const relevantBookings = bookings.filter(
                             b => b.vehicle_id === vehicle.id &&
-                            (b.status === 'Active' || b.status === 'Confirmed') &&
+                            b.status === 'Active' &&
                             b.id !== editingBooking?.id
                           );
                           const lastBooking = relevantBookings
                             .filter(b => new Date(b.end_datetime) < new Date(dateData.start_datetime))
-                            .sort((a, b) => new Date(b.end_datetime).getTime() - new Date(a.end_datetime).getTime())
-                            .pop();
+                            .sort((a, b) => new Date(b.end_datetime).getTime() - new Date(a.end_datetime).getTime())[0];
                           const nextBooking = relevantBookings
                             .filter(b => new Date(b.start_datetime) > new Date(dateData.end_datetime))
                             .sort((a, b) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime())
