@@ -801,11 +801,17 @@ export function DashboardPage() {
                 </button>
               ))}
             </div>
-            {bookingsExpanded ? (
-              <ChevronUp className="w-5 h-5 text-gray-500" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-gray-500" />
-            )}
+            <button
+              onClick={() => setBookingsExpanded(!bookingsExpanded)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label={bookingsExpanded ? 'Collapse bookings' : 'Expand bookings'}
+            >
+              {bookingsExpanded ? (
+                <ChevronUp className="w-5 h-5 text-gray-500" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-gray-500" />
+              )}
+            </button>
           </div>
         </div>
 
