@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
-import { vehicleService, categoryService, branchService, imageService } from '../services/api';
-import { Vehicle, VehicleCategory, Branch, VehicleImage } from '../types/database';
+import { vehicleService, categoryService, branchService, imageService, bookingService } from '../services/api';
+import { Vehicle, VehicleCategory, Branch, VehicleImage, Booking } from '../types/database';
 import { Search, Car, Gauge, Plus, X, ArrowUpDown, RefreshCw, AlertTriangle } from 'lucide-react';
 import { daysUntilExpiry } from '../lib/utils';
 import { showToast } from '../lib/toast';
@@ -20,6 +20,7 @@ export function VehiclesPage() {
   const [categories, setCategories] = useState<VehicleCategory[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [vehicleImages, setVehicleImages] = useState<Map<string, VehicleImage[]>>(new Map());
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -66,10 +67,11 @@ export function VehiclesPage() {
       // Mechanics should see ALL vehicles across all branches
       const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
 
-      const [vehiclesData, categoriesData, branchesData] = await Promise.all([
+      const [vehiclesData, categoriesData, branchesData, bookingsData] = await Promise.all([
         vehicleService.getVehicles(vehicleBranchFilter),
         categoryService.getCategories(),
         branchService.getBranches(),
+        bookingService.getBookings(vehicleBranchFilter),
       ]);
 
       const vehiclesWithDetails = vehiclesData.map(v => ({
@@ -81,6 +83,7 @@ export function VehiclesPage() {
       setVehicles(vehiclesWithDetails);
       setCategories(categoriesData);
       setBranches(branchesData);
+      setBookings(bookingsData);
 
       const imagesMap = new Map<string, VehicleImage[]>();
       const allImages = await imageService.getVehicleImagesBatch(vehiclesData.map(v => v.id));
@@ -133,10 +136,24 @@ export function VehiclesPage() {
       case 'On Hire':
         return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'Grounded':
+      case 'Unavailable':
         return 'bg-red-100 text-red-800 border-red-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
+  };
+
+  const getComputedStatus = (vehicle: VehicleWithDetails): string => {
+    if (vehicle.health_flag === 'Grounded' || vehicle.status === 'Grounded') return 'Unavailable';
+    const now = new Date();
+    const isCurrentlyOnHire = bookings.some(b =>
+      b.vehicle_id === vehicle.id &&
+      (b.status === 'Active' || b.status === 'Advance Payment Not Paid') &&
+      new Date(b.start_datetime) <= now &&
+      new Date(b.end_datetime) >= now
+    );
+    if (isCurrentlyOnHire || vehicle.status === 'On Hire') return 'On Hire';
+    return 'Available';
   };
 
   const handleAddVehicle = async (e: React.FormEvent) => {
@@ -229,7 +246,7 @@ export function VehiclesPage() {
         v.category_name?.toLowerCase().includes(search.toLowerCase());
       const matchesCategory = !filterCategory || v.category_id === filterCategory;
       const matchesBranch = !filterBranch || v.branch_id === filterBranch;
-      const matchesStatus = !filterStatus || v.status === filterStatus;
+      const matchesStatus = !filterStatus || getComputedStatus(v) === filterStatus;
       const matchesHealth = !filterHealth || v.health_flag === filterHealth;
       const matchesType = !filterType || (filterType === 'personal' ? v.is_personal : !v.is_personal);
 
@@ -357,7 +374,7 @@ export function VehiclesPage() {
               <option value="">All Status</option>
               <option value="Available">Available</option>
               <option value="On Hire">On Hire</option>
-              <option value="Grounded">Grounded</option>
+              <option value="Unavailable">Unavailable</option>
             </select>
 
             <select
@@ -530,8 +547,8 @@ export function VehiclesPage() {
 
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-600">Status:</span>
-                  <span className={`px-2 py-1 rounded text-xs font-semibold border ${getStatusBadgeColor(vehicle.status)}`}>
-                    {vehicle.status}
+                  <span className={`px-2 py-1 rounded text-xs font-semibold border ${getStatusBadgeColor(getComputedStatus(vehicle))}`}>
+                    {getComputedStatus(vehicle)}
                   </span>
                 </div>
 
