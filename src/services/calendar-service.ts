@@ -251,12 +251,29 @@ ${booking.notes ? `\nNotes:\n${booking.notes}` : ''}
       const event = this.buildEventFromBooking(booking, vehicle);
 
       if (booking.google_event_id) {
-        await googleCalendarService.updateEvent(
-          accessToken,
-          calendarId,
-          booking.google_event_id,
-          event
-        );
+        try {
+          await googleCalendarService.updateEvent(
+            accessToken,
+            calendarId,
+            booking.google_event_id,
+            event
+          );
+        } catch (updateError: any) {
+          // Event not found in this calendar (e.g. calendar was switched) — create it instead
+          if (updateError.message?.includes('Not Found') || updateError.message?.includes('404')) {
+            const createdEvent = await googleCalendarService.createEvent(
+              accessToken,
+              calendarId,
+              event
+            );
+            await supabase
+              .from('bookings')
+              .update({ google_event_id: createdEvent.id })
+              .eq('id', booking.id);
+          } else {
+            throw updateError;
+          }
+        }
       } else {
         const createdEvent = await googleCalendarService.createEvent(
           accessToken,
