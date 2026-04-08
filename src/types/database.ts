@@ -110,6 +110,7 @@ export interface Booking {
   chauffeur_name?: string;
   invoice_number?: string;
   google_event_id?: string;
+  google_event_id_end?: string;
   total_amount?: number;
   advance_payment_amount?: number;
   advance_payment_paid?: boolean;

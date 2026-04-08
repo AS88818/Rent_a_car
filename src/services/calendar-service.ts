@@ -2,12 +2,21 @@ import { supabase } from '../lib/supabase';
 import { Booking, Vehicle } from '../types/database';
 import { getAuthorizationHeader, isTokenExpired, refreshAccessToken } from '../lib/google-oauth';
 
+interface GoogleCalendarReminder {
+  method: 'email' | 'popup';
+  minutes: number;
+}
+
 interface GoogleCalendarEvent {
   summary: string;
   description: string;
   start: { dateTime: string; timeZone: string };
   end: { dateTime: string; timeZone: string };
   colorId?: string;
+  reminders?: {
+    useDefault: boolean;
+    overrides: GoogleCalendarReminder[];
+  };
 }
 
 interface CompanyCalendarConfig {
@@ -197,33 +206,67 @@ export const googleCalendarService = {
   },
 };
 
-export const bookingSyncService = {
-  buildEventFromBooking(booking: Booking, vehicle?: Vehicle): GoogleCalendarEvent {
-    const title = vehicle
-      ? `${vehicle.reg_number} - ${booking.client_name}`
-      : `Booking - ${booking.client_name}`;
+function buildBookingDescription(booking: Booking, vehicle?: Vehicle): string {
+  return [
+    `Client: ${booking.client_name}`,
+    `Contact: ${booking.contact}`,
+    booking.client_email ? `Email: ${booking.client_email}` : '',
+    vehicle ? `Vehicle: ${vehicle.reg_number} (${vehicle.make} ${vehicle.model})` : '',
+    booking.booking_type ? `Type: ${booking.booking_type}` : '',
+    booking.notes ? `\nNotes:\n${booking.notes}` : '',
+  ].filter(Boolean).join('\n');
+}
 
-    const description = `
-Client: ${booking.client_name}
-Contact: ${booking.contact}
-${booking.client_email ? `Email: ${booking.client_email}` : ''}
-${vehicle ? `Vehicle: ${vehicle.reg_number} (${vehicle.make} ${vehicle.model})` : ''}
-${booking.booking_type ? `Type: ${booking.booking_type}` : ''}
-${booking.notes ? `\nNotes:\n${booking.notes}` : ''}
-    `.trim();
+export const bookingSyncService = {
+  buildStartEvent(booking: Booking, vehicle?: Vehicle): GoogleCalendarEvent {
+    const startDt = new Date(booking.start_datetime);
+    const endDt = new Date(startDt.getTime() + 60 * 1000);
+    return {
+      summary: `START: ${booking.client_name} - ${vehicle?.reg_number ?? 'Vehicle'}`,
+      description: buildBookingDescription(booking, vehicle),
+      start: { dateTime: startDt.toISOString(), timeZone: 'Africa/Nairobi' },
+      end:   { dateTime: endDt.toISOString(),   timeZone: 'Africa/Nairobi' },
+      colorId: '9',
+      reminders: {
+        useDefault: false,
+        overrides: [
+          { method: 'popup', minutes: 4320 },
+          { method: 'popup', minutes: 1440 },
+          { method: 'popup', minutes: 120  },
+        ],
+      },
+    };
+  },
+
+  buildEndEvent(booking: Booking, vehicle?: Vehicle): GoogleCalendarEvent {
+    const endDt = new Date(booking.end_datetime);
+    const eventEndDt = new Date(endDt.getTime() + 60 * 1000);
+
+    const overrides: GoogleCalendarReminder[] = [
+      { method: 'popup', minutes: 1440 },
+    ];
+
+    // Compute 10 AM Nairobi time on return day (UTC+3, no DST)
+    const NAIROBI_OFFSET_MS = 3 * 60 * 60 * 1000;
+    const localEndMs = endDt.getTime() + NAIROBI_OFFSET_MS;
+    const localMidnightMs = Math.floor(localEndMs / 86400000) * 86400000;
+    const utc10amMs = localMidnightMs + (10 * 60 * 60 * 1000) - NAIROBI_OFFSET_MS;
+
+    if (endDt.getTime() > utc10amMs) {
+      const minsFrom10am = Math.round((endDt.getTime() - utc10amMs) / 60000);
+      overrides.push({ method: 'popup', minutes: minsFrom10am });
+    }
 
     return {
-      summary: title,
-      description,
-      start: {
-        dateTime: new Date(booking.start_datetime).toISOString(),
-        timeZone: 'Africa/Nairobi',
+      summary: `END: ${booking.client_name} - ${vehicle?.reg_number ?? 'Vehicle'}`,
+      description: buildBookingDescription(booking, vehicle),
+      start: { dateTime: endDt.toISOString(),      timeZone: 'Africa/Nairobi' },
+      end:   { dateTime: eventEndDt.toISOString(), timeZone: 'Africa/Nairobi' },
+      colorId: '6',
+      reminders: {
+        useDefault: false,
+        overrides,
       },
-      end: {
-        dateTime: new Date(booking.end_datetime).toISOString(),
-        timeZone: 'Africa/Nairobi',
-      },
-      colorId: '9',
     };
   },
 
@@ -233,63 +276,51 @@ ${booking.notes ? `\nNotes:\n${booking.notes}` : ''}
   ): Promise<void> {
     try {
       const config = await companyCalendarService.getConfig();
-
-      if (!config || !config.google_sync_enabled) {
-        return;
-      }
+      if (!config || !config.google_sync_enabled) return;
 
       const accessToken = await companyCalendarService.getValidAccessToken();
       let calendarId = config.google_calendar_id;
 
       if (!calendarId) {
         calendarId = await googleCalendarService.getPrimaryCalendarId(accessToken);
-        await companyCalendarService.updateConfig({
-          google_calendar_id: calendarId,
-        });
+        await companyCalendarService.updateConfig({ google_calendar_id: calendarId });
       }
 
-      const event = this.buildEventFromBooking(booking, vehicle);
+      const startEvent = this.buildStartEvent(booking, vehicle);
+      const endEvent   = this.buildEndEvent(booking, vehicle);
 
-      if (booking.google_event_id) {
-        try {
-          await googleCalendarService.updateEvent(
-            accessToken,
-            calendarId,
-            booking.google_event_id,
-            event
-          );
-        } catch (updateError: any) {
-          // Event not found in this calendar (e.g. calendar was switched) — create it instead
-          if (updateError.message?.includes('Not Found') || updateError.message?.includes('404')) {
-            const createdEvent = await googleCalendarService.createEvent(
-              accessToken,
-              calendarId,
-              event
-            );
-            await supabase
-              .from('bookings')
-              .update({ google_event_id: createdEvent.id })
-              .eq('id', booking.id);
-          } else {
-            throw updateError;
+      const syncOneEvent = async (
+        eventPayload: GoogleCalendarEvent,
+        existingId: string | undefined
+      ): Promise<string> => {
+        if (existingId) {
+          try {
+            await googleCalendarService.updateEvent(accessToken, calendarId!, existingId, eventPayload);
+            return existingId;
+          } catch (err: any) {
+            if (err.message?.includes('Not Found') || err.message?.includes('404')) {
+              const created = await googleCalendarService.createEvent(accessToken, calendarId!, eventPayload);
+              return created.id;
+            }
+            throw err;
           }
+        } else {
+          const created = await googleCalendarService.createEvent(accessToken, calendarId!, eventPayload);
+          return created.id;
         }
-      } else {
-        const createdEvent = await googleCalendarService.createEvent(
-          accessToken,
-          calendarId,
-          event
-        );
+      };
 
-        await supabase
-          .from('bookings')
-          .update({ google_event_id: createdEvent.id })
-          .eq('id', booking.id);
+      const startId = await syncOneEvent(startEvent, booking.google_event_id);
+      const endId   = await syncOneEvent(endEvent,   booking.google_event_id_end);
+
+      const updates: Record<string, string> = {};
+      if (startId !== booking.google_event_id)     updates.google_event_id     = startId;
+      if (endId   !== booking.google_event_id_end) updates.google_event_id_end = endId;
+      if (Object.keys(updates).length > 0) {
+        await supabase.from('bookings').update(updates).eq('id', booking.id);
       }
 
-      await companyCalendarService.updateConfig({
-        google_last_sync_at: new Date().toISOString(),
-      });
+      await companyCalendarService.updateConfig({ google_last_sync_at: new Date().toISOString() });
     } catch (error) {
       console.error('Failed to sync booking to Google Calendar:', error);
       throw error;
@@ -299,27 +330,21 @@ ${booking.notes ? `\nNotes:\n${booking.notes}` : ''}
   async deleteBookingFromGoogle(booking: Booking): Promise<void> {
     try {
       const config = await companyCalendarService.getConfig();
-
-      if (!config || !config.google_sync_enabled || !booking.google_event_id) {
-        return;
-      }
+      if (!config || !config.google_sync_enabled) return;
+      if (!booking.google_event_id && !booking.google_event_id_end) return;
 
       const accessToken = await companyCalendarService.getValidAccessToken();
       const calendarId = config.google_calendar_id;
+      if (!calendarId) return;
 
-      if (!calendarId) {
-        return;
+      if (booking.google_event_id) {
+        await googleCalendarService.deleteEvent(accessToken, calendarId, booking.google_event_id);
+      }
+      if (booking.google_event_id_end) {
+        await googleCalendarService.deleteEvent(accessToken, calendarId, booking.google_event_id_end);
       }
 
-      await googleCalendarService.deleteEvent(
-        accessToken,
-        calendarId,
-        booking.google_event_id
-      );
-
-      await companyCalendarService.updateConfig({
-        google_last_sync_at: new Date().toISOString(),
-      });
+      await companyCalendarService.updateConfig({ google_last_sync_at: new Date().toISOString() });
     } catch (error) {
       console.error('Failed to delete booking from Google Calendar:', error);
       throw error;
