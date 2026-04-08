@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { categoryService, vehicleService, bookingService } from '../services/api';
-import { autoSyncToCompanyCalendar } from '../services/calendar-service';
+import { autoSyncToCompanyCalendar, companyCalendarService } from '../services/calendar-service';
+import { exchangeCodeForTokens } from '../lib/google-oauth';
 import { VehicleCategory, Vehicle, Booking } from '../types/database';
 import { showToast } from '../lib/toast';
 import { ChevronLeft, ChevronRight, Printer, Download, Filter, X, RefreshCw } from 'lucide-react';
@@ -33,6 +34,7 @@ interface DayBooking extends Booking {
 export function CalendarPage() {
   const { branchId, userRole, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [categories, setCategories] = useState<VehicleCategory[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -69,6 +71,37 @@ export function CalendarPage() {
     }
   };
 
+
+  // Handle OAuth redirect: /calendar?oauth_code=... or /calendar?oauth_error=...
+  useEffect(() => {
+    const oauthCode = searchParams.get('oauth_code');
+    const oauthError = searchParams.get('oauth_error');
+
+    if (oauthError) {
+      showToast(decodeURIComponent(oauthError), 'error');
+      navigate('/calendar', { replace: true });
+      return;
+    }
+
+    if (!oauthCode) return;
+
+    // Remove the param from the URL immediately so a page refresh doesn't re-process
+    navigate('/calendar', { replace: true });
+
+    (async () => {
+      try {
+        const tokens = await exchangeCodeForTokens(oauthCode);
+        await companyCalendarService.saveGoogleTokens(
+          tokens.access_token,
+          tokens.refresh_token || '',
+          tokens.expires_in
+        );
+        showToast('Google Calendar connected successfully!', 'success');
+      } catch (err: any) {
+        showToast(err.message || 'Failed to connect Google Calendar', 'error');
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
