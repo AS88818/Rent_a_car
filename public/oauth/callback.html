@@ -115,9 +115,9 @@
           setTimeout(() => window.close(), 1500);
         }, 5000);
       } else {
-        // Not a popup - redirect to the OAuth callback React route which handles token exchange
+        // Not a popup - redirect back to calendar page with the code
         message.textContent = 'Redirecting to complete setup...';
-        window.location.href = '/oauth/callback?code=' + encodeURIComponent(code);
+        window.location.href = '/calendar?oauth_code=' + encodeURIComponent(code);
       }
     })();
   </script>

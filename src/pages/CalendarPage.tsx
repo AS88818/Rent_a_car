@@ -32,9 +32,10 @@ interface DayBooking extends Booking {
 }
 
 export function CalendarPage() {
-  const { branchId, userRole, user } = useAuth();
+  const { branchId, userRole, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [pendingOauthCode, setPendingOauthCode] = useState<string | null>(null);
   const [categories, setCategories] = useState<VehicleCategory[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -72,7 +73,7 @@ export function CalendarPage() {
   };
 
 
-  // Handle OAuth redirect: /calendar?oauth_code=... or /calendar?oauth_error=...
+  // Step 1: Capture oauth_code from URL and clear it immediately (runs once on mount)
   useEffect(() => {
     const oauthCode = searchParams.get('oauth_code');
     const oauthError = searchParams.get('oauth_error');
@@ -83,25 +84,33 @@ export function CalendarPage() {
       return;
     }
 
-    if (!oauthCode) return;
+    if (oauthCode) {
+      setPendingOauthCode(oauthCode);
+      navigate('/calendar', { replace: true });
+    }
+  }, []);
 
-    // Remove the param from the URL immediately so a page refresh doesn't re-process
-    navigate('/calendar', { replace: true });
+  // Step 2: Exchange the code once auth has finished loading
+  useEffect(() => {
+    if (!pendingOauthCode || authLoading) return;
 
     (async () => {
       try {
-        const tokens = await exchangeCodeForTokens(oauthCode);
+        const tokens = await exchangeCodeForTokens(pendingOauthCode);
         await companyCalendarService.saveGoogleTokens(
           tokens.access_token,
           tokens.refresh_token || '',
           tokens.expires_in
         );
-        showToast('Google Calendar connected successfully!', 'success');
+        setPendingOauthCode(null);
+        showToast('Google Calendar connected! Go to Company Settings to verify.', 'success');
       } catch (err: any) {
+        console.error('Google Calendar OAuth error:', err);
+        setPendingOauthCode(null);
         showToast(err.message || 'Failed to connect Google Calendar', 'error');
       }
     })();
-  }, []);
+  }, [pendingOauthCode, authLoading]);
 
   useEffect(() => {
     const fetchData = async () => {
