@@ -245,22 +245,30 @@ export function SnagFormModal({
                 <div className="space-y-4">
                   {issues.map((issue, index) => (
                     <div key={index} className="p-4 border border-gray-200 rounded-lg space-y-3">
-                      <div className="flex gap-2 items-start">
-                        <div className="flex-1">
-                          <input
-                            type="text"
-                            placeholder={`Issue ${index + 1}`}
-                            value={issue.description}
-                            onChange={e => handleIssueChange(index, 'description', e.target.value)}
-                            disabled={submitting}
-                            className="w-full px-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                          />
-                        </div>
+                      <div>
+                        <textarea
+                          placeholder={`Issue ${index + 1}`}
+                          value={issue.description}
+                          onChange={e => handleIssueChange(index, 'description', e.target.value)}
+                          disabled={submitting}
+                          rows={4}
+                          className="w-full px-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed resize-none md:hidden"
+                        />
+                        <input
+                          type="text"
+                          placeholder={`Issue ${index + 1}`}
+                          value={issue.description}
+                          onChange={e => handleIssueChange(index, 'description', e.target.value)}
+                          disabled={submitting}
+                          className="w-full px-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed hidden md:block flex-1"
+                        />
+                      </div>
+                      <div className="flex flex-col md:flex-row gap-2 md:items-start md:gap-2">
                         <select
                           value={issue.priority}
                           onChange={e => handleIssueChange(index, 'priority', e.target.value)}
                           disabled={submitting}
-                          className="w-40 px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full md:w-40 px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <option value="">No Priority</option>
                           <option value="Dangerous">Dangerous</option>
@@ -273,9 +281,10 @@ export function SnagFormModal({
                             type="button"
                             onClick={() => handleRemoveIssue(index)}
                             disabled={submitting}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full md:w-auto px-3 py-2 text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 md:border-0 md:p-2"
                           >
-                            <Trash2 className="w-5 h-5" />
+                            <span className="md:hidden">Delete Issue</span>
+                            <Trash2 className="w-5 h-5 hidden md:block" />
                           </button>
                         )}
                       </div>
