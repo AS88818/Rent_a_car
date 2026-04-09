@@ -65,6 +65,13 @@ export function SnagResolutionModal({
     }
   }, [createMaintenanceLog, assignedToUserId]);
 
+  // Mirror the top-level "Work Checked By" into the maintenance log section
+  useEffect(() => {
+    if (createMaintenanceLog && checkedByUserId && !maintenanceCheckedByUserId) {
+      setMaintenanceCheckedByUserId(checkedByUserId);
+    }
+  }, [createMaintenanceLog, checkedByUserId]);
+
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !submitting) {
