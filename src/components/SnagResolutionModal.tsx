@@ -46,7 +46,7 @@ export function SnagResolutionModal({
   const [serviceDate, setServiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [mileage, setMileage] = useState('');
   const [workDone, setWorkDone] = useState('');
-  const [performedBy, setPerformedBy] = useState('');
+  const [performedByUserId, setPerformedByUserId] = useState('');
   const [maintenanceCheckedByUserId, setMaintenanceCheckedByUserId] = useState('');
   const [maintenanceNotes, setMaintenanceNotes] = useState('');
   const [maintenancePhotoUrls, setMaintenancePhotoUrls] = useState<string[]>([]);
@@ -85,7 +85,7 @@ export function SnagResolutionModal({
     setServiceDate(new Date().toISOString().split('T')[0]);
     setMileage(currentMileage?.toString() || '');
     setWorkDone('');
-    setPerformedBy('');
+    setPerformedByUserId('');
     setMaintenanceCheckedByUserId('');
     setMaintenanceNotes('');
     setMaintenancePhotoUrls([]);
@@ -314,15 +314,18 @@ export function SnagResolutionModal({
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Performed By <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
-                      value={performedBy}
-                      onChange={e => setPerformedBy(e.target.value)}
+                    <select
+                      value={performedByUserId}
+                      onChange={e => setPerformedByUserId(e.target.value)}
                       required={createMaintenanceLog}
                       disabled={submitting}
-                      placeholder="Mechanic or service provider name"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 text-base"
-                    />
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 text-base bg-white"
+                    >
+                      <option value="">— Select mechanic or service provider —</option>
+                      {users.map(u => (
+                        <option key={u.id} value={u.id}>{u.full_name} ({u.role})</option>
+                      ))}
+                    </select>
                   </div>
 
                   {checkableUsers.length > 0 && (
