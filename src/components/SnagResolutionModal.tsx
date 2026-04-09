@@ -57,6 +57,14 @@ export function SnagResolutionModal({
     }
   }, [currentMileage]);
 
+  // When the maintenance log checkbox is first checked, pre-populate Performed By
+  // with whoever was selected as the resolver (for unassigned snags)
+  useEffect(() => {
+    if (createMaintenanceLog && assignedToUserId && !performedByUserId) {
+      setPerformedByUserId(assignedToUserId);
+    }
+  }, [createMaintenanceLog, assignedToUserId]);
+
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !submitting) {
@@ -109,12 +117,14 @@ export function SnagResolutionModal({
     };
 
     if (createMaintenanceLog && vehicleId && branchId) {
+      const performedByUser = users.find(u => u.id === performedByUserId);
       resolution.maintenanceLog = {
         vehicle_id: vehicleId,
         service_date: serviceDate,
         mileage: parseInt(mileage),
         work_done: workDone,
-        performed_by: performedBy,
+        performed_by: performedByUser?.full_name || '',
+        performed_by_user_id: performedByUserId || undefined,
         checked_by_user_id: maintenanceCheckedByUserId || undefined,
         notes: maintenanceNotes || undefined,
         photo_urls: maintenancePhotoUrls.length > 0 ? maintenancePhotoUrls : undefined,
