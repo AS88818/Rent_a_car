@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { bookingService, vehicleService, branchService, categoryService, bookingDocumentService } from '../services/api';
 import { Booking, Vehicle, Branch, VehicleCategory, BookingDocument } from '../types/database';
-import { checkInsuranceExpiryDuringBooking, checkLocationMismatch, formatBookingDate, formatBookingTime } from '../lib/utils';
+import { checkInsuranceExpiryDuringBooking, checkLocationMismatch, formatBookingDate, formatBookingTime, nowNaive } from '../lib/utils';
 import { Plus, X, Car, Calendar, MapPin, Phone, Search, RefreshCw, AlertCircle, AlertTriangle, User, ArrowUpDown } from 'lucide-react';
 import { showToast } from '../lib/toast';
 import { autoSyncToCompanyCalendar, autoDeleteFromCompanyCalendar } from '../services/calendar-service';
@@ -225,7 +225,7 @@ export function BookingListPage() {
   };
 
   const filteredBookings = bookings.filter(booking => {
-    const now = new Date();
+    const now = nowNaive();
     const endDate = new Date(booking.end_datetime);
     const startDate = new Date(booking.start_datetime);
 
@@ -520,7 +520,7 @@ export function BookingListPage() {
             booking.vehicle?.status
           );
           const daysUntilStart = Math.ceil(
-            (new Date(booking.start_datetime).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+            (new Date(booking.start_datetime).getTime() - nowNaive().getTime()) / (1000 * 60 * 60 * 24)
           );
 
           return (

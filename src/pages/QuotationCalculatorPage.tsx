@@ -6,6 +6,7 @@ import { CategoryPricing, SeasonRule, CategoryQuoteResult, Branch, PricingConfig
 import { showToast } from '../lib/toast';
 import { useAuth } from '../lib/auth-context';
 import { generateQuotePDFBase64, companySettingsToPDFInfo } from '../lib/pdf-utils';
+import { nowNaive } from '../lib/utils';
 import { useCompanySettings } from '../lib/company-settings-context';
 import { supabase } from '../lib/supabase';
 
@@ -311,7 +312,7 @@ export function QuotationCalculatorPage() {
           b => b.vehicle_id === vehicle.id && (b.status === 'Active' || b.status === 'Advance Payment Not Paid')
         );
 
-        const now = new Date();
+        const now = nowNaive();
         const isAvailable = !vehicleBookings.some(booking => {
           const bookingStart = new Date(booking.start_datetime);
           const bookingEnd = new Date(booking.end_datetime);

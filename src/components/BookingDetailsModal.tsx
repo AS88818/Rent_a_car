@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Calendar, MapPin, User, Phone, Mail, Car, AlertTriangle, FileText, Edit, Download, Eye, XCircle, History, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Booking, Vehicle, Branch, BookingDocument, BookingAmendment } from '../types/database';
-import { formatDate, formatBookingTime, checkInsuranceExpiryDuringBooking } from '../lib/utils';
+import { formatDate, formatBookingTime, checkInsuranceExpiryDuringBooking, nowNaive } from '../lib/utils';
 import { bookingDocumentService, bookingAmendmentService } from '../services/api';
 import { BookingDocumentUpload } from './BookingDocumentUpload';
 
@@ -93,7 +93,7 @@ export function BookingDetailsModal({
     vehicle?.status !== 'On Hire';
 
   const daysUntilStart = Math.ceil(
-    (new Date(booking.start_datetime).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+    (new Date(booking.start_datetime).getTime() - nowNaive().getTime()) / (1000 * 60 * 60 * 24)
   );
 
   const bookingType = booking.booking_type || 'self_drive';

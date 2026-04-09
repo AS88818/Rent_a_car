@@ -4,7 +4,7 @@ import { useAuth } from '../lib/auth-context';
 import { vehicleService, categoryService, branchService, imageService, bookingService } from '../services/api';
 import { Vehicle, VehicleCategory, Branch, VehicleImage, Booking } from '../types/database';
 import { Search, Car, Gauge, Plus, X, ArrowUpDown, RefreshCw, AlertTriangle } from 'lucide-react';
-import { daysUntilExpiry } from '../lib/utils';
+import { daysUntilExpiry, nowNaive } from '../lib/utils';
 import { showToast } from '../lib/toast';
 import { VehicleTypeBadge } from '../components/VehicleTypeBadge';
 
@@ -145,7 +145,7 @@ export function VehiclesPage() {
 
   const getComputedStatus = (vehicle: VehicleWithDetails): string => {
     if (vehicle.health_flag === 'Grounded' || vehicle.status === 'Grounded') return 'Unavailable';
-    const now = new Date();
+    const now = nowNaive();
     const isCurrentlyOnHire = bookings.some(b =>
       b.vehicle_id === vehicle.id &&
       (b.status === 'Active' || b.status === 'Advance Payment Not Paid') &&

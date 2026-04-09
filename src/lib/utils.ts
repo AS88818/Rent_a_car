@@ -31,7 +31,7 @@ export function checkBookingConflict(
     // An Active booking whose end date is already in the past cannot conflict
     // with future bookings — treat it as effectively over so it doesn't block
     // new reservations after its end date.
-    if (booking.status === 'Active' && existingEnd <= new Date()) return false;
+    if (booking.status === 'Active' && existingEnd <= nowNaive()) return false;
 
     return newStart < existingEnd && newEnd > existingStart;
   });
@@ -46,7 +46,7 @@ export function isVehicleAvailable(
   }
 
   const activeBookings = bookings.filter(b => b.status === 'Active');
-  const now = new Date();
+  const now = nowNaive();
 
   return !activeBookings.some(booking => {
     const start = new Date(booking.start_datetime);
@@ -65,8 +65,19 @@ export function getExpiryStatus(expiryDate: string): 'red' | 'orange' | 'green' 
   return 'green';
 }
 
+// The DB stores booking datetimes as Kenya local time with a misleading +00 offset
+// (e.g. "09:00:00+00" means "9 AM Kenya", not "9 AM UTC"). All naive datetime
+// values are therefore 3 hours ahead of their true UTC equivalent.
+//
+// Use nowNaive() anywhere you need to compare "right now" against a stored booking
+// datetime, so the offset cancels out correctly.
+export const KENYA_OFFSET_MS = 3 * 60 * 60 * 1000; // UTC+3, no DST
+
+export function nowNaive(): Date {
+  return new Date(Date.now() + KENYA_OFFSET_MS);
+}
+
 // Parse a booking datetime string as Kenya local time.
-// The DB stores times as naive UTC: "09:00:00+00" means "9 AM Kenya" (not 9 AM UTC).
 // Stripping the timezone suffix before parsing makes JS treat the value as local
 // time and display the stored digits as-is, regardless of the host timezone.
 export function parseNaive(isoString: string): Date {

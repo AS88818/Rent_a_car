@@ -44,7 +44,7 @@ import {
   AuthUser,
 } from '../types/database';
 import { showToast } from '../lib/toast';
-import { formatDate, daysUntilExpiry } from '../lib/utils';
+import { formatDate, daysUntilExpiry, nowNaive } from '../lib/utils';
 import { ActivityLogPanel } from '../components/ActivityLogPanel';
 import { HealthUpdateModal } from '../components/HealthUpdateModal';
 import { LocationUpdateModal } from '../components/LocationUpdateModal';
@@ -335,7 +335,7 @@ export function VehicleDetailsPage() {
     );
   }
 
-  const now = new Date();
+  const now = nowNaive();
 
   const currentAndUpcomingBookings = bookings
     .filter((b) => {

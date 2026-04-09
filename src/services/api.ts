@@ -29,7 +29,7 @@ import {
   BookingDeposit,
   VehicleDocument,
 } from '../types/database';
-import { checkBookingConflict, calculateVehicleHealth } from '../lib/utils';
+import { checkBookingConflict, calculateVehicleHealth, nowNaive } from '../lib/utils';
 
 export const vehicleService = {
   async getVehicles(branchId?: string, includeDrafts: boolean = false) {
@@ -225,7 +225,7 @@ export const vehicleService = {
       .from('bookings')
       .select('id', { count: 'exact', head: true })
       .eq('vehicle_id', id)
-      .gte('start_datetime', new Date().toISOString())
+      .gte('start_datetime', nowNaive().toISOString())
       .not('status', 'in', '("Cancelled","Completed")');
 
     if (futureError) throw futureError;
@@ -803,14 +803,14 @@ export const snagService = {
           b =>
             b.vehicle_id === vehicle.id &&
             b.status !== 'Cancelled' &&
-            new Date(b.start_datetime) > new Date()
+            new Date(b.start_datetime) > nowNaive()
         )
         .sort((a, b) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime());
 
       const next_booking = futureBookings[0];
       const days_to_next_booking = next_booking
         ? Math.ceil(
-            (new Date(next_booking.start_datetime).getTime() - new Date().getTime()) /
+            (new Date(next_booking.start_datetime).getTime() - nowNaive().getTime()) /
               (1000 * 60 * 60 * 24)
           )
         : undefined;

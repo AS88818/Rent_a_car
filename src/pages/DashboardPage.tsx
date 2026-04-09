@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { vehicleService, bookingService, snagService, branchService, categoryService, imageService, alertSnoozeService } from '../services/api';
 import { Vehicle, Booking, Snag, Branch, VehicleCategory, VehicleImage } from '../types/database';
-import { daysUntilExpiry, formatDate, checkInsuranceExpiryDuringBooking, checkLocationMismatch } from '../lib/utils';
+import { daysUntilExpiry, formatDate, checkInsuranceExpiryDuringBooking, checkLocationMismatch, nowNaive } from '../lib/utils';
 import {
   AlertCircle,
   TrendingUp,
@@ -258,7 +258,7 @@ export function DashboardPage() {
   const totalVehicles = businessVehicles.length;
 
   // Determine actual on-hire status by cross-referencing active bookings covering right now
-  const now = new Date();
+  const now = nowNaive();
   const currentlyOnHireIds = new Set(
     bookings
       .filter(b =>
@@ -854,7 +854,7 @@ export function DashboardPage() {
                   );
 
                   const daysUntilStart = Math.ceil(
-                    (new Date(booking.start_datetime).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+                    (new Date(booking.start_datetime).getTime() - nowNaive().getTime()) / (1000 * 60 * 60 * 24)
                   );
 
                   const bookingType = booking.booking_type || 'self_drive';
@@ -1025,7 +1025,7 @@ export function DashboardPage() {
               </thead>
               <tbody>
                 {vehiclesDueForService.map(vehicle => {
-                  const now = new Date();
+                  const now = nowNaive();
                   const vehicleBookings = activeBookings.filter(b => b.vehicle_id === vehicle.id);
                   const currentBooking = vehicleBookings.find(b => {
                     const start = new Date(b.start_datetime);
@@ -1097,7 +1097,7 @@ export function DashboardPage() {
               </thead>
               <tbody>
                 {insuranceExpiringSoon.map(vehicle => {
-                  const now = new Date();
+                  const now = nowNaive();
                   const vehicleBookings = activeBookings.filter(b => b.vehicle_id === vehicle.id);
                   const currentBooking = vehicleBookings.find(b => {
                     const start = new Date(b.start_datetime);

@@ -219,13 +219,17 @@ function buildBookingDescription(booking: Booking, vehicle?: Vehicle): string {
 
 export const bookingSyncService = {
   buildStartEvent(booking: Booking, vehicle?: Vehicle): GoogleCalendarEvent {
-    const startDt = new Date(booking.start_datetime);
-    const endDt = new Date(startDt.getTime() + 60 * 1000);
+    // The DB stores times as naive local (Kenya) time with a misleading +00 offset.
+    // Strip the offset so Google Calendar interprets the digits as Nairobi local
+    // time via the timeZone field — otherwise +00 is treated as UTC and events
+    // appear 3 hours late.
+    const naiveStart = String(booking.start_datetime).replace(/(\.\d+)?(Z|[+-]\d{2}(:\d{2})?)$/, '').replace(' ', 'T');
+    const naiveEnd = new Date(new Date(naiveStart + 'Z').getTime() + 60 * 1000).toISOString().slice(0, 19);
     return {
       summary: `START: ${booking.client_name} - ${vehicle?.reg_number ?? 'Vehicle'}`,
       description: buildBookingDescription(booking, vehicle),
-      start: { dateTime: startDt.toISOString(), timeZone: 'Africa/Nairobi' },
-      end:   { dateTime: endDt.toISOString(),   timeZone: 'Africa/Nairobi' },
+      start: { dateTime: naiveStart, timeZone: 'Africa/Nairobi' },
+      end:   { dateTime: naiveEnd,   timeZone: 'Africa/Nairobi' },
       colorId: '9',
       reminders: {
         useDefault: false,
@@ -239,29 +243,32 @@ export const bookingSyncService = {
   },
 
   buildEndEvent(booking: Booking, vehicle?: Vehicle): GoogleCalendarEvent {
-    const endDt = new Date(booking.end_datetime);
-    const eventEndDt = new Date(endDt.getTime() + 60 * 1000);
+    // Strip the misleading +00 offset — stored digits are Kenya local time.
+    const naiveEnd = String(booking.end_datetime).replace(/(\.\d+)?(Z|[+-]\d{2}(:\d{2})?)$/, '').replace(' ', 'T');
+    // Use the naive string parsed as "UTC" purely for millisecond arithmetic.
+    const endMs = new Date(naiveEnd + 'Z').getTime();
+    const naiveEventEnd = new Date(endMs + 60 * 1000).toISOString().slice(0, 19);
 
     const overrides: GoogleCalendarReminder[] = [
       { method: 'popup', minutes: 1440 },
     ];
 
-    // Compute 10 AM Nairobi time on return day (UTC+3, no DST)
-    const NAIROBI_OFFSET_MS = 3 * 60 * 60 * 1000;
-    const localEndMs = endDt.getTime() + NAIROBI_OFFSET_MS;
-    const localMidnightMs = Math.floor(localEndMs / 86400000) * 86400000;
-    const utc10amMs = localMidnightMs + (10 * 60 * 60 * 1000) - NAIROBI_OFFSET_MS;
+    // Compute 10 AM Kenya time on the return day.
+    // Because we treat the naive digits as UTC for arithmetic, "midnight" of the
+    // Kenya date and "10 AM" of that date are just offset multiples — no +3 needed.
+    const localMidnightMs = Math.floor(endMs / 86400000) * 86400000;
+    const naive10amMs = localMidnightMs + 10 * 60 * 60 * 1000;
 
-    if (endDt.getTime() > utc10amMs) {
-      const minsFrom10am = Math.round((endDt.getTime() - utc10amMs) / 60000);
+    if (endMs > naive10amMs) {
+      const minsFrom10am = Math.round((endMs - naive10amMs) / 60000);
       overrides.push({ method: 'popup', minutes: minsFrom10am });
     }
 
     return {
       summary: `END: ${booking.client_name} - ${vehicle?.reg_number ?? 'Vehicle'}`,
       description: buildBookingDescription(booking, vehicle),
-      start: { dateTime: endDt.toISOString(),      timeZone: 'Africa/Nairobi' },
-      end:   { dateTime: eventEndDt.toISOString(), timeZone: 'Africa/Nairobi' },
+      start: { dateTime: naiveEnd,      timeZone: 'Africa/Nairobi' },
+      end:   { dateTime: naiveEventEnd, timeZone: 'Africa/Nairobi' },
       colorId: '6',
       reminders: {
         useDefault: false,
