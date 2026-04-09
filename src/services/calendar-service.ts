@@ -220,16 +220,16 @@ function buildBookingDescription(booking: Booking, vehicle?: Vehicle): string {
 export const bookingSyncService = {
   buildStartEvent(booking: Booking, vehicle?: Vehicle): GoogleCalendarEvent {
     // The DB stores times as naive local (Kenya) time with a misleading +00 offset.
-    // Strip the offset so Google Calendar interprets the digits as Nairobi local
-    // time via the timeZone field — otherwise +00 is treated as UTC and events
-    // appear 3 hours late.
+    // Strip any existing offset, keep the digit-only local time, then append +03:00
+    // so the dateTime is unambiguous RFC3339: "09:00:00+03:00" = 9 AM Kenya.
     const naiveStart = String(booking.start_datetime).replace(/(\.\d+)?(Z|[+-]\d{2}(:\d{2})?)$/, '').replace(' ', 'T');
+    // Add 1 minute by treating digits as "UTC" for arithmetic, then re-apply +03:00.
     const naiveEnd = new Date(new Date(naiveStart + 'Z').getTime() + 60 * 1000).toISOString().slice(0, 19);
     return {
       summary: `START: ${booking.client_name} - ${vehicle?.reg_number ?? 'Vehicle'}`,
       description: buildBookingDescription(booking, vehicle),
-      start: { dateTime: naiveStart, timeZone: 'Africa/Nairobi' },
-      end:   { dateTime: naiveEnd,   timeZone: 'Africa/Nairobi' },
+      start: { dateTime: naiveStart + '+03:00', timeZone: 'Africa/Nairobi' },
+      end:   { dateTime: naiveEnd   + '+03:00', timeZone: 'Africa/Nairobi' },
       colorId: '9',
       reminders: {
         useDefault: false,
@@ -245,7 +245,8 @@ export const bookingSyncService = {
   buildEndEvent(booking: Booking, vehicle?: Vehicle): GoogleCalendarEvent {
     // Strip the misleading +00 offset — stored digits are Kenya local time.
     const naiveEnd = String(booking.end_datetime).replace(/(\.\d+)?(Z|[+-]\d{2}(:\d{2})?)$/, '').replace(' ', 'T');
-    // Use the naive string parsed as "UTC" purely for millisecond arithmetic.
+    // Use the naive string parsed as "UTC" purely for millisecond arithmetic,
+    // then re-apply the +03:00 Kenya offset for the RFC3339 string sent to Google.
     const endMs = new Date(naiveEnd + 'Z').getTime();
     const naiveEventEnd = new Date(endMs + 60 * 1000).toISOString().slice(0, 19);
 
@@ -253,9 +254,7 @@ export const bookingSyncService = {
       { method: 'popup', minutes: 1440 },
     ];
 
-    // Compute 10 AM Kenya time on the return day.
-    // Because we treat the naive digits as UTC for arithmetic, "midnight" of the
-    // Kenya date and "10 AM" of that date are just offset multiples — no +3 needed.
+    // Compute 10 AM Kenya time on the return day (treating naive digits as UTC).
     const localMidnightMs = Math.floor(endMs / 86400000) * 86400000;
     const naive10amMs = localMidnightMs + 10 * 60 * 60 * 1000;
 
@@ -267,8 +266,8 @@ export const bookingSyncService = {
     return {
       summary: `END: ${booking.client_name} - ${vehicle?.reg_number ?? 'Vehicle'}`,
       description: buildBookingDescription(booking, vehicle),
-      start: { dateTime: naiveEnd,      timeZone: 'Africa/Nairobi' },
-      end:   { dateTime: naiveEventEnd, timeZone: 'Africa/Nairobi' },
+      start: { dateTime: naiveEnd      + '+03:00', timeZone: 'Africa/Nairobi' },
+      end:   { dateTime: naiveEventEnd + '+03:00', timeZone: 'Africa/Nairobi' },
       colorId: '6',
       reminders: {
         useDefault: false,
