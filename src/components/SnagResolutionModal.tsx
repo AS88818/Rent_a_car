@@ -57,13 +57,15 @@ export function SnagResolutionModal({
     }
   }, [currentMileage]);
 
-  // When the maintenance log checkbox is first checked, pre-populate Performed By
-  // with whoever was selected as the resolver (for unassigned snags)
+  // When the maintenance log checkbox is first checked, pre-populate Performed By:
+  // - for unassigned snags: use whoever was selected as the resolver
+  // - for already-assigned snags: use the existing assignee
   useEffect(() => {
-    if (createMaintenanceLog && assignedToUserId && !performedByUserId) {
-      setPerformedByUserId(assignedToUserId);
+    if (createMaintenanceLog && !performedByUserId) {
+      const prefillUserId = assignedToUserId || snag?.assigned_to;
+      if (prefillUserId) setPerformedByUserId(prefillUserId);
     }
-  }, [createMaintenanceLog, assignedToUserId]);
+  }, [createMaintenanceLog, assignedToUserId, snag?.assigned_to]);
 
   // Mirror the top-level "Work Checked By" into the maintenance log section
   useEffect(() => {
