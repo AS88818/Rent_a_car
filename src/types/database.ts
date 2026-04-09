@@ -311,6 +311,7 @@ export type NotificationPriority = 'urgent' | 'warning' | 'info';
 export interface NotificationMetadata {
   vehicle_id?: string;
   vehicle_reg?: string;
+  snag_id?: string;
   booking_id?: string;
   client_name?: string;
   start_datetime?: string;

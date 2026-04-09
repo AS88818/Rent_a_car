@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { bookingService, vehicleService, branchService, categoryService } from '../services/api';
 import { Booking, Vehicle, Branch, VehicleCategory } from '../types/database';
@@ -11,6 +12,9 @@ import { BookingFormModal } from '../components/BookingFormModal';
 
 export function BookingsPage() {
   const { branchId, userRole, user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const urlBookingId = searchParams.get('booking');
+  const highlightRef = useRef<HTMLDivElement>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -47,6 +51,12 @@ export function BookingsPage() {
 
     fetchData();
   }, [branchId]);
+
+  useEffect(() => {
+    if (urlBookingId && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [urlBookingId, highlightRef.current]);
 
   const handleSubmitBooking = async (bookingData: {
     vehicle_id: string;
@@ -241,7 +251,11 @@ export function BookingsPage() {
         {filteredBookings.map(booking => {
           const vehicle = vehicles.find(v => v.id === booking.vehicle_id);
           return (
-            <div key={booking.id} className="bg-white rounded-lg shadow p-4">
+            <div
+              key={booking.id}
+              ref={booking.id === urlBookingId ? highlightRef : null}
+              className={`bg-white rounded-lg shadow p-4 ${booking.id === urlBookingId ? 'ring-2 ring-blue-400 bg-blue-50' : ''}`}
+            >
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">{booking.client_name}</h3>

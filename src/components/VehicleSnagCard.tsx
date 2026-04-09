@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronUp, AlertTriangle, Wrench, Calendar } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { VehicleWithSnagCount, Snag, AuthUser } from '../types/database';
 import { formatDate, getPriorityColor } from '../lib/utils';
@@ -14,6 +14,8 @@ interface VehicleSnagCardProps {
   showClosedSnags?: boolean;
   userRole?: string | null;
   users?: AuthUser[];
+  highlightSnagId?: string;
+  defaultExpanded?: boolean;
 }
 
 export function VehicleSnagCard({
@@ -26,8 +28,17 @@ export function VehicleSnagCard({
   showClosedSnags = false,
   userRole,
   users = [],
+  highlightSnagId,
+  defaultExpanded = false,
 }: VehicleSnagCardProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const highlightRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (highlightSnagId && expanded && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [highlightSnagId, expanded]);
   const navigate = useNavigate();
 
   const getHealthBadgeColor = (health: string) => {
@@ -135,7 +146,12 @@ export function VehicleSnagCard({
             {vehicleSnags.map(snag => (
               <div
                 key={snag.id}
-                className="border border-gray-200 rounded-lg p-3 hover:border-gray-300 transition-colors"
+                ref={snag.id === highlightSnagId ? highlightRef : null}
+                className={`border rounded-lg p-3 transition-colors ${
+                  snag.id === highlightSnagId
+                    ? 'border-blue-400 bg-blue-50 ring-2 ring-blue-300'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1">

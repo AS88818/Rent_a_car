@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { snagService, userService, vehicleService, snagAssignmentService, snagResolutionService } from '../services/api';
 import { Snag, VehicleWithSnagCount, AuthUser } from '../types/database';
@@ -21,6 +22,9 @@ type SortOption =
 
 export function SnagsPage() {
   const { user, branchId, userRole } = useAuth();
+  const [searchParams] = useSearchParams();
+  const urlVehicleId = searchParams.get('vehicle');
+  const urlSnagId = searchParams.get('snag');
   const [vehicles, setVehicles] = useState<VehicleWithSnagCount[]>([]);
   const [snags, setSnags] = useState<Snag[]>([]);
   const [users, setUsers] = useState<AuthUser[]>([]);
@@ -62,6 +66,12 @@ export function SnagsPage() {
       setVehicles(vehiclesData);
       setSnags(snagsData);
       setUsers(usersData);
+
+      // If navigating from a notification, pre-filter to the relevant vehicle
+      if (urlVehicleId) {
+        setFilterVehicle(urlVehicleId);
+        setShowOnlyWithSnags(false);
+      }
     } catch (error: any) {
       console.error('Error fetching data:', error);
       showToast(error.message || 'Failed to fetch data', 'error');
@@ -413,6 +423,8 @@ export function SnagsPage() {
             showClosedSnags={showClosedSnags}
             userRole={userRole}
             users={users}
+            highlightSnagId={urlSnagId || undefined}
+            defaultExpanded={!!urlSnagId && vehicle.id === urlVehicleId}
           />
         ))}
       </div>
