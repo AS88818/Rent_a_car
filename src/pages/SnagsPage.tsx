@@ -463,7 +463,7 @@ export function SnagsPage() {
         onSubmit={handleResolveSnag}
         snag={resolveSnag}
         vehicleId={resolveSnag?.vehicle_id}
-        branchId={branchId || undefined}
+        branchId={branchId || resolveSnag?.branch_id || undefined}
         submitting={submitting}
         users={users}
         currentUserId={user?.id}
