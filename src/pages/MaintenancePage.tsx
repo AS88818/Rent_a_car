@@ -28,6 +28,7 @@ export function MaintenancePage() {
   const [logs, setLogs] = useState<MaintenanceLog[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [mechanics, setMechanics] = useState<AuthUser[]>([]);
+  const [allUsers, setAllUsers] = useState<AuthUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -64,6 +65,7 @@ export function MaintenancePage() {
           // Also show all mechanics for mechanics role
           const userBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
           const usersData = await userService.getUsers(userBranchFilter);
+          setAllUsers(usersData);
           const mechanicsOnly = usersData.filter(u => {
             const isActive = u.status === 'active' || !u.status;
             const isMechanic = u.role === 'mechanic';
@@ -102,6 +104,7 @@ export function MaintenancePage() {
 
       const userBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
       const usersData = await userService.getUsers(userBranchFilter);
+      setAllUsers(usersData);
       const mechanicsOnly = usersData.filter(u => {
         const isActive = u.status === 'active' || !u.status;
         const isMechanic = u.role === 'mechanic';
@@ -759,7 +762,7 @@ export function MaintenancePage() {
                       <span className="text-gray-600">Checked By:</span>
                       <p className="font-medium text-gray-900">
                         {(() => {
-                          const checker = mechanics.find(m => m.id === log.checked_by_user_id);
+                          const checker = allUsers.find(m => m.id === log.checked_by_user_id);
                           return checker ? checker.full_name : 'Unknown';
                         })()}
                       </p>
@@ -842,7 +845,7 @@ export function MaintenancePage() {
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Work Checked By</h4>
                   <p className="text-gray-900">
                     {(() => {
-                      const checker = mechanics.find(m => m.id === selectedLog.checked_by_user_id);
+                      const checker = allUsers.find(m => m.id === selectedLog.checked_by_user_id);
                       return checker ? checker.full_name : 'Unknown';
                     })()}
                   </p>
