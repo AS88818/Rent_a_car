@@ -494,7 +494,13 @@ export function BookingCreatePage() {
                       onChange={(e) => {
                         const date = e.target.value;
                         const time = formData.start_datetime.split('T')[1] || '09:00';
-                        setFormData({ ...formData, start_datetime: `${date}T${time}` });
+                        const endDate = formData.end_datetime.split('T')[0];
+                        const endTime = formData.end_datetime.split('T')[1] || '18:00';
+                        // Snap end date to start date if end is empty or before new start
+                        const newEnd = !endDate || endDate < date
+                          ? `${date}T${endTime}`
+                          : formData.end_datetime;
+                        setFormData({ ...formData, start_datetime: `${date}T${time}`, end_datetime: newEnd });
                         validateDateTime();
                       }}
                       className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -557,6 +563,7 @@ export function BookingCreatePage() {
                     <input
                       type="date"
                       value={formData.end_datetime.split('T')[0] || ''}
+                      min={formData.start_datetime.split('T')[0] || ''}
                       onChange={(e) => {
                         const date = e.target.value;
                         const time = formData.end_datetime.split('T')[1] || '18:00';

@@ -309,7 +309,12 @@ export function BookingFormModal({
                         onChange={e => {
                           const date = e.target.value;
                           const time = dateData.start_datetime.split('T')[1] || '09:00';
-                          setDateData({ ...dateData, start_datetime: `${date}T${time}` });
+                          const endDate = dateData.end_datetime.split('T')[0];
+                          const endTime = dateData.end_datetime.split('T')[1] || '18:00';
+                          const newEnd = !endDate || endDate < date
+                            ? `${date}T${endTime}`
+                            : dateData.end_datetime;
+                          setDateData({ ...dateData, start_datetime: `${date}T${time}`, end_datetime: newEnd });
                         }}
                         required
                         disabled={submitting}
@@ -371,6 +376,7 @@ export function BookingFormModal({
                       <input
                         type="date"
                         value={dateData.end_datetime.split('T')[0] || ''}
+                        min={dateData.start_datetime.split('T')[0] || ''}
                         onChange={e => {
                           const date = e.target.value;
                           const time = dateData.end_datetime.split('T')[1] || '18:00';
