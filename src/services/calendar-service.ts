@@ -217,6 +217,14 @@ function buildBookingDescription(booking: Booking, vehicle?: Vehicle): string {
   ].filter(Boolean).join('\n');
 }
 
+function locationAbbr(location: string | undefined | null): string {
+  if (!location) return '';
+  const l = location.toLowerCase();
+  if (l.includes('nanyuki')) return 'NYK';
+  if (l.includes('nairobi')) return 'NRB';
+  return location;
+}
+
 export const bookingSyncService = {
   buildStartEvent(booking: Booking, vehicle?: Vehicle): GoogleCalendarEvent {
     // The DB stores times as naive local (Kenya) time with a misleading +00 offset.
@@ -226,7 +234,7 @@ export const bookingSyncService = {
     // Add 1 minute by treating digits as "UTC" for arithmetic, then re-apply +03:00.
     const naiveEnd = new Date(new Date(naiveStart + 'Z').getTime() + 60 * 1000).toISOString().slice(0, 19);
     return {
-      summary: `START: ${booking.client_name} - ${vehicle?.reg_number ?? 'Vehicle'}`,
+      summary: `START: ${booking.client_name} - ${vehicle?.reg_number ?? 'Vehicle'} [${locationAbbr(booking.start_location)} → ${locationAbbr(booking.end_location)}]`,
       description: buildBookingDescription(booking, vehicle),
       start: { dateTime: naiveStart + '+03:00', timeZone: 'Africa/Nairobi' },
       end:   { dateTime: naiveEnd   + '+03:00', timeZone: 'Africa/Nairobi' },
@@ -264,7 +272,7 @@ export const bookingSyncService = {
     }
 
     return {
-      summary: `END: ${booking.client_name} - ${vehicle?.reg_number ?? 'Vehicle'}`,
+      summary: `END: ${booking.client_name} - ${vehicle?.reg_number ?? 'Vehicle'} [${locationAbbr(booking.start_location)} → ${locationAbbr(booking.end_location)}]`,
       description: buildBookingDescription(booking, vehicle),
       start: { dateTime: naiveEnd      + '+03:00', timeZone: 'Africa/Nairobi' },
       end:   { dateTime: naiveEventEnd + '+03:00', timeZone: 'Africa/Nairobi' },
