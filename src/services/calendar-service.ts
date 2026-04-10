@@ -131,6 +131,8 @@ export const googleCalendarService = {
       }
     );
 
+    console.log('[GCal] createEvent payload:', JSON.stringify(event, null, 2));
+
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error?.message || 'Failed to create calendar event');
@@ -156,6 +158,8 @@ export const googleCalendarService = {
         body: JSON.stringify(event),
       }
     );
+
+    console.log('[GCal] updateEvent payload:', JSON.stringify(event, null, 2));
 
     if (!response.ok) {
       const error = await response.json();
