@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../lib/auth-context';
-import { vehicleService, branchService, snagService } from '../services/api';
-import { Vehicle, Branch } from '../types/database';
+import { vehicleService, branchService, snagService, bookingService } from '../services/api';
+import { Vehicle, Branch, Booking } from '../types/database';
+import { nowNaive } from '../lib/utils';
 import { showToast } from '../lib/toast';
 import { Car, MapPin, Gauge, Heart, AlertTriangle, ArrowUpDown, Check, Loader2 } from 'lucide-react';
 import { SnagFormModal } from '../components/SnagFormModal';
@@ -13,6 +14,7 @@ export function QuickActionsPage() {
   const { branchId, user, userRole } = useAuth();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField>('reg_number');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -33,13 +35,15 @@ export function QuickActionsPage() {
       // Mechanics should see ALL vehicles across all branches
       const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
 
-      const [vehiclesData, branchesData] = await Promise.all([
+      const [vehiclesData, branchesData, bookingsData] = await Promise.all([
         vehicleService.getVehicles(vehicleBranchFilter),
         branchService.getBranches(),
+        bookingService.getBookings(vehicleBranchFilter),
       ]);
 
       setVehicles(vehiclesData.filter(v => !v.is_personal));
       setBranches(branchesData);
+      setBookings(bookingsData);
     } catch (error) {
       showToast('Failed to fetch data', 'error');
     } finally {
@@ -249,6 +253,17 @@ export function QuickActionsPage() {
     }
   };
 
+  const isVehicleOnHire = (vehicle: Vehicle): boolean => {
+    if (vehicle.status === 'On Hire') return true;
+    const now = nowNaive();
+    return bookings.some(b =>
+      b.vehicle_id === vehicle.id &&
+      (b.status === 'Active' || b.status === 'Advance Payment Not Paid') &&
+      new Date(b.start_datetime) <= now &&
+      new Date(b.end_datetime) >= now
+    );
+  };
+
   const getHealthColor = (healthFlag?: string) => {
     switch (healthFlag?.toLowerCase()) {
       case 'excellent':
@@ -405,7 +420,7 @@ export function QuickActionsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        {vehicle.status === 'On Hire' ? (
+                        {isVehicleOnHire(vehicle) ? (
                           <div className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm font-medium text-gray-400 cursor-not-allowed">
                             ON HIRE
                           </div>
