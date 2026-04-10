@@ -410,12 +410,19 @@ export function MaintenancePage() {
                       <label className="block text-xs font-medium text-gray-600 mb-1">
                         Description <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="text"
-                        placeholder={`Describe the work performed...`}
+                      <textarea
+                        placeholder="Describe the work performed..."
                         value={workItem.work_description}
                         onChange={e => handleWorkItemChange(index, 'work_description', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
+                        rows={4}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base resize-none md:hidden"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Describe the work performed..."
+                        value={workItem.work_description}
+                        onChange={e => handleWorkItemChange(index, 'work_description', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base hidden md:block"
                       />
                     </div>
                     <div>
