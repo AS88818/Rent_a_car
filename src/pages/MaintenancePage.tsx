@@ -406,39 +406,37 @@ export function MaintenancePage() {
                       )}
                     </div>
 
-                    <div className="flex gap-2 items-start">
-                      <div className="flex-1">
-                        <label className="block text-xs font-medium text-gray-600 mb-1">
-                          Description <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          placeholder={`Describe the work performed...`}
-                          value={workItem.work_description}
-                          onChange={e => handleWorkItemChange(index, 'work_description', e.target.value)}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
-                        <select
-                          value={workItem.work_category}
-                          onChange={e => handleWorkItemChange(index, 'work_category', e.target.value)}
-                          className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
-                        >
-                          <option value="">No Category</option>
-                          <option value="Accessories">Accessories</option>
-                          <option value="Body">Body</option>
-                          <option value="Cooling">Cooling</option>
-                          <option value="Electrical">Electrical</option>
-                          <option value="Engine / Fuel">Engine / Fuel</option>
-                          <option value="Gearbox">Gearbox</option>
-                          <option value="Service">Service</option>
-                          <option value="Steering">Steering</option>
-                          <option value="Suspension">Suspension</option>
-                          <option value="Wheels">Wheels</option>
-                        </select>
-                      </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Description <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder={`Describe the work performed...`}
+                        value={workItem.work_description}
+                        onChange={e => handleWorkItemChange(index, 'work_description', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
+                      <select
+                        value={workItem.work_category}
+                        onChange={e => handleWorkItemChange(index, 'work_category', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
+                      >
+                        <option value="">No Category</option>
+                        <option value="Accessories">Accessories</option>
+                        <option value="Body">Body</option>
+                        <option value="Cooling">Cooling</option>
+                        <option value="Electrical">Electrical</option>
+                        <option value="Engine / Fuel">Engine / Fuel</option>
+                        <option value="Gearbox">Gearbox</option>
+                        <option value="Service">Service</option>
+                        <option value="Steering">Steering</option>
+                        <option value="Suspension">Suspension</option>
+                        <option value="Wheels">Wheels</option>
+                      </select>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
