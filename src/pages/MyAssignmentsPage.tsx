@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../lib/auth-context';
-import { snagAssignmentService, snagService, userService } from '../services/api';
+import { snagAssignmentService, snagService, userService, maintenanceService, bookingService } from '../services/api';
 import { Snag, AuthUser } from '../types/database';
 import { showToast } from '../lib/toast';
-import { Calendar, AlertCircle, CheckCircle, RefreshCw, ChevronDown } from 'lucide-react';
+import { Calendar, AlertCircle, CheckCircle, RefreshCw, ChevronDown, Wrench, Car } from 'lucide-react';
 import { formatDate, getPriorityColor } from '../lib/utils';
 import { SnagResolutionModal } from '../components/SnagResolutionModal';
 import { AssignSnagModal } from '../components/AssignSnagModal';
@@ -29,10 +29,37 @@ interface Assignment {
   };
 }
 
+interface MaintenanceJob {
+  id: string;
+  vehicle_id: string;
+  service_date: string;
+  mileage: number;
+  work_done: string;
+  work_category?: string;
+  branch_id: string;
+  reg_number: string | null;
+}
+
+interface DrivingJob {
+  id: string;
+  booking_reference?: string;
+  vehicle_id: string;
+  client_name: string;
+  start_datetime: string;
+  end_datetime: string;
+  start_location: string;
+  end_location: string;
+  status: string;
+  booking_type?: string;
+  reg_number: string | null;
+}
+
 export function MyAssignmentsPage() {
   const { user, branchId, userRole } = useAuth();
   const isAdminOrManager = userRole === 'admin' || userRole === 'manager';
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [maintenanceJobs, setMaintenanceJobs] = useState<MaintenanceJob[]>([]);
+  const [drivingJobs, setDrivingJobs] = useState<DrivingJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [resolveSnag, setResolveSnag] = useState<Snag | null>(null);
@@ -41,10 +68,12 @@ export function MyAssignmentsPage() {
   const [reassigning, setReassigning] = useState(false);
   const [teamUsers, setTeamUsers] = useState<AuthUser[]>([]);
   const [viewingUserId, setViewingUserId] = useState<string>('');
+  const [viewingUserRole, setViewingUserRole] = useState<string>(userRole || '');
 
   useEffect(() => {
     if (user?.id) {
       setViewingUserId(user.id);
+      setViewingUserRole(userRole || '');
     }
   }, [user?.id]);
 
@@ -55,16 +84,22 @@ export function MyAssignmentsPage() {
   }, [user?.id]);
 
   useEffect(() => {
-    if (viewingUserId) fetchAssignments();
+    if (viewingUserId) fetchAll();
   }, [viewingUserId]);
 
-  const fetchAssignments = async () => {
+  const fetchAll = async () => {
     const targetUserId = viewingUserId || user?.id;
     if (!targetUserId) return;
 
     try {
-      const data = await snagAssignmentService.getAssignmentsByUser(targetUserId);
-      setAssignments(data);
+      const [assignmentsData, maintenanceData, drivingData] = await Promise.all([
+        snagAssignmentService.getAssignmentsByUser(targetUserId).catch(() => []),
+        maintenanceService.getMaintenanceLogsByUser(targetUserId).catch(() => []),
+        bookingService.getBookingsByChauffeur(targetUserId).catch(() => []),
+      ]);
+      setAssignments(assignmentsData as Assignment[]);
+      setMaintenanceJobs(maintenanceData as MaintenanceJob[]);
+      setDrivingJobs(drivingData as DrivingJob[]);
     } catch (error: any) {
       showToast(error.message || 'Failed to fetch assignments', 'error');
     } finally {
@@ -75,7 +110,7 @@ export function MyAssignmentsPage() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await fetchAssignments();
+      await fetchAll();
       showToast('Data refreshed', 'success');
     } catch (error) {
       showToast('Failed to refresh data', 'error');
@@ -122,7 +157,7 @@ export function MyAssignmentsPage() {
       }
 
       showToast('Snag resolved successfully', 'success');
-      fetchAssignments();
+      fetchAll();
     } catch (error: any) {
       showToast(error.message || 'Failed to resolve snag', 'error');
     } finally {
@@ -148,7 +183,7 @@ export function MyAssignmentsPage() {
       );
       showToast('Snag reassigned successfully', 'success');
       setReassignAssignment(null);
-      fetchAssignments();
+      fetchAll();
     } catch (error: any) {
       showToast(error.message || 'Failed to reassign snag', 'error');
     } finally {
@@ -161,12 +196,13 @@ export function MyAssignmentsPage() {
     return new Date(deadline) < new Date();
   };
 
-  const getDaysUntilDeadline = (deadline: string | null) => {
-    if (!deadline) return null;
-    const days = Math.ceil(
-      (new Date(deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-    );
-    return days;
+  const getDrivingJobStatus = (job: DrivingJob) => {
+    const now = new Date();
+    const start = new Date(job.start_datetime);
+    const end = new Date(job.end_datetime);
+    if (now >= start && now <= end) return 'Active';
+    if (now < start) return 'Upcoming';
+    return job.status;
   };
 
   if (loading) {
@@ -186,6 +222,9 @@ export function MyAssignmentsPage() {
 
   const overdueAssignments = assignments.filter(a => isOverdue(a.deadline));
   const upcomingAssignments = assignments.filter(a => !isOverdue(a.deadline));
+  const viewingName = teamUsers.find(u => u.id === viewingUserId)?.full_name || 'Team Member';
+  const isSelf = viewingUserId === user?.id;
+  const effectiveRole = isSelf ? (userRole || '') : (teamUsers.find(u => u.id === viewingUserId)?.role || '');
 
   return (
     <div className="p-4 md:p-8">
@@ -193,9 +232,7 @@ export function MyAssignmentsPage() {
         <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold text-gray-900">
-              {viewingUserId === user?.id
-                ? 'My Assignments'
-                : `${teamUsers.find(u => u.id === viewingUserId)?.full_name || 'Team Member'}'s Assignments`}
+              {isSelf ? 'My Assignments' : `${viewingName}'s Assignments`}
             </h1>
             <button
               onClick={handleRefresh}
@@ -211,7 +248,11 @@ export function MyAssignmentsPage() {
             <div className="relative">
               <select
                 value={viewingUserId}
-                onChange={e => setViewingUserId(e.target.value)}
+                onChange={e => {
+                  const selected = teamUsers.find(u => u.id === e.target.value);
+                  setViewingUserId(e.target.value || user?.id || '');
+                  setViewingUserRole(selected?.role || userRole || '');
+                }}
                 className="appearance-none pl-3 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
               >
                 <option value={user?.id}>My Assignments</option>
@@ -226,87 +267,143 @@ export function MyAssignmentsPage() {
           )}
         </div>
         <p className="text-gray-600">
-          {viewingUserId === user?.id ? 'Snags assigned to you' : 'Snags assigned to this team member'}
+          {isSelf ? 'Your snag assignments, maintenance jobs, and driving duties' : 'Assignments for this team member'}
         </p>
       </div>
 
-      <div className="grid gap-6 mb-6 md:grid-cols-3">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-blue-600" />
+      {/* Snag Assignments Section */}
+      <div className="mb-10">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <AlertCircle className="w-5 h-5 text-orange-500" />
+          Snag Assignments
+        </h2>
+
+        <div className="grid gap-6 mb-6 md:grid-cols-3">
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{assignments.length}</p>
+                <p className="text-sm text-gray-600">Total Assigned</p>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{assignments.length}</p>
-              <p className="text-sm text-gray-600">Total Assignments</p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <AlertCircle className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{overdueAssignments.length}</p>
+                <p className="text-sm text-gray-600">Overdue</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{upcomingAssignments.length}</p>
+                <p className="text-sm text-gray-600">On Track</p>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-              <AlertCircle className="w-6 h-6 text-red-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{overdueAssignments.length}</p>
-              <p className="text-sm text-gray-600">Overdue</p>
+        {overdueAssignments.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-red-600 mb-3 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
+              Overdue
+            </h3>
+            <div className="space-y-4">
+              {overdueAssignments.map(assignment => (
+                <AssignmentCard
+                  key={assignment.id}
+                  assignment={assignment}
+                  onResolve={setResolveSnag}
+                  onReassign={setReassignAssignment}
+                />
+              ))}
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{upcomingAssignments.length}</p>
-              <p className="text-sm text-gray-600">On Track</p>
+        {upcomingAssignments.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold text-gray-700 mb-3">Upcoming</h3>
+            <div className="space-y-4">
+              {upcomingAssignments.map(assignment => (
+                <AssignmentCard
+                  key={assignment.id}
+                  assignment={assignment}
+                  onResolve={setResolveSnag}
+                  onReassign={setReassignAssignment}
+                />
+              ))}
             </div>
           </div>
-        </div>
+        )}
+
+        {assignments.length === 0 && (
+          <div className="bg-white rounded-lg shadow p-6 text-center">
+            <CheckCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <p className="text-gray-500 text-sm">No snag assignments</p>
+          </div>
+        )}
       </div>
 
-      {overdueAssignments.length > 0 && (
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-red-600 mb-4 flex items-center gap-2">
-            <AlertCircle className="w-5 h-5" />
-            Overdue Assignments
+      {/* Maintenance Jobs Section */}
+      {(effectiveRole === 'mechanic' || effectiveRole === 'admin' || effectiveRole === 'manager' || maintenanceJobs.length > 0) && (
+        <div className="mb-10">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Wrench className="w-5 h-5 text-blue-600" />
+            Maintenance Jobs
+            <span className="ml-1 text-sm font-normal text-gray-500">(recent)</span>
           </h2>
-          <div className="space-y-4">
-            {overdueAssignments.map(assignment => (
-              <AssignmentCard
-                key={assignment.id}
-                assignment={assignment}
-                onResolve={setResolveSnag}
-                onReassign={setReassignAssignment}
-              />
-            ))}
-          </div>
+
+          {maintenanceJobs.length > 0 ? (
+            <div className="space-y-3">
+              {maintenanceJobs.map(job => (
+                <MaintenanceJobCard key={job.id} job={job} />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow p-6 text-center">
+              <Wrench className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p className="text-gray-500 text-sm">No maintenance jobs logged yet</p>
+            </div>
+          )}
         </div>
       )}
 
-      {upcomingAssignments.length > 0 && (
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Upcoming Assignments</h2>
-          <div className="space-y-4">
-            {upcomingAssignments.map(assignment => (
-              <AssignmentCard
-                key={assignment.id}
-                assignment={assignment}
-                onResolve={setResolveSnag}
-                onReassign={setReassignAssignment}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Driving Jobs Section */}
+      {(effectiveRole === 'driver' || effectiveRole === 'admin' || effectiveRole === 'manager' || drivingJobs.length > 0) && (
+        <div className="mb-10">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Car className="w-5 h-5 text-green-600" />
+            Driving Jobs
+            <span className="ml-1 text-sm font-normal text-gray-500">(active &amp; upcoming)</span>
+          </h2>
 
-      {assignments.length === 0 && (
-        <div className="bg-white rounded-lg shadow p-8 text-center">
-          <CheckCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-          <p className="text-gray-600">No assignments at the moment</p>
+          {drivingJobs.length > 0 ? (
+            <div className="space-y-3">
+              {drivingJobs.map(job => (
+                <DrivingJobCard key={job.id} job={job} getStatus={getDrivingJobStatus} />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow p-6 text-center">
+              <Car className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p className="text-gray-500 text-sm">No upcoming driving jobs</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -344,6 +441,8 @@ export function MyAssignmentsPage() {
     </div>
   );
 }
+
+// --- Snag Assignment Card ---
 
 interface AssignmentCardProps {
   assignment: Assignment;
@@ -431,6 +530,67 @@ function AssignmentCard({ assignment, onResolve, onReassign }: AssignmentCardPro
         >
           Reassign
         </button>
+      </div>
+    </div>
+  );
+}
+
+// --- Maintenance Job Card ---
+
+function MaintenanceJobCard({ job }: { job: MaintenanceJob }) {
+  return (
+    <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-400">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-sm font-semibold text-gray-900">{job.reg_number || 'Unknown vehicle'}</span>
+            {job.work_category && (
+              <span className="px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-700">
+                {job.work_category}
+              </span>
+            )}
+          </div>
+          <p className="text-gray-800 text-sm mb-1">{job.work_done}</p>
+          <div className="flex items-center gap-4 text-xs text-gray-500">
+            <span>Date: {formatDate(job.service_date)}</span>
+            <span>Mileage: {job.mileage.toLocaleString()} km</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Driving Job Card ---
+
+function DrivingJobCard({ job, getStatus }: { job: DrivingJob; getStatus: (job: DrivingJob) => string }) {
+  const status = getStatus(job);
+  const statusColors: Record<string, string> = {
+    Active: 'bg-green-100 text-green-700',
+    Upcoming: 'bg-blue-100 text-blue-700',
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-400">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-sm font-semibold text-gray-900">{job.reg_number || 'Unknown vehicle'}</span>
+            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${statusColors[status] || 'bg-gray-100 text-gray-600'}`}>
+              {status}
+            </span>
+            {job.booking_reference && (
+              <span className="text-xs text-gray-400">{job.booking_reference}</span>
+            )}
+          </div>
+          <p className="text-gray-800 text-sm mb-1">Client: {job.client_name}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-0.5 text-xs text-gray-500">
+            <span>Pickup: {job.start_location}</span>
+            <span>Drop-off: {job.end_location}</span>
+            <span>Start: {formatDate(job.start_datetime)}</span>
+            <span>End: {formatDate(job.end_datetime)}</span>
+          </div>
+        </div>
       </div>
     </div>
   );

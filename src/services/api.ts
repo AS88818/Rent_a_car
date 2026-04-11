@@ -280,6 +280,25 @@ export const bookingService = {
     return bookings as Booking[];
   },
 
+  async getBookingsByChauffeur(userId: string) {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select(`
+        *,
+        vehicles(reg_number),
+        branch_name:branches(branch_name)
+      `)
+      .eq('chauffeur_id', userId)
+      .not('status', 'in', '("Cancelled","Completed")')
+      .order('start_datetime', { ascending: true });
+    if (error) throw error;
+    return (data || []).map((b: any) => ({
+      ...b,
+      reg_number: b.vehicles?.reg_number || null,
+      branch_name: b.branch_name?.branch_name || null,
+    }));
+  },
+
   async getBookingsByVehicle(vehicleId: string) {
     const { data, error } = await supabase
       .from('bookings')
@@ -616,6 +635,23 @@ export const maintenanceService = {
     }
 
     return createdLog as MaintenanceLog;
+  },
+
+  async getMaintenanceLogsByUser(userId: string) {
+    const { data, error } = await supabase
+      .from('maintenance_logs')
+      .select(`
+        *,
+        vehicles(reg_number)
+      `)
+      .eq('performed_by_user_id', userId)
+      .order('service_date', { ascending: false })
+      .limit(30);
+    if (error) throw error;
+    return (data || []).map((log: any) => ({
+      ...log,
+      reg_number: log.vehicles?.reg_number || null,
+    }));
   },
 };
 
