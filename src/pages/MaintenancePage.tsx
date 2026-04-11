@@ -55,8 +55,8 @@ export function MaintenancePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Mechanics should see ALL vehicles across all branches
-        const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+        // Mechanics and managers should see ALL vehicles across all branches
+        const vehicleBranchFilter = (userRole === 'mechanic' || userRole === 'manager') ? undefined : (branchId || undefined);
 
         const vehiclesData = await vehicleService.getVehicles(vehicleBranchFilter);
         setVehicles(vehiclesData);
@@ -98,7 +98,7 @@ export function MaintenancePage() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+      const vehicleBranchFilter = (userRole === 'mechanic' || userRole === 'manager') ? undefined : (branchId || undefined);
       const vehiclesData = await vehicleService.getVehicles(vehicleBranchFilter);
       setVehicles(vehiclesData);
 

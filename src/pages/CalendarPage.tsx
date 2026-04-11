@@ -115,7 +115,7 @@ export function CalendarPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+        const vehicleBranchFilter = (userRole === 'mechanic' || userRole === 'manager') ? undefined : (branchId || undefined);
 
         const [categoriesData, vehiclesData, bookingsData, branchesData] = await Promise.all([
           categoryService.getCategories(),

@@ -32,8 +32,8 @@ export function QuickActionsPage() {
 
   const fetchData = async () => {
     try {
-      // Mechanics should see ALL vehicles across all branches
-      const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+      // Mechanics and managers should see ALL vehicles across all branches
+      const vehicleBranchFilter = (userRole === 'mechanic' || userRole === 'manager') ? undefined : (branchId || undefined);
 
       const [vehiclesData, branchesData, bookingsData] = await Promise.all([
         vehicleService.getVehicles(vehicleBranchFilter),

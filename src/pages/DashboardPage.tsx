@@ -101,12 +101,12 @@ export function DashboardPage() {
 
   const fetchData = async () => {
     try {
-      // Mechanics should see ALL snags across all branches (cross-branch access)
+      // Mechanics and managers should see ALL data across all branches
       // Other roles see only their branch
-      const snagBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+      const snagBranchFilter = (userRole === 'mechanic' || userRole === 'manager') ? undefined : (branchId || undefined);
 
-      const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
-      const bookingBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+      const vehicleBranchFilter = (userRole === 'mechanic' || userRole === 'manager') ? undefined : (branchId || undefined);
+      const bookingBranchFilter = (userRole === 'mechanic' || userRole === 'manager') ? undefined : (branchId || undefined);
 
       const [vehiclesData, bookingsData, snagsData, branchesData, categoriesData] = await Promise.all([
         vehicleService.getVehicles(vehicleBranchFilter),
