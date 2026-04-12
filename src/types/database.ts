@@ -232,6 +232,7 @@ export interface Snag {
     resolved_at: string;
     photo_urls?: string[];
   };
+  photo_urls?: string[];
   deleted_at?: string;
   deleted_by?: string;
   deleted_by_user?: { full_name: string };
