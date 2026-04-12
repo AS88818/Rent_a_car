@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { CheckCircle2, AlertTriangle, Send, Loader2, Info, Link as LinkIcon, Unlink, Mail } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { showToast } from '../lib/toast';
-import { initiateGmailOAuth } from '../lib/google-oauth';
+import { initiateGmailOAuth, exchangeCodeForTokens } from '../lib/google-oauth';
 import { companyCalendarService } from '../services/calendar-service';
 
 interface EmailSendingSettingsProps {
@@ -30,14 +30,50 @@ export function EmailSendingSettings({
 
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
-      if (event.data?.type === 'gmail-oauth-callback') {
-        setConnecting(false);
-        if (event.data.success) {
+      if (event.data?.type !== 'gmail-oauth-callback') return;
+
+      if (event.data.success && event.data.code) {
+        // callback.html sent us the raw code — exchange it for tokens here
+        try {
+          const tokens = await exchangeCodeForTokens(event.data.code);
+
+          const { data: existing } = await supabase
+            .from('company_settings')
+            .select('id')
+            .limit(1)
+            .maybeSingle();
+
+          if (existing) {
+            await supabase
+              .from('company_settings')
+              .update({ gmail_refresh_token: tokens.refresh_token || '' })
+              .eq('id', existing.id);
+          }
+
+          // Tell the popup it can show success and close
+          if (event.source && 'postMessage' in event.source) {
+            (event.source as Window).postMessage({ type: 'gmail-oauth-complete', success: true }, '*');
+          }
+
           showToast('Gmail connected successfully!', 'success');
           await loadStatus();
-        } else {
-          showToast(event.data.message || 'Failed to connect Gmail', 'error');
+        } catch (err: any) {
+          console.error('Gmail token exchange error:', err);
+          if (event.source && 'postMessage' in event.source) {
+            (event.source as Window).postMessage({ type: 'gmail-oauth-complete', success: false, error: err.message }, '*');
+          }
+          showToast(err.message || 'Failed to connect Gmail', 'error');
+        } finally {
+          setConnecting(false);
         }
+      } else if (event.data.success && !event.data.code) {
+        // OAuthCallbackPage already handled the exchange (non-popup fallback)
+        setConnecting(false);
+        showToast('Gmail connected successfully!', 'success');
+        await loadStatus();
+      } else {
+        setConnecting(false);
+        showToast(event.data.error || event.data.message || 'Failed to connect Gmail', 'error');
       }
     };
     window.addEventListener('message', handleMessage);

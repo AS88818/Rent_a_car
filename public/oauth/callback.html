@@ -29,24 +29,101 @@
       animation: spin 1s linear infinite;
       margin: 0 auto 1rem;
     }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     h1 { font-size: 1.25rem; color: #111827; margin-bottom: 0.5rem; }
     p { color: #6b7280; margin: 0; }
+    .error { color: #dc2626; }
+    .success { color: #059669; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="spinner"></div>
-    <h1>Connecting...</h1>
-    <p>Please wait while we complete the connection.</p>
+    <div class="spinner" id="spinner"></div>
+    <h1 id="title">Connecting...</h1>
+    <p id="message">Please wait...</p>
   </div>
 
   <script>
-    // Hand off to the React OAuth callback page which handles both
-    // Google Calendar (state=calendar) and Gmail (state=gmail) correctly.
-    window.location.replace('/oauth/callback' + window.location.search);
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var code  = params.get('code');
+      var error = params.get('error');
+      var state = params.get('state') || 'calendar';   // 'gmail' or 'calendar'
+
+      var isGmail = state === 'gmail';
+
+      // Message types expected by the parent window
+      var MSG_TYPE    = isGmail ? 'gmail-oauth-callback' : 'google-oauth-callback';
+      var DONE_TYPE   = isGmail ? 'gmail-oauth-complete' : 'google-oauth-complete';
+
+      var spinner = document.getElementById('spinner');
+      var title   = document.getElementById('title');
+      var msg     = document.getElementById('message');
+
+      title.textContent = isGmail ? 'Connecting Gmail' : 'Connecting Google Calendar';
+
+      function showError(text) {
+        spinner.style.display = 'none';
+        title.textContent = 'Connection Failed';
+        title.className = 'error';
+        msg.textContent = text;
+        msg.className = 'error';
+      }
+
+      function showSuccess() {
+        spinner.style.display = 'none';
+        title.textContent = 'Connected!';
+        title.className = 'success';
+        msg.textContent = 'This window will close shortly...';
+      }
+
+      if (error) {
+        var errorMsg = error === 'access_denied'
+          ? 'You denied access. Please try again.'
+          : 'Google OAuth error: ' + error;
+        showError(errorMsg);
+        if (window.opener) {
+          window.opener.postMessage({ type: MSG_TYPE, success: false, error: errorMsg }, '*');
+          setTimeout(function () { window.close(); }, 3000);
+        }
+        return;
+      }
+
+      if (!code) {
+        showError('No authorisation code received.');
+        return;
+      }
+
+      if (!window.opener) {
+        // Opened outside of a popup — redirect to app with the code
+        window.location.href = '/oauth/callback' + window.location.search;
+        return;
+      }
+
+      // Send the code to the parent; it will do the token exchange and
+      // post back a DONE_TYPE message when finished.
+      msg.textContent = 'Completing connection...';
+      window.opener.postMessage({ type: MSG_TYPE, success: true, code: code }, '*');
+
+      // Listen for the parent's confirmation
+      window.addEventListener('message', function (event) {
+        if (event.data && event.data.type === DONE_TYPE) {
+          if (event.data.success) {
+            showSuccess();
+            setTimeout(function () { window.close(); }, 1500);
+          } else {
+            showError(event.data.error || 'Failed to connect');
+            setTimeout(function () { window.close(); }, 3000);
+          }
+        }
+      });
+
+      // Safety timeout — close anyway after 10 s so the popup never hangs
+      setTimeout(function () {
+        showSuccess();
+        setTimeout(function () { window.close(); }, 1500);
+      }, 10000);
+    })();
   </script>
 </body>
 </html>
