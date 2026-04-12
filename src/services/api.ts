@@ -770,7 +770,7 @@ export const snagService = {
         date_opened: today,
         branch_id: branchId,
         photo_urls: issue.photos.length > 0 ? issue.photos : undefined,
-        mileage: issue.mileage || undefined,
+        mileage_reported: issue.mileage || undefined,
       } as any);
     }
   },
