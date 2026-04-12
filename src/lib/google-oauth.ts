@@ -44,6 +44,7 @@ export async function initiateGoogleOAuth(): Promise<void> {
     `response_type=code&` +
     `scope=${scope}&` +
     `access_type=offline&` +
+    `state=calendar&` +
     `prompt=consent`;
 
   const isInIframe = window.self !== window.top;
@@ -62,6 +63,31 @@ export async function initiateGoogleOAuth(): Promise<void> {
   } else {
     window.location.href = authUrl;
   }
+}
+
+export async function initiateGmailOAuth(): Promise<void> {
+  const config = await getCompanyGoogleConfig();
+
+  const scope = encodeURIComponent('https://www.googleapis.com/auth/gmail.send');
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+    `client_id=${config.clientId}&` +
+    `redirect_uri=${encodeURIComponent(config.redirectUri)}&` +
+    `response_type=code&` +
+    `scope=${scope}&` +
+    `access_type=offline&` +
+    `state=gmail&` +
+    `prompt=consent`;
+
+  const width = 600;
+  const height = 700;
+  const left = window.screenX + (window.outerWidth - width) / 2;
+  const top = window.screenY + (window.outerHeight - height) / 2;
+
+  window.open(
+    authUrl,
+    'gmail-oauth',
+    `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+  );
 }
 
 export async function exchangeCodeForTokens(code: string): Promise<GoogleTokenResponse> {

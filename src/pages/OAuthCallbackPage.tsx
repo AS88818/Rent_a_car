@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { exchangeCodeForTokens } from '../lib/google-oauth';
 import { companyCalendarService } from '../services/calendar-service';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth-context';
 import { showToast } from '../lib/toast';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
@@ -17,18 +18,20 @@ export function OAuthCallbackPage() {
   // Check if this page was opened as a popup
   const isPopup = window.opener !== null;
 
+  const oauthState = searchParams.get('state') || 'calendar';
+  const isGmail = oauthState === 'gmail';
+
   const notifyOpenerAndClose = (success: boolean, message?: string) => {
     if (isPopup && window.opener) {
-      // Send message to parent window
+      const type = isGmail ? 'gmail-oauth-callback' : 'google-oauth-callback';
       try {
         window.opener.postMessage(
-          { type: 'google-oauth-callback', success, message },
+          { type, success, message },
           window.location.origin
         );
       } catch (e) {
         console.error('Failed to post message to opener:', e);
       }
-      // Close the popup after a brief delay
       setTimeout(() => {
         try {
           window.close();
@@ -85,24 +88,44 @@ export function OAuthCallbackPage() {
       try {
         const tokens = await exchangeCodeForTokens(code);
 
-        await companyCalendarService.saveGoogleTokens(
-          tokens.access_token,
-          tokens.refresh_token || '',
-          tokens.expires_in
-        );
-        setStatus('success');
-
-        if (isPopup) {
-          notifyOpenerAndClose(true, 'Google Calendar connected successfully!');
+        if (isGmail) {
+          // Save Gmail refresh token for email sending
+          const { data: existing } = await supabase
+            .from('company_settings')
+            .select('id')
+            .limit(1)
+            .maybeSingle();
+          if (existing) {
+            await supabase
+              .from('company_settings')
+              .update({ gmail_refresh_token: tokens.refresh_token || '' })
+              .eq('id', existing.id);
+          }
+          setStatus('success');
+          if (isPopup) {
+            notifyOpenerAndClose(true, 'Gmail connected successfully!');
+          } else {
+            showToast('Gmail connected successfully!', 'success');
+            setTimeout(() => navigate('/company-settings', { replace: true }), 2000);
+          }
         } else {
-          showToast('Google Calendar connected successfully!', 'success');
-          setTimeout(() => {
-            navigate('/company-settings', { replace: true });
-          }, 2000);
+          // Save Calendar tokens
+          await companyCalendarService.saveGoogleTokens(
+            tokens.access_token,
+            tokens.refresh_token || '',
+            tokens.expires_in
+          );
+          setStatus('success');
+          if (isPopup) {
+            notifyOpenerAndClose(true, 'Google Calendar connected successfully!');
+          } else {
+            showToast('Google Calendar connected successfully!', 'success');
+            setTimeout(() => navigate('/company-settings', { replace: true }), 2000);
+          }
         }
       } catch (err: any) {
         console.error('OAuth callback error:', err);
-        const errorMsg = err.message || 'Failed to complete Google Calendar connection';
+        const errorMsg = err.message || `Failed to complete Google ${isGmail ? 'Gmail' : 'Calendar'} connection`;
         setStatus('error');
         setErrorMessage(errorMsg);
         notifyOpenerAndClose(false, errorMsg);
@@ -118,7 +141,9 @@ export function OAuthCallbackPage() {
         {(status === 'loading' || status === 'processing') && (
           <>
             <Loader2 className="w-16 h-16 text-blue-600 mx-auto mb-4 animate-spin" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Connecting Google Calendar</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              {isGmail ? 'Connecting Gmail' : 'Connecting Google Calendar'}
+            </h1>
             <p className="text-gray-600">
               {status === 'loading' ? 'Loading your session...' : 'Please wait while we complete the connection...'}
             </p>
@@ -129,7 +154,9 @@ export function OAuthCallbackPage() {
           <>
             <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Connected!</h1>
-            <p className="text-gray-600 mb-4">Your Google Calendar has been connected successfully.</p>
+            <p className="text-gray-600 mb-4">
+              {isGmail ? 'Gmail has been connected successfully.' : 'Your Google Calendar has been connected successfully.'}
+            </p>
             <p className="text-sm text-gray-500">
               {isPopup ? 'This window will close automatically...' : 'Redirecting to calendar...'}
             </p>

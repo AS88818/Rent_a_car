@@ -38,10 +38,7 @@ function buildMimeEmail(to: string, subject: string, body: string): string {
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 200,
-      headers: corsHeaders,
-    });
+    return new Response(null, { status: 200, headers: corsHeaders });
   }
 
   try {
@@ -61,22 +58,36 @@ Deno.serve(async (req: Request) => {
       .limit(1)
       .maybeSingle();
 
-    const picaSecretKey = companyRow?.pica_secret_key || Deno.env.get("PICA_SECRET_KEY");
-    const picaConnectionKey = companyRow?.pica_connection_key || Deno.env.get("PICA_GMAIL_CONNECTION_KEY");
-    const picaActionId = companyRow?.pica_action_id || "conn_mod_def::F_JeJ_A_TKg::cc2kvVQQTiiIiLEDauy6zQ";
+    const googleClientId = companyRow?.google_client_id || Deno.env.get("GOOGLE_CLIENT_ID");
+    const googleClientSecret = companyRow?.google_client_secret || Deno.env.get("GOOGLE_CLIENT_SECRET");
+    const gmailRefreshToken = companyRow?.gmail_refresh_token || Deno.env.get("GMAIL_REFRESH_TOKEN");
 
-    if (!picaSecretKey || !picaConnectionKey) {
+    if (!googleClientId || !googleClientSecret || !gmailRefreshToken) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "Pica credentials are not configured. Please enter your Pica Secret Key and Connection Key in the fields above and save before testing.",
+          error: "Gmail is not connected. Go to Company Settings > Email Sending and connect your Gmail account.",
         }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Get fresh access token
+    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: googleClientId,
+        client_secret: googleClientSecret,
+        refresh_token: gmailRefreshToken,
+        grant_type: "refresh_token",
+      }),
+    });
+    if (!tokenResponse.ok) {
+      const err = await tokenResponse.text();
+      throw new Error(`Failed to refresh Gmail token: ${err}`);
+    }
+    const { access_token } = await tokenResponse.json();
 
     const companyName = companyRow?.company_name || "Rent A Car In Kenya";
     const subject = `Test Email from ${companyName}`;
@@ -84,11 +95,11 @@ Deno.serve(async (req: Request) => {
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <h2 style="color: #1e40af; margin-bottom: 16px;">Email Connection Test Successful</h2>
         <p style="color: #374151; line-height: 1.6;">
-          This is a test email sent from <strong>${companyName}</strong> to verify that the email sending integration is working correctly.
+          This is a test email from <strong>${companyName}</strong> confirming the Gmail integration is working correctly.
         </p>
         <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 20px 0;">
           <p style="color: #166534; margin: 0; font-weight: 600;">All systems operational</p>
-          <p style="color: #166534; margin: 4px 0 0 0; font-size: 14px;">Your Pica/Gmail integration is configured and sending emails successfully.</p>
+          <p style="color: #166534; margin: 4px 0 0 0; font-size: 14px;">Your Gmail account is connected and sending emails successfully.</p>
         </div>
         <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">
           Sent at: ${new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'long' })}
@@ -98,13 +109,11 @@ Deno.serve(async (req: Request) => {
 
     const raw = buildMimeEmail(recipientEmail, subject, body);
 
-    const gmailResponse = await fetch("https://api.picaos.com/v1/passthrough/users/me/messages/send", {
+    const gmailResponse = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-pica-secret": picaSecretKey,
-        "x-pica-connection-key": picaConnectionKey,
-        "x-pica-action-id": picaActionId,
+        "Authorization": `Bearer ${access_token}`,
       },
       body: JSON.stringify({ raw }),
     });
@@ -122,22 +131,16 @@ Deno.serve(async (req: Request) => {
         message: `Test email sent successfully to ${recipientEmail}`,
         emailId: gmailData.id,
       }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Error sending test email:", error);
-
     return new Response(
       JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
       }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

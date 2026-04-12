@@ -31,7 +31,6 @@ function buildMimeEmailWithAttachment(
   const plainText = htmlBody.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 
   const mime = [
-    `From: Rent A Car In Kenya <info@rentacarinkenya.com>`,
     `To: ${to}`,
     `Subject: ${subject}`,
     `MIME-Version: 1.0`,
@@ -112,15 +111,15 @@ Deno.serve(async (req: Request) => {
     const settingsRows = settingsResponse.ok ? await settingsResponse.json() : [];
     const companyData = settingsRows?.[0] || {};
 
-    const picaSecretKey = companyData.pica_secret_key || Deno.env.get('PICA_SECRET_KEY');
-    const picaConnectionKey = companyData.pica_connection_key || Deno.env.get('PICA_GMAIL_CONNECTION_KEY');
-    const picaActionId = companyData.pica_action_id || 'conn_mod_def::F_JeJ_A_TKg::cc2kvVQQTiiIiLEDauy6zQ';
+    const googleClientId = companyData.google_client_id || Deno.env.get('GOOGLE_CLIENT_ID');
+    const googleClientSecret = companyData.google_client_secret || Deno.env.get('GOOGLE_CLIENT_SECRET');
+    const gmailRefreshToken = companyData.gmail_refresh_token || Deno.env.get('GMAIL_REFRESH_TOKEN');
 
-    console.log('PICA_SECRET_KEY:', picaSecretKey ? 'SET' : 'MISSING');
-    console.log('PICA_GMAIL_CONNECTION_KEY:', picaConnectionKey ? 'SET' : 'MISSING');
+    console.log('GOOGLE_CLIENT_ID:', googleClientId ? 'SET' : 'MISSING');
+    console.log('GMAIL_REFRESH_TOKEN:', gmailRefreshToken ? 'SET' : 'MISSING');
 
-    if (!picaSecretKey || !picaConnectionKey) {
-      throw new Error('Pica credentials are not configured. Set them in Company Settings or as environment variables.');
+    if (!googleClientId || !googleClientSecret || !gmailRefreshToken) {
+      throw new Error('Gmail credentials are not configured. Connect a Gmail account in Company Settings > Email Sending.');
     }
 
     const companyVars: Record<string, string> = {
@@ -177,8 +176,26 @@ Deno.serve(async (req: Request) => {
       emailSubject = emailSubject.replace(regex, value);
     });
 
+    // Get a fresh Gmail access token
+    console.log('\n=== Refreshing Gmail Access Token ===');
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: googleClientId,
+        client_secret: googleClientSecret,
+        refresh_token: gmailRefreshToken,
+        grant_type: 'refresh_token',
+      }),
+    });
+    if (!tokenResponse.ok) {
+      const err = await tokenResponse.text();
+      throw new Error(`Failed to refresh Gmail token: ${err}`);
+    }
+    const { access_token } = await tokenResponse.json();
+
     // Build MIME email with attachment
-    console.log('\n=== Sending via Pica Gmail ===');
+    console.log('\n=== Sending via Gmail API ===');
     const attachmentFilename = `Quote-${payload.quoteReference}.pdf`;
     const raw = buildMimeEmailWithAttachment(
       payload.clientEmail,
@@ -188,14 +205,12 @@ Deno.serve(async (req: Request) => {
       payload.pdfBase64
     );
 
-    // Send email via Pica Gmail API
-    const gmailResponse = await fetch('https://api.picaos.com/v1/passthrough/users/me/messages/send', {
+    // Send email via direct Gmail API
+    const gmailResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-pica-secret': picaSecretKey,
-        'x-pica-connection-key': picaConnectionKey,
-        'x-pica-action-id': picaActionId,
+        'Authorization': `Bearer ${access_token}`,
       },
       body: JSON.stringify({ raw }),
     });

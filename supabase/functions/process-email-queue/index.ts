@@ -79,13 +79,30 @@ Deno.serve(async (req: Request) => {
       .limit(1)
       .maybeSingle();
 
-    const picaSecretKey = companySettings?.pica_secret_key || Deno.env.get("PICA_SECRET_KEY");
-    const picaConnectionKey = companySettings?.pica_connection_key || Deno.env.get("PICA_GMAIL_CONNECTION_KEY");
-    const picaActionId = companySettings?.pica_action_id || "conn_mod_def::F_JeJ_A_TKg::cc2kvVQQTiiIiLEDauy6zQ";
+    const googleClientId = companySettings?.google_client_id || Deno.env.get("GOOGLE_CLIENT_ID");
+    const googleClientSecret = companySettings?.google_client_secret || Deno.env.get("GOOGLE_CLIENT_SECRET");
+    const gmailRefreshToken = companySettings?.gmail_refresh_token || Deno.env.get("GMAIL_REFRESH_TOKEN");
 
-    if (!picaSecretKey || !picaConnectionKey) {
-      throw new Error("Pica credentials are not configured. Set them in Company Settings or as environment variables.");
+    if (!googleClientId || !googleClientSecret || !gmailRefreshToken) {
+      throw new Error("Gmail credentials are not configured. Connect a Gmail account in Company Settings > Email Sending.");
     }
+
+    // Get a fresh Gmail access token (shared for all emails in this batch)
+    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: googleClientId,
+        client_secret: googleClientSecret,
+        refresh_token: gmailRefreshToken,
+        grant_type: "refresh_token",
+      }),
+    });
+    if (!tokenResponse.ok) {
+      const err = await tokenResponse.text();
+      throw new Error(`Failed to refresh Gmail token: ${err}`);
+    }
+    const { access_token } = await tokenResponse.json();
 
     const companyVars: Record<string, string> = {
       "{{company_name}}": companySettings?.company_name || "Rent A Car In Kenya",
@@ -165,23 +182,21 @@ Deno.serve(async (req: Request) => {
 
         console.log("Sending email to:", email.recipient_email);
 
-        const gmailResponse = await fetch("https://api.picaos.com/v1/passthrough/users/me/messages/send", {
+        const gmailResponse = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-pica-secret": picaSecretKey,
-            "x-pica-connection-key": picaConnectionKey,
-            "x-pica-action-id": picaActionId,
+            "Authorization": `Bearer ${access_token}`,
           },
           body: JSON.stringify({ raw }),
         });
 
-        console.log("Pica response status:", gmailResponse.status);
+        console.log("Gmail API response status:", gmailResponse.status);
         const responseText = await gmailResponse.text();
-        console.log("Pica response body:", responseText);
+        console.log("Gmail API response body:", responseText);
 
         if (!gmailResponse.ok) {
-          throw new Error(`Pica API error (${gmailResponse.status}): ${responseText}`);
+          throw new Error(`Gmail API error (${gmailResponse.status}): ${responseText}`);
         }
 
         const gmailData = JSON.parse(responseText);

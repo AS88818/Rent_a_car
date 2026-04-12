@@ -21,7 +21,7 @@ export function CompanySettingsPage() {
 
   useEffect(() => {
     if (settings.id) {
-      setFormData(prev => ({ ...settings, pica_secret_key: prev.pica_secret_key, pica_connection_key: prev.pica_connection_key, pica_action_id: prev.pica_action_id, google_client_id: prev.google_client_id, google_client_secret: prev.google_client_secret, google_redirect_uri: prev.google_redirect_uri }));
+      setFormData(prev => ({ ...settings, google_client_id: prev.google_client_id, google_client_secret: prev.google_client_secret, google_redirect_uri: prev.google_redirect_uri }));
       setLoading(false);
       setLoadError(false);
     } else {
@@ -39,15 +39,12 @@ export function CompanySettingsPage() {
     async function loadCredentials() {
       const { data } = await supabase
         .from('company_settings')
-        .select('pica_secret_key, pica_connection_key, pica_action_id, google_client_id, google_client_secret, google_redirect_uri')
+        .select('google_client_id, google_client_secret, google_redirect_uri')
         .limit(1)
         .maybeSingle();
       if (data) {
         setFormData(prev => ({
           ...prev,
-          pica_secret_key: data.pica_secret_key || '',
-          pica_connection_key: data.pica_connection_key || '',
-          pica_action_id: data.pica_action_id || '',
           google_client_id: data.google_client_id || '',
           google_client_secret: data.google_client_secret || '',
           google_redirect_uri: data.google_redirect_uri || '',
@@ -95,9 +92,6 @@ export function CompanySettingsPage() {
           email_signature: formData.email_signature,
           currency_code: formData.currency_code,
           currency_locale: formData.currency_locale,
-          pica_secret_key: formData.pica_secret_key || null,
-          pica_connection_key: formData.pica_connection_key || null,
-          pica_action_id: formData.pica_action_id || null,
           google_client_id: formData.google_client_id || null,
           google_client_secret: formData.google_client_secret || null,
           google_redirect_uri: formData.google_redirect_uri || null,
@@ -377,10 +371,9 @@ export function CompanySettingsPage() {
           {activeSection === 'email_sending' && (
             <SettingsCard title="Email Sending Account" description="Configure which Gmail account sends all outgoing emails (confirmations, invoices, quotes)">
               <EmailSendingSettings
-                picaSecretKey={formData.pica_secret_key || ''}
-                picaConnectionKey={formData.pica_connection_key || ''}
-                picaActionId={formData.pica_action_id || ''}
-                onChange={(field, value) => handleChange(field as keyof CompanySettings, value)}
+                googleClientId={formData.google_client_id || ''}
+                googleClientSecret={formData.google_client_secret || ''}
+                isConfigured={!!(formData.google_client_id && formData.google_client_secret)}
               />
             </SettingsCard>
           )}

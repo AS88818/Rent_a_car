@@ -91,6 +91,45 @@ export const companyCalendarService = {
       .eq('id', existing.id);
   },
 
+  async saveGmailRefreshToken(refreshToken: string): Promise<void> {
+    const { data: existing } = await supabase
+      .from('company_settings')
+      .select('id')
+      .limit(1)
+      .maybeSingle();
+
+    if (!existing) return;
+
+    await supabase
+      .from('company_settings')
+      .update({ gmail_refresh_token: refreshToken })
+      .eq('id', existing.id);
+  },
+
+  async disconnectGmail(): Promise<void> {
+    const { data: existing } = await supabase
+      .from('company_settings')
+      .select('id')
+      .limit(1)
+      .maybeSingle();
+
+    if (!existing) return;
+
+    await supabase
+      .from('company_settings')
+      .update({ gmail_refresh_token: null })
+      .eq('id', existing.id);
+  },
+
+  async getGmailConnected(): Promise<boolean> {
+    const { data } = await supabase
+      .from('company_settings')
+      .select('gmail_refresh_token')
+      .limit(1)
+      .maybeSingle();
+    return !!(data?.gmail_refresh_token);
+  },
+
   async getValidAccessToken(): Promise<string> {
     const config = await this.getConfig();
 

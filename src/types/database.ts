@@ -625,9 +625,7 @@ export interface CompanySettings {
   email_signature: string;
   currency_code: string;
   currency_locale: string;
-  pica_secret_key?: string;
-  pica_connection_key?: string;
-  pica_action_id?: string;
+  gmail_refresh_token?: string;
   google_client_id?: string;
   google_client_secret?: string;
   google_redirect_uri?: string;
