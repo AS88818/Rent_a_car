@@ -2081,7 +2081,7 @@ export const snagResolutionService = {
 
   async createResolutionWithMaintenanceLog(
     resolution: Omit<SnagResolution, 'id' | 'created_at' | 'resolved_at' | 'maintenance_log_id'>,
-    maintenanceLog: Omit<MaintenanceLog, 'id' | 'created_at'>
+    maintenanceLog: Omit<MaintenanceLog, 'id' | 'created_at'> & { work_items?: Array<{ work_description: string; work_category: string; photos: string[] }> }
   ) {
     const createdLog = await maintenanceService.createMaintenanceLog(maintenanceLog);
 

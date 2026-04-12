@@ -46,6 +46,7 @@ export function SnagResolutionModal({
   const [serviceDate, setServiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [mileage, setMileage] = useState('');
   const [workDone, setWorkDone] = useState('');
+  const [workCategory, setWorkCategory] = useState('');
   const [performedByUserId, setPerformedByUserId] = useState('');
   const [maintenanceCheckedByUserId, setMaintenanceCheckedByUserId] = useState('');
   const [maintenanceNotes, setMaintenanceNotes] = useState('');
@@ -102,6 +103,7 @@ export function SnagResolutionModal({
     setServiceDate(new Date().toISOString().split('T')[0]);
     setMileage(currentMileage?.toString() || '');
     setWorkDone('');
+    setWorkCategory('');
     setPerformedByUserId('');
     setMaintenanceCheckedByUserId('');
     setMaintenanceNotes('');
@@ -138,6 +140,7 @@ export function SnagResolutionModal({
         notes: maintenanceNotes || undefined,
         photo_urls: maintenancePhotoUrls.length > 0 ? maintenancePhotoUrls : undefined,
         branch_id: branchId,
+        work_items: [{ work_description: workDone, work_category: workCategory, photos: maintenancePhotoUrls }],
       };
     }
 
@@ -327,6 +330,30 @@ export function SnagResolutionModal({
                       placeholder="Describe the work performed..."
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 resize-none text-base"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Category
+                    </label>
+                    <select
+                      value={workCategory}
+                      onChange={e => setWorkCategory(e.target.value)}
+                      disabled={submitting}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 text-base bg-white"
+                    >
+                      <option value="">No Category</option>
+                      <option value="Accessories">Accessories</option>
+                      <option value="Body">Body</option>
+                      <option value="Cooling">Cooling</option>
+                      <option value="Electrical">Electrical</option>
+                      <option value="Engine / Fuel">Engine / Fuel</option>
+                      <option value="Gearbox">Gearbox</option>
+                      <option value="Service">Service</option>
+                      <option value="Steering">Steering</option>
+                      <option value="Suspension">Suspension</option>
+                      <option value="Wheels">Wheels</option>
+                    </select>
                   </div>
 
                   <div>
