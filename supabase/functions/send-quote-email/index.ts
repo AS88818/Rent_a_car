@@ -31,6 +31,7 @@ function buildMimeEmailWithAttachment(
   const plainText = htmlBody.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 
   const mime = [
+    `From: Rent A Car In Kenya <info@rentacarinkenya.com>`,
     `To: ${to}`,
     `Subject: ${subject}`,
     `MIME-Version: 1.0`,

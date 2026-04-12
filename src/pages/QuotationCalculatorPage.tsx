@@ -580,19 +580,13 @@ export function QuotationCalculatorPage() {
     message += `*Pricing Options:*\n\n`;
 
     filteredResults.forEach((r, index) => {
+      const dailyRate = rentalDays > 0 ? r.grandTotal / rentalDays : 0;
       message += `${index + 1}. *${r.categoryName}*\n`;
       message += `   Total: ${formatCurrency(r.grandTotal)}\n`;
+      message += `   Effective Daily Rate: ${formatCurrency(dailyRate)}\n`;
       message += `   25% Advance Required: ${formatCurrency(r.advancePayment)}\n`;
       if (!inputs.hasChauffeur && r.securityDeposit > 0) {
         message += `   Security Deposit: ${formatCurrency(r.securityDeposit)} (Refundable)\n`;
-      }
-      if (r.branchAvailability && r.branchAvailability.length > 0) {
-        message += `   *Availability:*\n`;
-        r.branchAvailability.forEach(branch => {
-          message += `      ${branch.branchName}: ${branch.availableCount} vehicle${branch.availableCount !== 1 ? 's' : ''}\n`;
-        });
-      } else {
-        message += `   Subject to Availability\n`;
       }
       message += `\n`;
     });
@@ -648,6 +642,7 @@ export function QuotationCalculatorPage() {
           securityDeposit: r.securityDeposit,
           advancePayment: r.advancePayment,
           available: r.available,
+          effectiveDailyRate: rentalDays > 0 ? r.grandTotal / rentalDays : 0,
         })),
       };
 

@@ -20,6 +20,7 @@ interface QuoteCategory {
   securityDeposit: number;
   advancePayment: number;
   available: boolean;
+  effectiveDailyRate?: number;
 }
 
 interface QuotePDFData {
@@ -358,8 +359,11 @@ export function generateQuotePDFBase64(data: QuotePDFData, company?: PDFCompanyI
   yPosition += 10;
 
   data.categories.forEach((category, index) => {
+    const hasDeposit = !data.rentalType.includes('Chauffeur') && category.securityDeposit > 0;
+    const hasDailyRate = category.effectiveDailyRate !== undefined && category.effectiveDailyRate > 0;
+    const rowHeight = 8 + 7 + 6 + (hasDailyRate ? 6 : 0) + (hasDeposit ? 6 : 0) + 7;
     doc.setFillColor(245, 247, 250);
-    doc.rect(margin, yPosition, contentWidth, 28, 'F');
+    doc.rect(margin, yPosition, contentWidth, rowHeight, 'F');
 
     yPosition += 8;
     doc.setFontSize(12);
@@ -371,16 +375,21 @@ export function generateQuotePDFBase64(data: QuotePDFData, company?: PDFCompanyI
     doc.setFont('helvetica', 'normal');
     doc.text(`Total: ${formatCurrency(category.grandTotal)}`, margin + 10, yPosition);
 
+    if (hasDailyRate) {
+      yPosition += 6;
+      doc.text(`Effective Daily Rate: ${formatCurrency(category.effectiveDailyRate!)}`, margin + 10, yPosition);
+    }
+
     yPosition += 6;
     doc.text(`25% Advance Required: ${formatCurrency(category.advancePayment)}`, margin + 10, yPosition);
 
-    if (!data.rentalType.includes('Chauffeur') && category.securityDeposit > 0) {
+    if (hasDeposit) {
       yPosition += 6;
       doc.text(`Security Deposit: ${formatCurrency(category.securityDeposit)} (Refundable)`, margin + 10, yPosition);
     }
 
     const statusX = pageWidth - margin - 50;
-    yPosition -= (!data.rentalType.includes('Chauffeur') && category.securityDeposit > 0 ? 12 : 6);
+    yPosition -= (hasDeposit ? 12 : 6) + (hasDailyRate ? 6 : 0);
     doc.setFont('helvetica', 'bold');
     if (category.available) {
       doc.setTextColor(0, 128, 0);
@@ -391,7 +400,7 @@ export function generateQuotePDFBase64(data: QuotePDFData, company?: PDFCompanyI
     }
     doc.setTextColor(0, 0, 0);
 
-    yPosition += 22;
+    yPosition += rowHeight - 8;
   });
 
   yPosition += 10;
