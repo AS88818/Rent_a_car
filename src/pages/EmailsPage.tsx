@@ -275,6 +275,16 @@ export function EmailsPage() {
     }
   };
 
+  const handleClearQueue = async () => {
+    try {
+      await emailService.clearPendingQueue();
+      setEmailQueue(emailQueue.filter((e) => e.status !== 'pending' && e.status !== 'failed'));
+      showToast('Pending and failed emails cleared', 'success');
+    } catch (error: any) {
+      showToast(error.message || 'Failed to clear queue', 'error');
+    }
+  };
+
   const handleProcessEmails = async () => {
     setProcessingEmails(true);
     try {
@@ -493,6 +503,20 @@ export function EmailsPage() {
                 <Download className="w-4 h-4" />
                 Download All PDF
               </button>
+              {(emailStats.pending > 0 || emailStats.failed > 0) && (
+                <button
+                  onClick={() =>
+                    setConfirmAction({
+                      action: handleClearQueue,
+                      message: `This will permanently delete all pending and failed emails from the queue (${emailStats.pending} pending, ${emailStats.failed} failed). This cannot be undone.`,
+                    })
+                  }
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Clear Queue
+                </button>
+              )}
               <button
                 onClick={handleProcessEmails}
                 disabled={processingEmails}

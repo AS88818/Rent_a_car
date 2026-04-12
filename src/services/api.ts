@@ -617,21 +617,21 @@ export const maintenanceService = {
 
       if (itemsError) throw itemsError;
 
-      // Auto-update next service mileage when a Service work item is logged
-      const hasServiceWork = work_items.some(item => item.work_category === 'Service');
-      if (hasServiceWork && maintenanceLogData.vehicle_id && maintenanceLogData.mileage) {
-        try {
-          const vehicle = await vehicleService.getVehicleById(maintenanceLogData.vehicle_id);
-          const interval = vehicle.service_interval_km || 5000;
-          await vehicleService.updateVehicle(maintenanceLogData.vehicle_id, {
-            next_service_mileage: maintenanceLogData.mileage + interval,
-            last_service_mileage: maintenanceLogData.mileage,
-          });
-        } catch {
-          // Non-critical: log failure doesn't block maintenance record creation
-          console.warn('Failed to auto-update next service mileage');
-        }
-      }
+      // AUTO-RESET DISABLED — client manages next_service_mileage manually.
+      // To re-enable, uncomment the block below.
+      // const hasServiceWork = work_items.some(item => item.work_category === 'Service');
+      // if (hasServiceWork && maintenanceLogData.vehicle_id && maintenanceLogData.mileage) {
+      //   try {
+      //     const vehicle = await vehicleService.getVehicleById(maintenanceLogData.vehicle_id);
+      //     const interval = vehicle.service_interval_km || 5000;
+      //     await vehicleService.updateVehicle(maintenanceLogData.vehicle_id, {
+      //       next_service_mileage: maintenanceLogData.mileage + interval,
+      //       last_service_mileage: maintenanceLogData.mileage,
+      //     });
+      //   } catch {
+      //     console.warn('Failed to auto-update next service mileage');
+      //   }
+      // }
     }
 
     return createdLog as MaintenanceLog;
@@ -1526,6 +1526,14 @@ export const emailService = {
 
   async sendEmailNow(id: string) {
     return this.updateEmailQueue(id, { scheduled_for: new Date().toISOString() });
+  },
+
+  async clearPendingQueue() {
+    const { error } = await supabase
+      .from('email_queue')
+      .delete()
+      .in('status', ['pending', 'failed']);
+    if (error) throw error;
   },
 };
 
