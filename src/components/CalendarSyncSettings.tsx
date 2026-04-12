@@ -43,6 +43,7 @@ export function CalendarSyncSettings({
     const handleOAuthMessage = async (event: MessageEvent) => {
       if (event.data?.type === 'google-oauth-callback') {
         if (event.data.success && event.data.code) {
+          // Legacy path: callback.html sent us the raw code — exchange it ourselves.
           setConnecting(true);
           try {
             const tokens = await exchangeCodeForTokens(event.data.code);
@@ -68,7 +69,13 @@ export function CalendarSyncSettings({
           } finally {
             setConnecting(false);
           }
+        } else if (event.data.success && !event.data.code) {
+          // New path: OAuthCallbackPage already exchanged the tokens — just refresh status.
+          setConnecting(false);
+          showToast('Google Calendar connected successfully!', 'success');
+          await loadConnectionStatus();
         } else if (event.data.error) {
+          setConnecting(false);
           showToast(event.data.error || 'Failed to connect Google Calendar', 'error');
         }
       }
