@@ -163,6 +163,7 @@ export function QuickActionsPage() {
     try {
       const updatedVehicle = await vehicleService.updateVehicle(vehicleId, {
         current_mileage: mileageNum,
+        last_mileage_update: new Date().toISOString(),
       });
 
       setVehicles(vehicles.map(v => (v.id === vehicleId ? updatedVehicle : v)));
