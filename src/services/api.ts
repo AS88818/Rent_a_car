@@ -595,6 +595,7 @@ export const maintenanceService = {
         if (maintenanceLogData.mileage > (vehicle.current_mileage || 0)) {
           await vehicleService.updateVehicle(maintenanceLogData.vehicle_id, {
             current_mileage: maintenanceLogData.mileage,
+            last_mileage_update: maintenanceLogData.service_date,
           });
         }
       } catch {

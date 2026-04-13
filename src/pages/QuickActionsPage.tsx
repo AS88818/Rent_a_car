@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { vehicleService, branchService, snagService, bookingService } from '../services/api';
 import { Vehicle, Branch, Booking } from '../types/database';
@@ -12,6 +13,7 @@ type SortDirection = 'asc' | 'desc';
 
 export function QuickActionsPage() {
   const { branchId, user, userRole } = useAuth();
+  const navigate = useNavigate();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -41,7 +43,7 @@ export function QuickActionsPage() {
         bookingService.getBookings(vehicleBranchFilter),
       ]);
 
-      setVehicles(vehiclesData.filter(v => !v.is_personal));
+      setVehicles(vehiclesData);
       setBranches(branchesData);
       setBookings(bookingsData);
     } catch (error) {
@@ -410,7 +412,12 @@ export function QuickActionsPage() {
                         <div className="flex items-center gap-3">
                           <Car className="w-5 h-5 text-gray-400" />
                           <div>
-                            <div className="font-bold text-gray-900">{vehicle.reg_number}</div>
+                            <div
+                              className="font-bold text-blue-600 hover:text-blue-800 cursor-pointer hover:underline"
+                              onClick={() => navigate(`/vehicles/${vehicle.id}`)}
+                            >
+                              {vehicle.reg_number}
+                            </div>
                             {vehicle.make && vehicle.model && (
                               <div className="text-sm text-gray-500">
                                 {vehicle.make} {vehicle.model}
