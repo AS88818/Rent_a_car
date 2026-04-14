@@ -29,55 +29,69 @@ export function EmailSendingSettings({
   }, []);
 
   useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      if (event.data?.type !== 'gmail-oauth-callback') return;
+    const handleOAuthData = async (data: any, replyFn?: (payload: any) => void) => {
+      if (data?.type !== 'gmail-oauth-callback') return;
 
-      if (event.data.success && event.data.code) {
-        // callback.html sent us the raw code — exchange it for tokens here
+      if (data.success && data.code) {
         try {
-          const tokens = await exchangeCodeForTokens(event.data.code);
-
+          const tokens = await exchangeCodeForTokens(data.code);
           const { data: existing } = await supabase
             .from('company_settings')
             .select('id')
             .limit(1)
             .maybeSingle();
-
           if (existing) {
             await supabase
               .from('company_settings')
               .update({ gmail_refresh_token: tokens.refresh_token || '' })
               .eq('id', existing.id);
           }
-
-          // Tell the popup it can show success and close
-          if (event.source && 'postMessage' in event.source) {
-            (event.source as Window).postMessage({ type: 'gmail-oauth-complete', success: true }, '*');
-          }
-
+          replyFn?.({ type: 'gmail-oauth-complete', success: true });
           showToast('Gmail connected successfully!', 'success');
           await loadStatus();
         } catch (err: any) {
           console.error('Gmail token exchange error:', err);
-          if (event.source && 'postMessage' in event.source) {
-            (event.source as Window).postMessage({ type: 'gmail-oauth-complete', success: false, error: err.message }, '*');
-          }
+          replyFn?.({ type: 'gmail-oauth-complete', success: false, error: err.message });
           showToast(err.message || 'Failed to connect Gmail', 'error');
         } finally {
           setConnecting(false);
         }
-      } else if (event.data.success && !event.data.code) {
-        // OAuthCallbackPage already handled the exchange (non-popup fallback)
+      } else if (data.success && !data.code) {
         setConnecting(false);
         showToast('Gmail connected successfully!', 'success');
         await loadStatus();
       } else {
         setConnecting(false);
-        showToast(event.data.error || event.data.message || 'Failed to connect Gmail', 'error');
+        showToast(data.error || data.message || 'Failed to connect Gmail', 'error');
       }
     };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+
+    // BroadcastChannel — works when window.opener is null (Bolt sandbox)
+    const bc = new BroadcastChannel('google-oauth-channel');
+    bc.onmessage = (event) => {
+      const reply = (payload: any) => {
+        const replyBc = new BroadcastChannel('google-oauth-channel');
+        replyBc.postMessage(payload);
+        replyBc.close();
+      };
+      handleOAuthData(event.data, reply);
+    };
+
+    // window.message — works for direct (non-sandboxed) access
+    const handleWindowMessage = (event: MessageEvent) => {
+      const reply = (payload: any) => {
+        if (event.source && 'postMessage' in event.source) {
+          (event.source as Window).postMessage(payload, '*');
+        }
+      };
+      handleOAuthData(event.data, reply);
+    };
+    window.addEventListener('message', handleWindowMessage);
+
+    return () => {
+      bc.close();
+      window.removeEventListener('message', handleWindowMessage);
+    };
   }, []);
 
   const loadStatus = async () => {

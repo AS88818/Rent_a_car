@@ -48,13 +48,11 @@
       var params = new URLSearchParams(window.location.search);
       var code  = params.get('code');
       var error = params.get('error');
-      var state = params.get('state') || 'calendar';   // 'gmail' or 'calendar'
+      var state = params.get('state') || 'calendar';
 
       var isGmail = state === 'gmail';
-
-      // Message types expected by the parent window
-      var MSG_TYPE    = isGmail ? 'gmail-oauth-callback' : 'google-oauth-callback';
-      var DONE_TYPE   = isGmail ? 'gmail-oauth-complete' : 'google-oauth-complete';
+      var MSG_TYPE  = isGmail ? 'gmail-oauth-callback'  : 'google-oauth-callback';
+      var DONE_TYPE = isGmail ? 'gmail-oauth-complete'  : 'google-oauth-complete';
 
       var spinner = document.getElementById('spinner');
       var title   = document.getElementById('title');
@@ -77,15 +75,30 @@
         msg.textContent = 'This window will close shortly...';
       }
 
+      function sendToParent(payload) {
+        // Try BroadcastChannel first — works when window.opener is null
+        // (e.g. Bolt.new sandbox uses allow-popups-to-escape-sandbox)
+        try {
+          var bc = new BroadcastChannel('google-oauth-channel');
+          bc.postMessage(payload);
+          bc.close();
+        } catch(e) {}
+
+        // Also try window.opener for direct (non-sandboxed) access
+        if (window.opener) {
+          try {
+            window.opener.postMessage(payload, '*');
+          } catch(e) {}
+        }
+      }
+
       if (error) {
         var errorMsg = error === 'access_denied'
           ? 'You denied access. Please try again.'
           : 'Google OAuth error: ' + error;
         showError(errorMsg);
-        if (window.opener) {
-          window.opener.postMessage({ type: MSG_TYPE, success: false, error: errorMsg }, '*');
-          setTimeout(function () { window.close(); }, 3000);
-        }
+        sendToParent({ type: MSG_TYPE, success: false, error: errorMsg });
+        setTimeout(function () { window.close(); }, 3000);
         return;
       }
 
@@ -94,32 +107,39 @@
         return;
       }
 
-      if (!window.opener) {
-        // Opened outside of a popup — redirect to app with the code
-        window.location.href = '/oauth/callback' + window.location.search;
-        return;
-      }
-
-      // Send the code to the parent; it will do the token exchange and
-      // post back a DONE_TYPE message when finished.
       msg.textContent = 'Completing connection...';
-      window.opener.postMessage({ type: MSG_TYPE, success: true, code: code }, '*');
+      sendToParent({ type: MSG_TYPE, success: true, code: code });
 
-      // Listen for the parent's confirmation
-      window.addEventListener('message', function (event) {
+      // Listen for completion signal from parent
+      var doneChannel = new BroadcastChannel('google-oauth-channel');
+      doneChannel.onmessage = function(event) {
         if (event.data && event.data.type === DONE_TYPE) {
+          doneChannel.close();
           if (event.data.success) {
             showSuccess();
-            setTimeout(function () { window.close(); }, 1500);
           } else {
             showError(event.data.error || 'Failed to connect');
-            setTimeout(function () { window.close(); }, 3000);
           }
+          setTimeout(function() { window.close(); }, 1500);
+        }
+      };
+
+      // Also listen via window.message for non-BroadcastChannel path
+      window.addEventListener('message', function(event) {
+        if (event.data && event.data.type === DONE_TYPE) {
+          doneChannel.close();
+          if (event.data.success) {
+            showSuccess();
+          } else {
+            showError(event.data.error || 'Failed to connect');
+          }
+          setTimeout(function() { window.close(); }, 1500);
         }
       });
 
-      // Safety timeout — close anyway after 10 s so the popup never hangs
+      // Safety timeout — close anyway after 10s so popup never hangs
       setTimeout(function () {
+        doneChannel.close();
         showSuccess();
         setTimeout(function () { window.close(); }, 1500);
       }, 10000);

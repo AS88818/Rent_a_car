@@ -40,49 +40,64 @@ export function CalendarSyncSettings({
   }, []);
 
   useEffect(() => {
-    const handleOAuthMessage = async (event: MessageEvent) => {
-      if (event.data?.type === 'google-oauth-callback') {
-        if (event.data.success && event.data.code) {
-          // Legacy path: callback.html sent us the raw code — exchange it ourselves.
-          setConnecting(true);
-          try {
-            const tokens = await exchangeCodeForTokens(event.data.code);
+    const handleOAuthData = async (data: any, replyFn?: (payload: any) => void) => {
+      if (data?.type !== 'google-oauth-callback') return;
 
-            await companyCalendarService.saveGoogleTokens(
-              tokens.access_token,
-              tokens.refresh_token || '',
-              tokens.expires_in
-            );
-
-            if (event.source && 'postMessage' in event.source) {
-              (event.source as Window).postMessage({ type: 'google-oauth-complete', success: true }, '*');
-            }
-
-            showToast('Google Calendar connected successfully!', 'success');
-            await loadConnectionStatus();
-          } catch (err: any) {
-            console.error('Token exchange error:', err);
-            if (event.source && 'postMessage' in event.source) {
-              (event.source as Window).postMessage({ type: 'google-oauth-complete', success: false, error: err.message }, '*');
-            }
-            showToast(err.message || 'Failed to connect Google Calendar', 'error');
-          } finally {
-            setConnecting(false);
-          }
-        } else if (event.data.success && !event.data.code) {
-          // New path: OAuthCallbackPage already exchanged the tokens — just refresh status.
-          setConnecting(false);
+      if (data.success && data.code) {
+        setConnecting(true);
+        try {
+          const tokens = await exchangeCodeForTokens(data.code);
+          await companyCalendarService.saveGoogleTokens(
+            tokens.access_token,
+            tokens.refresh_token || '',
+            tokens.expires_in
+          );
+          replyFn?.({ type: 'google-oauth-complete', success: true });
           showToast('Google Calendar connected successfully!', 'success');
           await loadConnectionStatus();
-        } else if (event.data.error) {
+        } catch (err: any) {
+          console.error('Token exchange error:', err);
+          replyFn?.({ type: 'google-oauth-complete', success: false, error: err.message });
+          showToast(err.message || 'Failed to connect Google Calendar', 'error');
+        } finally {
           setConnecting(false);
-          showToast(event.data.error || 'Failed to connect Google Calendar', 'error');
         }
+      } else if (data.success && !data.code) {
+        setConnecting(false);
+        showToast('Google Calendar connected successfully!', 'success');
+        await loadConnectionStatus();
+      } else if (data.error) {
+        setConnecting(false);
+        showToast(data.error || 'Failed to connect Google Calendar', 'error');
       }
     };
 
-    window.addEventListener('message', handleOAuthMessage);
-    return () => window.removeEventListener('message', handleOAuthMessage);
+    // BroadcastChannel — works when window.opener is null (Bolt sandbox)
+    const bc = new BroadcastChannel('google-oauth-channel');
+    bc.onmessage = (event) => {
+      const reply = (payload: any) => {
+        const replyBc = new BroadcastChannel('google-oauth-channel');
+        replyBc.postMessage(payload);
+        replyBc.close();
+      };
+      handleOAuthData(event.data, reply);
+    };
+
+    // window.message — works for direct (non-sandboxed) access
+    const handleWindowMessage = (event: MessageEvent) => {
+      const reply = (payload: any) => {
+        if (event.source && 'postMessage' in event.source) {
+          (event.source as Window).postMessage(payload, '*');
+        }
+      };
+      handleOAuthData(event.data, reply);
+    };
+    window.addEventListener('message', handleWindowMessage);
+
+    return () => {
+      bc.close();
+      window.removeEventListener('message', handleWindowMessage);
+    };
   }, []);
 
   const loadConnectionStatus = async () => {
