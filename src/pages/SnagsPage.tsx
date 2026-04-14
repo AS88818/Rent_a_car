@@ -102,29 +102,28 @@ export function SnagsPage() {
         throw new Error('Branch ID is required');
       }
 
-      const newSnags = await Promise.all(
-        issues.map(async issue => {
-          const snag = await snagService.createSnag({
-            vehicle_id: vehicleId,
-            priority: (issue.priority || null) as 'Dangerous' | 'Important' | 'Nice to Fix' | 'Aesthetic' | null,
-            status: 'Open',
-            date_opened: new Date().toISOString().split('T')[0],
-            description: issue.description,
-            branch_id: vehicleBranchId,
-            mileage_reported: issue.mileage,
-          });
+      const newSnags: Awaited<ReturnType<typeof snagService.createSnag>>[] = [];
+      for (const issue of issues) {
+        const snag = await snagService.createSnag({
+          vehicle_id: vehicleId,
+          priority: (issue.priority || null) as 'Dangerous' | 'Important' | 'Nice to Fix' | 'Aesthetic' | null,
+          status: 'Open',
+          date_opened: new Date().toISOString().split('T')[0],
+          description: issue.description,
+          branch_id: vehicleBranchId,
+          mileage_reported: issue.mileage,
+        });
 
-          if (issue.photos && issue.photos.length > 0) {
-            await Promise.all(
-              issue.photos.map(photoUrl =>
-                snagService.addSnagPhoto(snag.id, photoUrl)
-              )
-            );
-          }
+        if (issue.photos && issue.photos.length > 0) {
+          await Promise.all(
+            issue.photos.map(photoUrl =>
+              snagService.addSnagPhoto(snag.id, photoUrl)
+            )
+          );
+        }
 
-          return snag;
-        })
-      );
+        newSnags.push(snag);
+      }
 
       showToast(`${newSnags.length} snag(s) created successfully`, 'success');
       fetchData();
