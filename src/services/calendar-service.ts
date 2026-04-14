@@ -89,6 +89,12 @@ export const companyCalendarService = {
         google_sync_enabled: false,
       })
       .eq('id', existing.id);
+
+    // Clear stale event IDs from all bookings so the next sync creates fresh events
+    await supabase
+      .from('bookings')
+      .update({ google_event_id: null, google_event_id_end: null })
+      .not('google_event_id', 'is', null);
   },
 
   async saveGmailRefreshToken(refreshToken: string): Promise<void> {
@@ -426,9 +432,18 @@ export const bookingSyncService = {
 
     const vehicleMap = new Map(vehicles.map(v => [v.id, v]));
 
+    const errors: string[] = [];
     for (const booking of bookings) {
-      const vehicle = vehicleMap.get(booking.vehicle_id);
-      await this.syncBookingToGoogle(booking, vehicle);
+      try {
+        const vehicle = vehicleMap.get(booking.vehicle_id);
+        await this.syncBookingToGoogle(booking, vehicle);
+      } catch (err: any) {
+        console.error(`Failed to sync booking ${booking.id}:`, err);
+        errors.push(`${booking.id}: ${err.message}`);
+      }
+    }
+    if (errors.length > 0) {
+      throw new Error(`${errors.length} booking(s) failed to sync:\n${errors.join('\n')}`);
     }
   },
 };
