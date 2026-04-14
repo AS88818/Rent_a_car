@@ -335,7 +335,9 @@ export const bookingSyncService = {
   ): Promise<void> {
     try {
       const config = await companyCalendarService.getConfig();
-      if (!config || !config.google_sync_enabled) return;
+      if (!config || !config.google_sync_enabled) {
+        throw new Error('Google Calendar sync is not enabled — check Calendar Sync settings');
+      }
 
       const accessToken = await companyCalendarService.getValidAccessToken();
       let calendarId = config.google_calendar_id;
