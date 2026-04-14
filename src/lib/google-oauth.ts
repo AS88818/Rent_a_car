@@ -47,22 +47,16 @@ export async function initiateGoogleOAuth(): Promise<void> {
     `state=calendar&` +
     `prompt=consent`;
 
-  const isInIframe = window.self !== window.top;
+  const width = 600;
+  const height = 700;
+  const left = window.screenX + (window.outerWidth - width) / 2;
+  const top = window.screenY + (window.outerHeight - height) / 2;
 
-  if (isInIframe) {
-    const width = 600;
-    const height = 700;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2;
-
-    window.open(
-      authUrl,
-      'google-oauth',
-      `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
-    );
-  } else {
-    window.location.href = authUrl;
-  }
+  window.open(
+    authUrl,
+    'google-oauth',
+    `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+  );
 }
 
 export async function initiateGmailOAuth(): Promise<void> {
