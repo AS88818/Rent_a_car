@@ -84,9 +84,9 @@ export const companyCalendarService = {
       .update({
         google_access_token: null,
         google_refresh_token: null,
-        google_calendar_id: null,
         google_token_expiry: null,
         google_sync_enabled: false,
+        // google_calendar_id intentionally preserved — reconnecting reuses the same calendar
       })
       .eq('id', existing.id);
 
