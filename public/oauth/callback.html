@@ -78,14 +78,18 @@
       function sendToParent(payload) {
         // Try BroadcastChannel first — works when window.opener is null
         // (e.g. Bolt.new sandbox uses allow-popups-to-escape-sandbox)
+        var bcSent = false;
         try {
           var bc = new BroadcastChannel('google-oauth-channel');
           bc.postMessage(payload);
           bc.close();
+          bcSent = true;
         } catch(e) {}
 
-        // Also try window.opener for direct (non-sandboxed) access
-        if (window.opener) {
+        // Only fall back to window.opener if BroadcastChannel failed —
+        // sending both causes the parent to receive the code twice and
+        // the second token exchange returns 400 (code already redeemed).
+        if (!bcSent && window.opener) {
           try {
             window.opener.postMessage(payload, '*');
           } catch(e) {}
