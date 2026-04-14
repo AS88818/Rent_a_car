@@ -378,7 +378,10 @@ export const bookingSyncService = {
       if (startId !== booking.google_event_id)     updates.google_event_id     = startId;
       if (endId   !== booking.google_event_id_end) updates.google_event_id_end = endId;
       if (Object.keys(updates).length > 0) {
-        await supabase.from('bookings').update(updates).eq('id', booking.id);
+        const { error: updateError } = await supabase.from('bookings').update(updates).eq('id', booking.id);
+        if (updateError) {
+          throw new Error(`Failed to save calendar event IDs to booking: ${updateError.message}`);
+        }
       }
 
       await companyCalendarService.updateConfig({ google_last_sync_at: new Date().toISOString() });
