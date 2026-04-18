@@ -708,15 +708,17 @@ export const snagService = {
   },
 
   async createSnag(snag: Omit<Snag, 'id' | 'created_at' | 'updated_at'>) {
-    // Assign next snag_number for this vehicle
+    // Assign next snag_number for this vehicle.
+    // Include deleted snags so we never collide with a soft-deleted row's number.
+    // Exclude NULLs (legacy rows pre-dating this column) so DESC ordering is correct.
     const { data: maxRow } = await supabase
       .from('snags')
       .select('snag_number')
       .eq('vehicle_id', snag.vehicle_id)
-      .is('deleted_at', null)
+      .not('snag_number', 'is', null)
       .order('snag_number', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
     const nextNumber = ((maxRow as any)?.snag_number ?? 0) + 1;
 
     const { data, error } = await supabase

@@ -126,10 +126,10 @@ export function SnagsPage() {
       }
 
       showToast(`${newSnags.length} snag(s) created successfully`, 'success');
-      fetchData();
     } catch (error: any) {
       showToast(error.message || 'Failed to create snags', 'error');
     } finally {
+      fetchData();
       setSubmitting(false);
     }
   };
