@@ -148,8 +148,9 @@ export function SnagResolutionModal({
     handleClose();
   };
 
-  // Users available for "checked by" — exclude the current user (can't check own work)
-  const checkableUsers = users.filter(u => u.id !== currentUserId);
+  // Users available for "checked by" — exclude the resolver (can't check own work)
+  const resolverUserId = snag?.assigned_to || assignedToUserId;
+  const checkableUsers = users.filter(u => u.id !== resolverUserId);
 
   if (!isOpen || !snag) return null;
 
@@ -241,7 +242,7 @@ export function SnagResolutionModal({
             {checkableUsers.length > 0 && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Work Checked By <span className="text-gray-400 text-xs font-normal">(optional — cannot be yourself)</span>
+                  Work Checked By <span className="text-gray-400 text-xs font-normal">(optional — cannot be the resolver)</span>
                 </label>
                 <select
                   value={checkedByUserId}
