@@ -29,9 +29,10 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { showToast } from '../lib/toast';
-import { autoSyncToCompanyCalendar } from '../services/calendar-service';
+import { autoSyncToCompanyCalendar, autoDeleteFromCompanyCalendar } from '../services/calendar-service';
 import { BookingDetailsModal } from '../components/BookingDetailsModal';
 import { BookingFormModal } from '../components/BookingFormModal';
+import { ConfirmModal } from '../components/ConfirmModal';
 import { VehicleTypeBadge } from '../components/VehicleTypeBadge';
 
 interface VehicleWithBranch extends Vehicle {
@@ -78,6 +79,8 @@ export function DashboardPage() {
   const [snoozedAlerts, setSnoozedAlerts] = useState<any[]>([]);
   const [showSnoozedModal, setShowSnoozedModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   const [alertsExpanded, setAlertsExpanded] = useState(() => {
     const saved = localStorage.getItem('dashboard_alerts_expanded');
@@ -200,6 +203,35 @@ export function DashboardPage() {
       setEditingBooking(selectedBooking);
       setIsDetailsModalOpen(false);
       setShowEditModal(true);
+    }
+  };
+
+  const handleCancelBooking = async () => {
+    if (!confirmCancel) return;
+    setCancelling(true);
+    try {
+      const cancelledBooking = bookings.find(b => b.id === confirmCancel);
+      await bookingService.updateBooking(
+        confirmCancel,
+        { status: 'Cancelled' },
+        user ? { id: user.id, name: (user as any).full_name || user.email || 'Unknown', role: userRole || 'user' } : undefined
+      );
+      setBookings(bookings.filter(b => b.id !== confirmCancel));
+      showToast('Booking cancelled', 'success');
+      setConfirmCancel(null);
+      setIsDetailsModalOpen(false);
+      setSelectedBooking(null);
+      if (cancelledBooking) {
+        autoDeleteFromCompanyCalendar(cancelledBooking).then(result => {
+          if (!result.synced && result.error && userRole === 'admin') {
+            showToast(`Calendar sync failed: ${result.error}`, 'warning');
+          }
+        });
+      }
+    } catch (error: any) {
+      showToast(error.message || 'Failed to cancel booking', 'error');
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -1458,6 +1490,8 @@ export function DashboardPage() {
         vehicle={selectedBooking ? vehicles.find(v => v.id === selectedBooking.vehicle_id) || null : null}
         branches={branches}
         onEdit={handleEditBooking}
+        onCancel={() => selectedBooking && setConfirmCancel(selectedBooking.id)}
+        userRole={userRole}
       />
 
       <BookingFormModal
@@ -1552,6 +1586,18 @@ export function DashboardPage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmCancel !== null}
+        title="Cancel Booking"
+        message="Are you sure you want to cancel this booking? This action cannot be undone."
+        confirmText="Yes, Cancel Booking"
+        cancelText="Keep Booking"
+        variant="danger"
+        onConfirm={handleCancelBooking}
+        onCancel={() => setConfirmCancel(null)}
+        loading={cancelling}
+      />
     </div>
   );
 }
