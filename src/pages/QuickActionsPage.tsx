@@ -153,6 +153,15 @@ export function QuickActionsPage() {
     const mileageNum = parseInt(mileage, 10);
     if (isNaN(mileageNum) || mileageNum < 0) return;
 
+    const vehicle = vehicles.find(v => v.id === vehicleId);
+    if (vehicle?.current_mileage && mileageNum < vehicle.current_mileage) {
+      showToast(
+        `Mileage cannot be less than the current recorded mileage (${vehicle.current_mileage.toLocaleString()} km)`,
+        'error'
+      );
+      return;
+    }
+
     setSavingVehicleIds(prev => new Set(prev).add(vehicleId));
     setSavedVehicleIds(prev => {
       const newSet = new Set(prev);
