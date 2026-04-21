@@ -176,7 +176,7 @@ function EditExpirationModal({ quote, onClose, onSave }: EditExpirationModalProp
   );
 }
 
-type SortField = 'created_at' | 'start_date' | 'vehicle_type';
+type SortField = 'created_at' | 'start_date' | 'vehicle_type' | 'location';
 type SortDirection = 'asc' | 'desc';
 
 export default function QuotesPage() {
@@ -293,36 +293,19 @@ export default function QuotesPage() {
 
   const getVehicleTypesForQuote = (quote: Quote): string => {
     const quoteData = quote.quote_data as { [key: string]: any };
-    const categories = Object.keys(quoteData);
-    return categories.join(', ');
+    return Object.keys(quoteData).join(', ');
   };
 
-  const getVehiclePlatesForQuote = (quote: Quote): string[] => {
-    const quoteData = quote.quote_data as { [key: string]: any };
-    const plates: string[] = [];
-    Object.values(quoteData).forEach((category: any) => {
-      if (Array.isArray(category)) {
-        category.forEach((item: any) => {
-          if (item.vehicle_id && typeof item.vehicle_id === 'string') {
-            plates.push(item.vehicle_id);
-          }
-        });
-      }
-    });
-    return plates;
+  const getLocationFromReference = (reference: string): string => {
+    const match = reference.match(/^[A-Z]+/);
+    return match ? match[0] : reference;
   };
 
   const filteredAndSortedQuotes = quotes
     .filter((q) => filter === 'all' || q.status === filter)
     .filter((q) => {
       if (!searchTerm) return true;
-      const searchLower = searchTerm.toLowerCase();
-      const matchesName = q.client_name.toLowerCase().includes(searchLower);
-      const vehiclePlates = getVehiclePlatesForQuote(q);
-      const matchesPlate = vehiclePlates.some(plate =>
-        plate.toLowerCase().includes(searchLower)
-      );
-      return matchesName || matchesPlate;
+      return q.client_name.toLowerCase().includes(searchTerm.toLowerCase());
     })
     .sort((a, b) => {
       let aVal: any;
@@ -334,8 +317,12 @@ export default function QuotesPage() {
           bVal = new Date(b.start_date).getTime();
           break;
         case 'vehicle_type':
-          aVal = getVehicleTypesForQuote(a);
-          bVal = getVehicleTypesForQuote(b);
+          aVal = getVehicleTypesForQuote(a).toLowerCase();
+          bVal = getVehicleTypesForQuote(b).toLowerCase();
+          break;
+        case 'location':
+          aVal = getLocationFromReference(a.quote_reference).toLowerCase();
+          bVal = getLocationFromReference(b.quote_reference).toLowerCase();
           break;
         case 'created_at':
         default:
@@ -428,7 +415,7 @@ export default function QuotesPage() {
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search by customer name or vehicle plate..."
+                  placeholder="Search by customer name..."
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                 />
               </div>
@@ -445,6 +432,7 @@ export default function QuotesPage() {
                   <option value="created_at">Created Date</option>
                   <option value="start_date">Start Date</option>
                   <option value="vehicle_type">Vehicle Type</option>
+                  <option value="location">Location</option>
                 </select>
                 <button
                   onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
