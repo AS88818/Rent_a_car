@@ -97,33 +97,33 @@ export function VehicleSnagCard({
               )}
             </div>
 
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm">
               <span className="text-gray-600">
                 {vehicle.snag_counts.total} snag{vehicle.snag_counts.total !== 1 ? 's' : ''}
               </span>
               {vehicle.snag_counts.dangerous > 0 && (
-                <span className="flex items-center gap-1 text-red-600 font-medium">
-                  <AlertTriangle className="w-4 h-4" />
+                <span className="flex items-center gap-1 text-red-600 font-medium whitespace-nowrap">
+                  <AlertTriangle className="w-3 h-3 md:w-4 md:h-4" />
                   {vehicle.snag_counts.dangerous} Dangerous
                 </span>
               )}
               {vehicle.snag_counts.important > 0 && (
-                <span className="text-orange-600">
+                <span className="text-orange-600 whitespace-nowrap">
                   {vehicle.snag_counts.important} Important
                 </span>
               )}
               {vehicle.snag_counts.nice_to_fix > 0 && (
-                <span className="text-yellow-600">
+                <span className="text-yellow-600 whitespace-nowrap">
                   {vehicle.snag_counts.nice_to_fix} Nice to Fix
                 </span>
               )}
               {vehicle.snag_counts.aesthetic > 0 && (
-                <span className="text-blue-600">
+                <span className="text-blue-600 whitespace-nowrap">
                   {vehicle.snag_counts.aesthetic} Aesthetic
                 </span>
               )}
               {vehicle.snag_counts.unallocated > 0 && (
-                <span className="text-gray-500">
+                <span className="text-gray-500 whitespace-nowrap">
                   {vehicle.snag_counts.unallocated} Unallocated
                 </span>
               )}
