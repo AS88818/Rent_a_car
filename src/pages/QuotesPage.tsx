@@ -11,6 +11,8 @@ import {
   XCircle,
   Trash2,
   RefreshCw,
+  Search,
+  ArrowUpDown,
 } from 'lucide-react';
 import { quotationService } from '../services/api';
 import { showToast } from '../lib/toast';
@@ -174,12 +176,18 @@ function EditExpirationModal({ quote, onClose, onSave }: EditExpirationModalProp
   );
 }
 
+type SortField = 'created_at' | 'start_date' | 'vehicle_type';
+type SortDirection = 'asc' | 'desc';
+
 export default function QuotesPage() {
   const navigate = useNavigate();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'Draft' | 'Active' | 'Accepted' | 'Converted' | 'Expired'>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortField, setSortField] = useState<SortField>('created_at');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [convertingQuote, setConvertingQuote] = useState<Quote | null>(null);
   const [acceptingQuote, setAcceptingQuote] = useState<Quote | null>(null);
   const [editingQuote, setEditingQuote] = useState<Quote | null>(null);
@@ -283,15 +291,77 @@ export default function QuotesPage() {
     }
   };
 
-  const filteredQuotes = quotes.filter(
-    (q) => filter === 'all' || q.status === filter
-  );
+  const getVehicleTypesForQuote = (quote: Quote): string => {
+    const quoteData = quote.quote_data as { [key: string]: any };
+    const categories = Object.keys(quoteData);
+    return categories.join(', ');
+  };
+
+  const getVehiclePlatesForQuote = (quote: Quote): string[] => {
+    const quoteData = quote.quote_data as { [key: string]: any };
+    const plates: string[] = [];
+    Object.values(quoteData).forEach((category: any) => {
+      if (Array.isArray(category)) {
+        category.forEach((item: any) => {
+          if (item.vehicle_id && typeof item.vehicle_id === 'string') {
+            plates.push(item.vehicle_id);
+          }
+        });
+      }
+    });
+    return plates;
+  };
+
+  const filteredAndSortedQuotes = quotes
+    .filter((q) => filter === 'all' || q.status === filter)
+    .filter((q) => {
+      if (!searchTerm) return true;
+      const searchLower = searchTerm.toLowerCase();
+      const matchesName = q.client_name.toLowerCase().includes(searchLower);
+      const vehiclePlates = getVehiclePlatesForQuote(q);
+      const matchesPlate = vehiclePlates.some(plate =>
+        plate.toLowerCase().includes(searchLower)
+      );
+      return matchesName || matchesPlate;
+    })
+    .sort((a, b) => {
+      let aVal: any;
+      let bVal: any;
+
+      switch (sortField) {
+        case 'start_date':
+          aVal = new Date(a.start_date).getTime();
+          bVal = new Date(b.start_date).getTime();
+          break;
+        case 'vehicle_type':
+          aVal = getVehicleTypesForQuote(a);
+          bVal = getVehicleTypesForQuote(b);
+          break;
+        case 'created_at':
+        default:
+          aVal = new Date(a.created_at).getTime();
+          bVal = new Date(b.created_at).getTime();
+      }
+
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
 
   const statusCounts = {
     all: quotes.length,
     Draft: quotes.filter((q) => q.status === 'Draft').length,
     Active: quotes.filter((q) => q.status === 'Active').length,
     Expired: quotes.filter((q) => q.status === 'Expired').length,
+  };
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
   };
 
   if (loading) {
@@ -348,18 +418,60 @@ export default function QuotesPage() {
           ))}
         </div>
 
-        {filteredQuotes.length === 0 ? (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by customer name or vehicle plate..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Sort by</label>
+              <div className="flex gap-2">
+                <select
+                  value={sortField}
+                  onChange={(e) => handleSort(e.target.value as SortField)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+                >
+                  <option value="created_at">Created Date</option>
+                  <option value="start_date">Start Date</option>
+                  <option value="vehicle_type">Vehicle Type</option>
+                </select>
+                <button
+                  onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
+                  className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  title={`Sort ${sortDirection === 'asc' ? 'descending' : 'ascending'}`}
+                >
+                  <ArrowUpDown className={`w-4 h-4 text-gray-600 ${sortDirection === 'asc' ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {filteredAndSortedQuotes.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
             <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600">
-              {filter === 'all'
+              {searchTerm
+                ? 'No quotes match your search'
+                : filter === 'all'
                 ? 'No quotes found'
                 : `No ${filter.toLowerCase()} quotes found`}
             </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredQuotes.map((quote) => {
+            {filteredAndSortedQuotes.map((quote) => {
               const quoteData = quote.quote_data as { [key: string]: any };
               const categories = Object.keys(quoteData);
               const daysRemaining = getDaysRemaining(quote.expiration_date);
