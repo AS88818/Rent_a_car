@@ -296,11 +296,6 @@ export default function QuotesPage() {
     return Object.keys(quoteData).join(', ');
   };
 
-  const getLocationFromReference = (reference: string): string => {
-    const match = reference.match(/^[A-Z]+/);
-    return match ? match[0] : reference;
-  };
-
   const filteredAndSortedQuotes = quotes
     .filter((q) => filter === 'all' || q.status === filter)
     .filter((q) => {
@@ -321,8 +316,8 @@ export default function QuotesPage() {
           bVal = getVehicleTypesForQuote(b).toLowerCase();
           break;
         case 'location':
-          aVal = getLocationFromReference(a.quote_reference).toLowerCase();
-          bVal = getLocationFromReference(b.quote_reference).toLowerCase();
+          aVal = (a.pickup_location || '').toLowerCase();
+          bVal = (b.pickup_location || '').toLowerCase();
           break;
         case 'created_at':
         default:
