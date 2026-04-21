@@ -136,6 +136,11 @@ export function SnagFormModal({
     }
 
     const mileageValue = mileage ? parseInt(mileage, 10) : undefined;
+    if (mileageValue !== undefined && selectedVehicle?.current_mileage && mileageValue < selectedVehicle.current_mileage) {
+      alert(`Mileage cannot be less than the current recorded mileage (${selectedVehicle.current_mileage.toLocaleString()} km)`);
+      return;
+    }
+
     const issuesWithMileage = validIssues.map(issue => ({
       ...issue,
       mileage: mileageValue,

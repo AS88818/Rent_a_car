@@ -728,6 +728,13 @@ export const snagService = {
       .single();
     if (error) throw error;
 
+    if (snag.mileage_reported) {
+      const vehicle = await vehicleService.getVehicleById(snag.vehicle_id);
+      if (!vehicle.current_mileage || snag.mileage_reported > vehicle.current_mileage) {
+        await vehicleService.updateVehicle(snag.vehicle_id, { current_mileage: snag.mileage_reported });
+      }
+    }
+
     await updateVehicleHealthFlag(snag.vehicle_id);
     return data as Snag;
   },
