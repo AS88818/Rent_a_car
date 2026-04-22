@@ -6,7 +6,7 @@ import { Vehicle, VehicleCategory, Branch, Booking } from '../types/database';
 import { showToast } from '../lib/toast';
 import { autoSyncToCompanyCalendar } from '../services/calendar-service';
 import { getAvailableVehicles, calculateBookingDuration, checkInsuranceExpiryDuringBooking, formatDate, daysUntilExpiry } from '../lib/utils';
-import { ArrowLeft, Check, CheckCircle, Calendar, MapPin, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle, Calendar, MapPin, AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
 import { BookingDocumentUpload } from '../components/BookingDocumentUpload';
 
 interface VehicleWithBranch extends Vehicle {
@@ -26,6 +26,9 @@ export function BookingCreatePage() {
   const [submitting, setSubmitting] = useState(false);
   const [bookingCreated, setBookingCreated] = useState(false);
   const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
+  const [calendarSyncStatus, setCalendarSyncStatus] = useState<'pending' | 'synced' | 'failed' | null>(null);
+  const [calendarSyncError, setCalendarSyncError] = useState<string | null>(null);
+  const [calendarSyncing, setCalendarSyncing] = useState(false);
 
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleWithBranch | null>(null);
@@ -263,9 +266,13 @@ export function BookingCreatePage() {
       showToast(saveAsDraft ? 'Draft saved successfully' : 'Booking created successfully', 'success');
 
       if (!saveAsDraft) {
+        setCalendarSyncStatus('pending');
         autoSyncToCompanyCalendar(createdBooking, selectedVehicle).then(result => {
-          if (!result.synced && result.error && userRole === 'admin') {
-            showToast(`Calendar sync failed: ${result.error}`, 'warning');
+          if (result.synced) {
+            setCalendarSyncStatus('synced');
+          } else {
+            setCalendarSyncStatus('failed');
+            setCalendarSyncError(result.error || 'Calendar sync failed');
           }
         });
       }
@@ -287,6 +294,21 @@ export function BookingCreatePage() {
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
+  };
+
+  const retryCalendarSync = async () => {
+    if (!createdBookingId || !selectedVehicle) return;
+    setCalendarSyncing(true);
+    setCalendarSyncStatus('pending');
+    setCalendarSyncError(null);
+    const { data: booking } = await (await import('../lib/supabase')).supabase
+      .from('bookings').select('*').eq('id', createdBookingId).maybeSingle();
+    if (booking) {
+      const result = await autoSyncToCompanyCalendar(booking, selectedVehicle);
+      setCalendarSyncStatus(result.synced ? 'synced' : 'failed');
+      setCalendarSyncError(result.synced ? null : (result.error || 'Calendar sync failed'));
+    }
+    setCalendarSyncing(false);
   };
 
   const canProceedToStep = (step: number) => {
@@ -352,6 +374,35 @@ export function BookingCreatePage() {
               </div>
             </div>
           </div>
+
+          {calendarSyncStatus && (
+            <div className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-4 text-sm text-left ${
+              calendarSyncStatus === 'synced'  ? 'bg-green-50 border border-green-200' :
+              calendarSyncStatus === 'pending' ? 'bg-blue-50 border border-blue-200' :
+                                                 'bg-amber-50 border border-amber-200'
+            }`}>
+              {calendarSyncStatus === 'pending' && <Loader2 className="w-4 h-4 animate-spin text-blue-500 flex-shrink-0" />}
+              {calendarSyncStatus === 'synced'  && <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />}
+              {calendarSyncStatus === 'failed'  && <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />}
+              <div className="flex-1">
+                {calendarSyncStatus === 'pending' && <span className="text-blue-700">Syncing to Google Calendar…</span>}
+                {calendarSyncStatus === 'synced'  && <span className="text-green-700">Added to Google Calendar</span>}
+                {calendarSyncStatus === 'failed'  && (
+                  <span className="text-amber-700">Calendar sync failed: {calendarSyncError}</span>
+                )}
+              </div>
+              {calendarSyncStatus === 'failed' && (
+                <button
+                  onClick={retryCalendarSync}
+                  disabled={calendarSyncing}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-amber-600 text-white rounded text-xs font-medium hover:bg-amber-700 disabled:opacity-50 flex-shrink-0"
+                >
+                  <RefreshCw className={`w-3 h-3 ${calendarSyncing ? 'animate-spin' : ''}`} />
+                  Retry
+                </button>
+              )}
+            </div>
+          )}
 
           {createdBookingId && (
             <div className="mb-6">

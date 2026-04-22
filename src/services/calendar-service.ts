@@ -90,11 +90,8 @@ export const companyCalendarService = {
       })
       .eq('id', existing.id);
 
-    // Clear stale event IDs from all bookings so the next sync creates fresh events
-    await supabase
-      .from('bookings')
-      .update({ google_event_id: null, google_event_id_end: null })
-      .not('google_event_id', 'is', null);
+    // Do NOT clear event IDs — they are still valid on Google's side.
+    // syncOneEvent already handles 404s by creating a fresh event if the stored ID is gone.
   },
 
   async saveGmailRefreshToken(refreshToken: string): Promise<void> {
