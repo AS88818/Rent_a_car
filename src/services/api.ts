@@ -654,6 +654,48 @@ export const maintenanceService = {
       reg_number: log.vehicles?.reg_number || null,
     }));
   },
+
+  async updateMaintenanceLog(id: string, updates: Partial<MaintenanceLog>) {
+    const { data, error } = await supabase
+      .from('maintenance_logs')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data as MaintenanceLog;
+  },
+
+  async deleteMaintenanceLog(id: string, userId: string, reason: string) {
+    const { data: logData, error: fetchError } = await supabase
+      .from('maintenance_logs')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (fetchError) throw fetchError;
+
+    const { error: auditError } = await supabase
+      .from('maintenance_deletions')
+      .insert([{
+        maintenance_log_id: id,
+        vehicle_id: logData.vehicle_id,
+        service_date: logData.service_date,
+        mileage: logData.mileage,
+        work_done: logData.work_done,
+        performed_by: logData.performed_by,
+        deleted_by: userId,
+        deletion_reason: reason,
+        original_data: logData,
+        branch_id: logData.branch_id,
+      }]);
+    if (auditError) throw auditError;
+
+    const { error: deleteError } = await supabase
+      .from('maintenance_logs')
+      .delete()
+      .eq('id', id);
+    if (deleteError) throw deleteError;
+  },
 };
 
 async function updateVehicleHealthFlag(vehicleId: string): Promise<void> {

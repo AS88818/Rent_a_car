@@ -4,9 +4,12 @@ import { useAuth } from '../lib/auth-context';
 import { maintenanceService, vehicleService, userService } from '../services/api';
 import { MaintenanceLog, Vehicle, AuthUser } from '../types/database';
 import { formatDate } from '../lib/utils';
-import { Plus, Filter, X, Upload, Image as ImageIcon, Trash2, RefreshCw } from 'lucide-react';
+import { Plus, Filter, X, Image as ImageIcon, Trash2, RefreshCw, Pencil } from 'lucide-react';
 import { showToast } from '../lib/toast';
 import { PhotoUpload } from '../components/PhotoUpload';
+import { MaintenanceEditModal } from '../components/MaintenanceEditModal';
+import { MaintenanceDeleteModal } from '../components/MaintenanceDeleteModal';
+import { getPermissions } from '../lib/permissions';
 
 interface WorkItem {
   work_description: string;
@@ -20,7 +23,7 @@ interface WorkItem {
 }
 
 export function MaintenancePage() {
-  const { branchId, userRole } = useAuth();
+  const { branchId, userRole, user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const vehicleIdFromUrl = searchParams.get('vehicleId');
@@ -34,6 +37,10 @@ export function MaintenancePage() {
   const [showForm, setShowForm] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState('');
   const [selectedLog, setSelectedLog] = useState<MaintenanceLog | null>(null);
+  const [editingLog, setEditingLog] = useState<MaintenanceLog | null>(null);
+  const [deletingLog, setDeletingLog] = useState<MaintenanceLog | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [formData, setFormData] = useState({
     service_date: '',
     mileage: '',
@@ -285,6 +292,38 @@ export function MaintenancePage() {
     }
   };
 
+  const handleEditLog = async (updates: Partial<MaintenanceLog>) => {
+    if (!editingLog) return;
+    setEditSubmitting(true);
+    try {
+      const updated = await maintenanceService.updateMaintenanceLog(editingLog.id, updates);
+      setLogs(logs.map(l => l.id === editingLog.id ? updated : l));
+      setEditingLog(null);
+      showToast('Maintenance log updated', 'success');
+    } catch (error: any) {
+      showToast(error.message || 'Failed to update log', 'error');
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleDeleteLog = async (reason: string) => {
+    if (!deletingLog || !user) return;
+    setDeleteLoading(true);
+    try {
+      await maintenanceService.deleteMaintenanceLog(deletingLog.id, user.id, reason);
+      setLogs(logs.filter(l => l.id !== deletingLog.id));
+      setDeletingLog(null);
+      showToast('Maintenance log deleted', 'success');
+    } catch (error: any) {
+      showToast(error.message || 'Failed to delete log', 'error');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const permissions = userRole ? getPermissions(userRole) : null;
+
   const currentVehicle = vehicles.find(v => v.id === selectedVehicle);
 
   if (loading) {
@@ -513,15 +552,11 @@ export function MaintenancePage() {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
                         >
                           <option value="">No quality check</option>
-                          {mechanics.length > 0 && (
-                            <optgroup label="Select Checker">
-                              {mechanics.map(m => (
-                                <option key={m.id} value={m.id}>
-                                  {m.full_name}
-                                </option>
-                              ))}
-                            </optgroup>
-                          )}
+                          {allUsers.filter(u => u.status === 'active' || !u.status).map(u => (
+                            <option key={u.id} value={u.id}>
+                              {u.full_name}
+                            </option>
+                          ))}
                         </select>
                       </div>
                     </div>
@@ -744,11 +779,37 @@ export function MaintenancePage() {
                       Service Date: {formatDate(log.service_date)}
                     </p>
                   </div>
-                  <div className="text-right flex-shrink-0 ml-4">
-                    <p className="text-sm text-gray-600">Mileage</p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {log.mileage.toLocaleString()} km
-                    </p>
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600">Mileage</p>
+                      <p className="text-lg font-semibold text-gray-900">
+                        {log.mileage.toLocaleString()} km
+                      </p>
+                    </div>
+                    {permissions?.canEditInBranch && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingLog(log);
+                        }}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Edit log"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    )}
+                    {permissions?.canDeleteInBranch && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingLog(log);
+                        }}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete log"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -798,6 +859,23 @@ export function MaintenancePage() {
           })
         )}
       </div>
+
+      <MaintenanceEditModal
+        isOpen={!!editingLog}
+        onClose={() => setEditingLog(null)}
+        onSubmit={handleEditLog}
+        log={editingLog}
+        allUsers={allUsers}
+        submitting={editSubmitting}
+      />
+
+      <MaintenanceDeleteModal
+        isOpen={!!deletingLog}
+        onClose={() => setDeletingLog(null)}
+        onConfirm={handleDeleteLog}
+        log={deletingLog}
+        loading={deleteLoading}
+      />
 
       {selectedLog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
