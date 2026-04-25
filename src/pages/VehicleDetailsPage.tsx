@@ -874,6 +874,8 @@ export function VehicleDetailsPage() {
         <MileageHistoryModal
           vehicleId={vehicle.id}
           vehicleReg={vehicle.reg_number}
+          maintenanceLogs={maintenanceLogs}
+          snags={snags}
           onClose={() => setShowMileageHistory(false)}
         />
       )}

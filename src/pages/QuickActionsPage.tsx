@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
-import { vehicleService, branchService, snagService, bookingService } from '../services/api';
+import { vehicleService, branchService, snagService, bookingService, mileageService } from '../services/api';
 import { Vehicle, Branch, Booking } from '../types/database';
 import { nowNaive } from '../lib/utils';
 import { showToast } from '../lib/toast';
@@ -170,12 +170,24 @@ export function QuickActionsPage() {
     });
 
     try {
+      const readingDatetime = new Date().toISOString();
       const updatedVehicle = await vehicleService.updateVehicle(vehicleId, {
         current_mileage: mileageNum,
-        last_mileage_update: new Date().toISOString(),
+        last_mileage_update: readingDatetime,
       });
 
       setVehicles(vehicles.map(v => (v.id === vehicleId ? updatedVehicle : v)));
+
+      // Log to mileage_logs so history is tracked
+      const vehicleBranchId = vehicle?.branch_id || branchId;
+      if (vehicleBranchId) {
+        mileageService.createMileageLog({
+          vehicle_id: vehicleId,
+          mileage_reading: mileageNum,
+          reading_datetime: readingDatetime,
+          branch_id: vehicleBranchId,
+        }).catch(() => {}); // non-blocking, best-effort
+      }
 
       setSavedVehicleIds(prev => new Set(prev).add(vehicleId));
       setTimeout(() => {

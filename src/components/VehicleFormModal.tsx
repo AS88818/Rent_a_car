@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Vehicle, VehicleCategory, Branch } from '../types/database';
-import { vehicleService } from '../services/api';
+import { vehicleService, mileageService } from '../services/api';
 import { showToast } from '../lib/toast';
 
 interface VehicleFormModalProps {
@@ -115,6 +115,21 @@ export function VehicleFormModal({
       let result: Vehicle;
       if (mode === 'edit' && vehicle) {
         result = await vehicleService.updateVehicle(vehicle.id, vehicleData);
+
+        // Log mileage change if the reading has increased
+        const newMileage = vehicleData.current_mileage as number;
+        if (newMileage && newMileage !== vehicle.current_mileage && vehicleData.branch_id) {
+          const readingDatetime = vehicleData.last_mileage_update
+            ? new Date(vehicleData.last_mileage_update as string).toISOString()
+            : new Date().toISOString();
+          mileageService.createMileageLog({
+            vehicle_id: vehicle.id,
+            mileage_reading: newMileage,
+            reading_datetime: readingDatetime,
+            branch_id: vehicleData.branch_id as string,
+          }).catch(() => {}); // non-blocking
+        }
+
         showToast('Vehicle updated successfully', 'success');
       } else {
         result = await vehicleService.createVehicle(vehicleData);
