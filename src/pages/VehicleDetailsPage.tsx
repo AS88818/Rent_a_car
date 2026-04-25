@@ -27,6 +27,7 @@ import {
   vehicleService,
   bookingService,
   maintenanceService,
+  mileageService,
   snagService,
   categoryService,
   branchService,
@@ -56,6 +57,8 @@ import { canDeleteVehicle } from '../lib/permissions';
 import { VehicleTypeBadge } from '../components/VehicleTypeBadge';
 import { useAuth } from '../lib/auth-context';
 import { VehicleDocumentUpload } from '../components/VehicleDocumentUpload';
+import { MileageHistoryModal } from '../components/MileageHistoryModal';
+import { BookingHistoryModal } from '../components/BookingHistoryModal';
 
 export function VehicleDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -82,6 +85,8 @@ export function VehicleDetailsPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [showImages, setShowImages] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showMileageHistory, setShowMileageHistory] = useState(false);
+  const [showBookingHistory, setShowBookingHistory] = useState(false);
 
   useEffect(() => {
     loadUser();
@@ -475,7 +480,15 @@ export function VehicleDetailsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-xs text-gray-600 mb-1">Current Mileage</p>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs text-gray-600">Current Mileage</p>
+                <button
+                  onClick={() => setShowMileageHistory(true)}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  History
+                </button>
+              </div>
               <p className="text-lg font-bold text-gray-900">
                 {vehicle.current_mileage.toLocaleString()} km
               </p>
@@ -649,12 +662,20 @@ export function VehicleDetailsPage() {
               <Calendar className="w-5 h-5 text-blue-600" />
               <h3 className="text-lg font-semibold text-gray-900">Current & Upcoming</h3>
             </div>
-            <button
-              onClick={() => navigate(`/bookings?vehicle=${vehicle.reg_number}`)}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              View All
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowBookingHistory(true)}
+                className="text-sm text-gray-500 hover:text-gray-700 font-medium"
+              >
+                Past Bookings
+              </button>
+              <button
+                onClick={() => navigate(`/bookings?vehicle=${vehicle.reg_number}`)}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                View All
+              </button>
+            </div>
           </div>
           {currentAndUpcomingBookings.length > 0 ? (
             <div className="space-y-3">
@@ -846,6 +867,22 @@ export function VehicleDetailsPage() {
             setBranch(vehicleBranch || null);
             setRefreshKey(prev => prev + 1);
           }}
+        />
+      )}
+
+      {showMileageHistory && (
+        <MileageHistoryModal
+          vehicleId={vehicle.id}
+          vehicleReg={vehicle.reg_number}
+          onClose={() => setShowMileageHistory(false)}
+        />
+      )}
+
+      {showBookingHistory && (
+        <BookingHistoryModal
+          bookings={bookings}
+          vehicleReg={vehicle.reg_number}
+          onClose={() => setShowBookingHistory(false)}
         />
       )}
 
