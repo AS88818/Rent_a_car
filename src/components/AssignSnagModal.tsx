@@ -8,7 +8,8 @@ interface AssignSnagModalProps {
   onClose: () => void;
   onSubmit: (assignment: {
     snagId: string;
-    assignedTo: string;
+    assignedTo?: string;
+    assignedToExternal?: string;
     deadline?: string;
     notes?: string;
   }) => Promise<void>;
@@ -26,7 +27,9 @@ export function AssignSnagModal({
   submitting = false,
 }: AssignSnagModalProps) {
   const { user } = useAuth();
+  const [assigneeType, setAssigneeType] = useState<'registered' | 'external'>('registered');
   const [assignedTo, setAssignedTo] = useState('');
+  const [externalName, setExternalName] = useState('');
   const [deadline, setDeadline] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -56,7 +59,9 @@ export function AssignSnagModal({
   }, [isOpen, submitting]);
 
   const handleClose = () => {
+    setAssigneeType('registered');
     setAssignedTo('');
+    setExternalName('');
     setDeadline('');
     setNotes('');
     onClose();
@@ -70,11 +75,14 @@ export function AssignSnagModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!snag || !assignedTo) return;
+    if (!snag) return;
+    if (assigneeType === 'registered' && !assignedTo) return;
+    if (assigneeType === 'external' && !externalName.trim()) return;
 
     await onSubmit({
       snagId: snag.id,
-      assignedTo,
+      assignedTo: assigneeType === 'registered' ? assignedTo : undefined,
+      assignedToExternal: assigneeType === 'external' ? externalName.trim() : undefined,
       deadline: deadline || undefined,
       notes: notes || undefined,
     });
@@ -118,28 +126,58 @@ export function AssignSnagModal({
                 Assign To <span className="text-red-500">*</span>
               </label>
               <select
-                value={assignedTo}
-                onChange={e => setAssignedTo(e.target.value)}
-                required
+                value={assigneeType === 'external' ? 'external' : assignedTo}
+                onChange={e => {
+                  const v = e.target.value;
+                  if (v === 'external') {
+                    setAssigneeType('external');
+                    setAssignedTo('');
+                  } else {
+                    setAssigneeType('registered');
+                    setAssignedTo(v);
+                    setExternalName('');
+                  }
+                }}
+                required={assigneeType !== 'external'}
                 disabled={submitting}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
               >
                 <option value="">Select User</option>
-                {availableUsers.map(u => (
-                  <option key={u.id} value={u.id}>
-                    {u.full_name} ({u.role})
-                  </option>
-                ))}
+                {availableUsers.length > 0 && (
+                  <optgroup label="Registered Users">
+                    {availableUsers.map(u => (
+                      <option key={u.id} value={u.id}>
+                        {u.full_name} ({u.role})
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                <optgroup label="External">
+                  <option value="external">Other (External)</option>
+                </optgroup>
               </select>
-              <button
-                type="button"
-                onClick={handleSelfAssign}
-                disabled={submitting}
-                className="mt-2 flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <User className="w-4 h-4" />
-                Assign to Me
-              </button>
+              {assigneeType === 'external' && (
+                <input
+                  type="text"
+                  placeholder="Enter name or service center"
+                  value={externalName}
+                  onChange={e => setExternalName(e.target.value)}
+                  required
+                  disabled={submitting}
+                  className="mt-2 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
+                />
+              )}
+              {assigneeType === 'registered' && (
+                <button
+                  type="button"
+                  onClick={handleSelfAssign}
+                  disabled={submitting}
+                  className="mt-2 flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <User className="w-4 h-4" />
+                  Assign to Me
+                </button>
+              )}
             </div>
 
             <div>
@@ -182,7 +220,7 @@ export function AssignSnagModal({
             </button>
             <button
               type="submit"
-              disabled={submitting || !assignedTo}
+              disabled={submitting || (assigneeType === 'registered' ? !assignedTo : !externalName.trim())}
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? 'Assigning...' : snag.assigned_to ? 'Reassign' : 'Assign'}

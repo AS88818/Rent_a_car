@@ -167,7 +167,8 @@ export function MyAssignmentsPage() {
 
   const handleReassign = async (data: {
     snagId: string;
-    assignedTo: string;
+    assignedTo?: string;
+    assignedToExternal?: string;
     deadline?: string;
     notes?: string;
   }) => {
@@ -176,10 +177,11 @@ export function MyAssignmentsPage() {
     try {
       await snagAssignmentService.reassignSnag(
         data.snagId,
-        data.assignedTo,
+        data.assignedTo || null,
         user.id,
         data.deadline,
-        data.notes
+        data.notes,
+        data.assignedToExternal
       );
       showToast('Snag reassigned successfully', 'success');
       setReassignAssignment(null);

@@ -2081,10 +2081,11 @@ export const snagAssignmentService = {
 
   async reassignSnag(
     snagId: string,
-    newAssigneeId: string,
+    newAssigneeId: string | null,
     assignedById: string,
     deadline?: string,
-    notes?: string
+    notes?: string,
+    externalName?: string
   ) {
     // Mark current active assignments as reassigned
     await supabase
@@ -2098,7 +2099,8 @@ export const snagAssignmentService = {
       .from('snag_assignments')
       .insert([{
         snag_id: snagId,
-        assigned_to: newAssigneeId,
+        assigned_to: newAssigneeId || null,
+        assigned_to_external: externalName || null,
         assigned_by: assignedById,
         status: 'assigned',
         deadline: deadline || null,
@@ -2107,9 +2109,6 @@ export const snagAssignmentService = {
       .select()
       .single();
     if (error) throw error;
-
-    // Update snag.assigned_to
-    await snagService.updateSnag(snagId, { assigned_to: newAssigneeId });
 
     return data as SnagAssignment;
   },

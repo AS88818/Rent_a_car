@@ -166,7 +166,8 @@ export function SnagsPage() {
 
   const handleAssignSnag = async (assignment: {
     snagId: string;
-    assignedTo: string;
+    assignedTo?: string;
+    assignedToExternal?: string;
     deadline?: string;
     notes?: string;
   }) => {
@@ -176,7 +177,8 @@ export function SnagsPage() {
     try {
       await snagAssignmentService.createAssignment({
         snag_id: assignment.snagId,
-        assigned_to: assignment.assignedTo,
+        assigned_to: assignment.assignedTo || null,
+        assigned_to_external: assignment.assignedToExternal,
         assigned_by: user.id,
         deadline: assignment.deadline,
         assignment_notes: assignment.notes,

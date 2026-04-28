@@ -171,9 +171,11 @@ export function VehicleSnagCard({
                         <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs font-semibold">
                           Closed
                         </span>
-                      ) : snag.assigned_to ? (
+                      ) : (snag.assigned_to || snag.assigned_to_external) ? (
                         <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">
-                          {snag.assigned_user?.full_name ? `Assigned → ${snag.assigned_user.full_name}` : 'Assigned'}
+                          {snag.assigned_to_external
+                            ? `Assigned → ${snag.assigned_to_external}`
+                            : snag.assigned_user?.full_name ? `Assigned → ${snag.assigned_user.full_name}` : 'Assigned'}
                         </span>
                       ) : null}
                     </div>
@@ -252,7 +254,7 @@ export function VehicleSnagCard({
                             e.stopPropagation();
                             onResolveSnag(snag);
                           }}
-                          title={snag.assigned_to ? 'Resolve this snag' : 'Resolve snag (you will be asked to assign a resolver)'}
+                          title={(snag.assigned_to || snag.assigned_to_external) ? 'Resolve this snag' : 'Resolve snag (you will be asked to assign a resolver)'}
                           className="px-3 py-1 text-xs rounded transition-colors flex items-center gap-1 bg-green-50 text-green-700 hover:bg-green-100 cursor-pointer"
                         >
                           <Wrench className="w-3 h-3" />

@@ -221,6 +221,7 @@ export interface Snag {
   description: string;
   branch_id: string;
   assigned_to?: string;
+  assigned_to_external?: string;
   assigned_user?: { full_name: string };
   assignment_deadline?: string;
   resolution_id?: string;
@@ -247,7 +248,8 @@ export type SnagAssignmentStatus = 'assigned' | 'completed' | 'overdue' | 'reass
 export interface SnagAssignment {
   id: string;
   snag_id: string;
-  assigned_to: string;
+  assigned_to: string | null;
+  assigned_to_external?: string;
   assigned_by: string;
   assigned_at: string;
   deadline?: string;
