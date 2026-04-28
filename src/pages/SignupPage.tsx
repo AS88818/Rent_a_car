@@ -18,7 +18,7 @@ export function SignupPage() {
     password: '',
     confirmPassword: '',
     fullName: '',
-    role: 'staff' as UserRole,
+    role: 'member' as UserRole,
     branchId: '',
   });
 
@@ -171,8 +171,8 @@ export function SignupPage() {
               className="input-field"
               required
             >
-              <option value="staff">{getRoleLabel('staff')}</option>
-              <option value="manager">{getRoleLabel('manager')}</option>
+              <option value="member">{getRoleLabel('member')}</option>
+              <option value="user">{getRoleLabel('user')}</option>
               <option value="admin">{getRoleLabel('admin')}</option>
             </select>
             {selectedRoleDescription && (

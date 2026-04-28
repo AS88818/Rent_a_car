@@ -116,10 +116,6 @@ export const vehicleService = {
   ) {
     const vehicle = await this.getVehicleById(id);
 
-    if (userInfo.role === 'mechanic' && vehicle.branch_id !== userInfo.branchId) {
-      throw new Error('Mechanics can only update vehicles in their branch');
-    }
-
     await activityLogService.logActivity({
       vehicle_id: id,
       user_id: userInfo.id,
@@ -728,7 +724,7 @@ export const snagService = {
         deleted_by_user:users!deleted_by(full_name),
         assigned_user:users!assigned_to(full_name),
         snag_resolution:snag_resolutions!resolution_id(
-          resolution_method, resolution_notes, resolved_by, checked_by, resolved_at, photo_urls
+          resolution_method, resolution_notes, resolved_by, resolved_by_external, checked_by, resolved_at, photo_urls
         )
       `)
       .order('date_opened', { ascending: false });
@@ -1385,15 +1381,15 @@ export const userService = {
     const users = await this.getAllUsers();
     const totalUsers = users.length;
     const adminCount = users.filter(u => u.role === 'admin').length;
-    const managerCount = users.filter(u => u.role === 'manager').length;
-    const mechanicCount = users.filter(u => u.role === 'mechanic').length;
+    const userCount = users.filter(u => u.role === 'user').length;
+    const memberCount = users.filter(u => u.role === 'member').length;
     const driverCount = users.filter(u => u.role === 'driver').length;
 
     return {
       totalUsers,
       adminCount,
-      managerCount,
-      mechanicCount,
+      userCount,
+      memberCount,
       driverCount,
     };
   },

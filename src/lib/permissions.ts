@@ -29,7 +29,7 @@ export function getPermissions(role: UserRole): PermissionCheck {
         canViewReports: true,
       };
 
-    case 'manager':
+    case 'user':
       return {
         canViewAll: true,
         canCreateGlobal: false,
@@ -43,7 +43,7 @@ export function getPermissions(role: UserRole): PermissionCheck {
         canViewReports: true,
       };
 
-    case 'mechanic':
+    case 'member':
       return {
         canViewAll: true,
         canCreateGlobal: false,
@@ -51,7 +51,7 @@ export function getPermissions(role: UserRole): PermissionCheck {
         canDeleteGlobal: false,
         canCreateInBranch: true,
         canEditInBranch: true,
-        canDeleteInBranch: false,
+        canDeleteInBranch: true,
         canManageUsers: false,
         canManageBranches: false,
         canViewReports: false,
@@ -105,10 +105,10 @@ export function getRoleLabel(role: UserRole): string {
   switch (role) {
     case 'admin':
       return 'Administrator';
-    case 'manager':
-      return 'Manager';
-    case 'mechanic':
-      return 'Mechanic';
+    case 'user':
+      return 'User';
+    case 'member':
+      return 'Member';
     case 'driver':
       return 'Driver';
     default:
@@ -120,10 +120,10 @@ export function getRoleDescription(role: UserRole): string {
   switch (role) {
     case 'admin':
       return 'Full access to all features and data across all branches. Can manage users and system settings.';
-    case 'manager':
-      return 'Can view all vehicles across all branches. Full create, edit, and delete access within their assigned branch.';
-    case 'mechanic':
-      return 'Can view all vehicles across all branches and perform maintenance work, update vehicle health, and report snags.';
+    case 'user':
+      return 'Full access except User Management, Pricing, Company Settings, and Settings. Can manage bookings, quotes, invoices, emails, and reports.';
+    case 'member':
+      return 'Full access except User Management, Pricing, Company Settings, Settings, Create Invoice, Emails, and Reports. Can manage bookings and quotes, and assign or reassign snags.';
     case 'driver':
       return 'Can update mileage, view bookings, and update location information for vehicles they operate.';
     default:
@@ -132,5 +132,5 @@ export function getRoleDescription(role: UserRole): string {
 }
 
 export function canDeleteVehicle(role: UserRole): boolean {
-  return role === 'admin' || role === 'manager';
+  return role === 'admin' || role === 'user';
 }

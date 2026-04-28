@@ -1,19 +1,17 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Calendar, CalendarDays, Car, Menu, Wrench } from 'lucide-react';
+import { LayoutDashboard, Calendar, CalendarDays, Car, Menu } from 'lucide-react';
 import { useAuth } from '../lib/auth-context';
 
 export function BottomNav() {
   const location = useLocation();
   const { userRole } = useAuth();
 
-  const canAccessBookings = ['admin', 'manager'].includes(userRole || '');
+  const canAccessBookings = ['admin', 'user', 'member'].includes(userRole || '');
 
   const navItems = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     ...(canAccessBookings ? [
       { label: 'Bookings', href: '/bookings', icon: Calendar }
-    ] : userRole === 'mechanic' ? [
-      { label: 'Snags', href: '/snags', icon: Wrench }
     ] : [
       { label: 'Calendar', href: '/calendar', icon: CalendarDays }
     ]),

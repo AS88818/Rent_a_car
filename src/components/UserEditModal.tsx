@@ -144,8 +144,8 @@ export function UserEditModal({ isOpen, onClose, onSuccess, user }: UserEditModa
               required
             >
               <option value="admin">{getRoleLabel('admin')}</option>
-              <option value="manager">{getRoleLabel('manager')}</option>
-              <option value="mechanic">{getRoleLabel('mechanic')}</option>
+              <option value="user">{getRoleLabel('user')}</option>
+              <option value="member">{getRoleLabel('member')}</option>
               <option value="driver">{getRoleLabel('driver')}</option>
             </select>
             <p className="text-xs text-gray-600 mt-1">

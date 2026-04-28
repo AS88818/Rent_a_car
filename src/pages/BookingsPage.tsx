@@ -196,7 +196,7 @@ export function BookingsPage() {
     <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Bookings</h1>
-        {userRole && ['admin', 'manager'].includes(userRole) && (
+        {userRole && ['admin', 'user', 'member'].includes(userRole) && (
           <button
             onClick={() => setShowModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

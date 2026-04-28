@@ -382,7 +382,7 @@ export function BookingDetailsModal({
 
               <div>
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Documents</h3>
-                {userRole && ['admin', 'manager'].includes(userRole) ? (
+                {userRole && ['admin', 'user', 'member'].includes(userRole) ? (
                   <BookingDocumentUpload bookingId={booking?.id} onDocumentUploaded={loadDocuments} />
                 ) : loadingDocs ? (
                   <p className="text-sm text-gray-500">Loading documents...</p>
@@ -480,7 +480,7 @@ export function BookingDetailsModal({
               Close
             </button>
           )}
-          {onEdit && (!userRole || ['admin', 'manager'].includes(userRole)) && (
+          {onEdit && (!userRole || ['admin', 'user', 'member'].includes(userRole)) && (
             <button
               onClick={onEdit}
               className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
@@ -489,7 +489,7 @@ export function BookingDetailsModal({
               Edit Booking
             </button>
           )}
-          {onCancel && (!userRole || ['admin', 'manager'].includes(userRole)) &&
+          {onCancel && (!userRole || ['admin', 'user', 'member'].includes(userRole)) &&
             booking?.status !== 'Cancelled' && booking?.status !== 'Completed' && (
             <button
               onClick={onCancel}

@@ -23,8 +23,8 @@ export function UserManagementPage() {
   const [stats, setStats] = useState({
     totalUsers: 0,
     adminCount: 0,
-    managerCount: 0,
-    mechanicCount: 0,
+    userCount: 0,
+    memberCount: 0,
     driverCount: 0,
   });
 
@@ -98,9 +98,9 @@ export function UserManagementPage() {
     switch (role) {
       case 'admin':
         return <Shield className="w-4 h-4 text-red-600" />;
-      case 'manager':
+      case 'user':
         return <Briefcase className="w-4 h-4 text-blue-600" />;
-      case 'mechanic':
+      case 'member':
         return <Wrench className="w-4 h-4 text-green-600" />;
       case 'driver':
         return <Car className="w-4 h-4 text-purple-600" />;
@@ -113,9 +113,9 @@ export function UserManagementPage() {
     switch (role) {
       case 'admin':
         return 'bg-red-100 text-red-800 border-red-200';
-      case 'manager':
+      case 'user':
         return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'mechanic':
+      case 'member':
         return 'bg-green-100 text-green-800 border-green-200';
       case 'driver':
         return 'bg-purple-100 text-purple-800 border-purple-200';
@@ -188,8 +188,8 @@ export function UserManagementPage() {
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Managers</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.managerCount}</p>
+                <p className="text-sm text-gray-600">Users</p>
+                <p className="text-2xl font-bold text-blue-600">{stats.userCount}</p>
               </div>
               <Briefcase className="w-8 h-8 text-blue-400" />
             </div>
@@ -198,8 +198,8 @@ export function UserManagementPage() {
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Mechanics</p>
-                <p className="text-2xl font-bold text-green-600">{stats.mechanicCount}</p>
+                <p className="text-sm text-gray-600">Members</p>
+                <p className="text-2xl font-bold text-green-600">{stats.memberCount}</p>
               </div>
               <Wrench className="w-8 h-8 text-green-400" />
             </div>
@@ -236,8 +236,8 @@ export function UserManagementPage() {
             >
               <option value="all">All Roles</option>
               <option value="admin">Administrators</option>
-              <option value="manager">Managers</option>
-              <option value="mechanic">Mechanics</option>
+              <option value="user">Users</option>
+              <option value="member">Members</option>
               <option value="driver">Drivers</option>
             </select>
 

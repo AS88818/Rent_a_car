@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'manager' | 'mechanic' | 'driver' | 'staff';
+export type UserRole = 'admin' | 'user' | 'member' | 'driver';
 
 export interface Branch {
   id: string;
@@ -228,6 +228,7 @@ export interface Snag {
     resolution_method: string;
     resolution_notes: string;
     resolved_by: string;
+    resolved_by_external?: string;
     checked_by?: string;
     resolved_at: string;
     photo_urls?: string[];
@@ -287,6 +288,7 @@ export interface SnagResolution {
   resolution_notes: string;
   maintenance_log_id?: string;
   resolved_by: string;
+  resolved_by_external?: string;
   checked_by?: string;
   resolved_at: string;
   photo_urls?: string[];

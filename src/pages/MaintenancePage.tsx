@@ -63,19 +63,19 @@ export function MaintenancePage() {
     const fetchData = async () => {
       try {
         // Mechanics and managers should see ALL vehicles across all branches
-        const vehicleBranchFilter = (userRole === 'mechanic' || userRole === 'manager') ? undefined : (branchId || undefined);
+        const vehicleBranchFilter = (userRole === 'member' || userRole === 'user') ? undefined : (branchId || undefined);
 
         const vehiclesData = await vehicleService.getVehicles(vehicleBranchFilter);
         setVehicles(vehiclesData);
 
         try {
           // Also show all mechanics for mechanics role
-          const userBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+          const userBranchFilter = userRole === 'member' ? undefined : (branchId || undefined);
           const usersData = await userService.getUsers(userBranchFilter);
           setAllUsers(usersData);
           const mechanicsOnly = usersData.filter(u => {
             const isActive = u.status === 'active' || !u.status;
-            const isMechanic = u.role === 'mechanic';
+            const isMechanic = u.role === 'member';
             return isActive && isMechanic;
           });
           setMechanics(mechanicsOnly);
@@ -105,16 +105,16 @@ export function MaintenancePage() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const vehicleBranchFilter = (userRole === 'mechanic' || userRole === 'manager') ? undefined : (branchId || undefined);
+      const vehicleBranchFilter = (userRole === 'member' || userRole === 'user') ? undefined : (branchId || undefined);
       const vehiclesData = await vehicleService.getVehicles(vehicleBranchFilter);
       setVehicles(vehiclesData);
 
-      const userBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+      const userBranchFilter = userRole === 'member' ? undefined : (branchId || undefined);
       const usersData = await userService.getUsers(userBranchFilter);
       setAllUsers(usersData);
       const mechanicsOnly = usersData.filter(u => {
         const isActive = u.status === 'active' || !u.status;
-        const isMechanic = u.role === 'mechanic';
+        const isMechanic = u.role === 'member';
         return isActive && isMechanic;
       });
       setMechanics(mechanicsOnly);

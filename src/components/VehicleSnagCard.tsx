@@ -204,10 +204,12 @@ export function VehicleSnagCard({
                         <span className="font-medium text-gray-700">Method:</span>{' '}
                         {snag.snag_resolution.resolution_method}
                       </span>
-                      {snag.snag_resolution.resolved_by && (
+                      {(snag.snag_resolution.resolved_by || snag.snag_resolution.resolved_by_external) && (
                         <span>
                           <span className="font-medium text-gray-700">Resolved by:</span>{' '}
-                          {users.find(u => u.id === snag.snag_resolution!.resolved_by)?.full_name || '—'}
+                          {snag.snag_resolution.resolved_by_external
+                            ? snag.snag_resolution.resolved_by_external
+                            : users.find(u => u.id === snag.snag_resolution!.resolved_by)?.full_name || '—'}
                         </span>
                       )}
                       {snag.snag_resolution.checked_by && (

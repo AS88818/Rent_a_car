@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           setUser(session.user);
-          const role = (session.user.app_metadata?.role as UserRole) || 'staff';
+          const role = (session.user.app_metadata?.role as UserRole) || 'member';
           setUserRole(role);
           setBranchId((session.user.app_metadata?.branch_id as string) || null);
         }
@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         setUser(session.user);
-        const role = (session.user.app_metadata?.role as UserRole) || 'staff';
+        const role = (session.user.app_metadata?.role as UserRole) || 'member';
         setUserRole(role);
         setBranchId((session.user.app_metadata?.branch_id as string) || null);
       } else {
@@ -151,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (session?.user) {
         setUser(session.user);
-        const role = (session.user.app_metadata?.role as UserRole) || 'staff';
+        const role = (session.user.app_metadata?.role as UserRole) || 'member';
         setUserRole(role);
         setBranchId((session.user.app_metadata?.branch_id as string) || null);
       }

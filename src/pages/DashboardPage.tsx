@@ -64,7 +64,7 @@ interface CategoryBreakdown {
 export function DashboardPage() {
   const { branchId, userRole, user } = useAuth();
   const navigate = useNavigate();
-  const canAccessBookings = ['admin', 'manager'].includes(userRole || '');
+  const canAccessBookings = ['admin', 'user', 'member'].includes(userRole || '');
   const [vehicles, setVehicles] = useState<VehicleWithBranch[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [snags, setSnags] = useState<Snag[]>([]);
@@ -107,10 +107,10 @@ export function DashboardPage() {
     try {
       // Mechanics and managers should see ALL data across all branches
       // Other roles see only their branch
-      const snagBranchFilter = (userRole === 'mechanic' || userRole === 'manager') ? undefined : (branchId || undefined);
+      const snagBranchFilter = (userRole === 'member' || userRole === 'user') ? undefined : (branchId || undefined);
 
-      const vehicleBranchFilter = (userRole === 'mechanic' || userRole === 'manager') ? undefined : (branchId || undefined);
-      const bookingBranchFilter = (userRole === 'mechanic' || userRole === 'manager') ? undefined : (branchId || undefined);
+      const vehicleBranchFilter = (userRole === 'member' || userRole === 'user') ? undefined : (branchId || undefined);
+      const bookingBranchFilter = (userRole === 'member' || userRole === 'user') ? undefined : (branchId || undefined);
 
       const [vehiclesData, bookingsData, snagsData, branchesData, categoriesData] = await Promise.all([
         vehicleService.getVehicles(vehicleBranchFilter),

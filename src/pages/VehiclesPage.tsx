@@ -65,7 +65,7 @@ export function VehiclesPage() {
   const fetchData = async () => {
     try {
       // Mechanics and managers should see ALL vehicles across all branches
-      const vehicleBranchFilter = (userRole === 'mechanic' || userRole === 'manager') ? undefined : (branchId || undefined);
+      const vehicleBranchFilter = (userRole === 'member' || userRole === 'user') ? undefined : (branchId || undefined);
 
       const [vehiclesData, categoriesData, branchesData, bookingsData] = await Promise.all([
         vehicleService.getVehicles(vehicleBranchFilter),
@@ -315,7 +315,7 @@ export function VehiclesPage() {
           </div>
           <p className="text-sm text-gray-600 mt-1">{vehicles.length} vehicles total</p>
         </div>
-        {userRole && ['admin', 'manager'].includes(userRole) && (
+        {userRole && ['admin', 'user'].includes(userRole) && (
           <button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md"

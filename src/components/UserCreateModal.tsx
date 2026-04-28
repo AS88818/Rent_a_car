@@ -22,7 +22,7 @@ export function UserCreateModal({ isOpen, onClose, onSuccess }: UserCreateModalP
     phone: '',
     password: '',
     fullName: '',
-    role: 'mechanic' as UserRole,
+    role: 'member' as UserRole,
     branchId: '',
   });
 
@@ -85,7 +85,7 @@ export function UserCreateModal({ isOpen, onClose, onSuccess }: UserCreateModalP
         phone: '',
         password: '',
         fullName: '',
-        role: 'mechanic',
+        role: 'member',
         branchId: branches[0]?.id || '',
       });
       setContactType('email');
@@ -222,8 +222,8 @@ export function UserCreateModal({ isOpen, onClose, onSuccess }: UserCreateModalP
               required
             >
               <option value="admin">{getRoleLabel('admin')}</option>
-              <option value="manager">{getRoleLabel('manager')}</option>
-              <option value="mechanic">{getRoleLabel('mechanic')}</option>
+              <option value="user">{getRoleLabel('user')}</option>
+              <option value="member">{getRoleLabel('member')}</option>
               <option value="driver">{getRoleLabel('driver')}</option>
             </select>
             <p className="text-xs text-gray-600 mt-1">{getRoleDescription(formData.role)}</p>

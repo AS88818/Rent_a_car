@@ -113,7 +113,7 @@ export function CalendarPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const vehicleBranchFilter = (userRole === 'mechanic' || userRole === 'manager') ? undefined : (branchId || undefined);
+        const vehicleBranchFilter = (userRole === 'member' || userRole === 'user') ? undefined : (branchId || undefined);
 
         const [categoriesData, vehiclesData, bookingsData, branchesData] = await Promise.all([
           categoryService.getCategories(),
@@ -151,7 +151,7 @@ export function CalendarPage() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const vehicleBranchFilter = userRole === 'mechanic' ? undefined : (branchId || undefined);
+      const vehicleBranchFilter = userRole === 'member' ? undefined : (branchId || undefined);
       const [categoriesData, vehiclesData, bookingsData, branchesData] = await Promise.all([
         categoryService.getCategories(),
         vehicleService.getVehicles(vehicleBranchFilter),

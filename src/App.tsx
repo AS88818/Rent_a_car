@@ -64,7 +64,7 @@ function AppRoutes() {
       <Route
         path="/bookings"
         element={
-          <ProtectedRoute requiredRoles={['admin', 'manager']}>
+          <ProtectedRoute requiredRoles={['admin', 'user', 'member']}>
             <Layout>
               <BookingListPage />
             </Layout>
@@ -75,7 +75,7 @@ function AppRoutes() {
       <Route
         path="/bookings/create"
         element={
-          <ProtectedRoute requiredRoles={['admin', 'manager']}>
+          <ProtectedRoute requiredRoles={['admin', 'user', 'member']}>
             <Layout>
               <BookingCreatePage />
             </Layout>
@@ -185,7 +185,7 @@ function AppRoutes() {
       <Route
         path="/quotation"
         element={
-          <ProtectedRoute requiredRoles={['admin', 'manager']}>
+          <ProtectedRoute requiredRoles={['admin', 'user', 'member']}>
             <Layout>
               <QuotationCalculatorPage />
             </Layout>
@@ -196,7 +196,7 @@ function AppRoutes() {
       <Route
         path="/quotes"
         element={
-          <ProtectedRoute requiredRoles={['admin', 'manager']}>
+          <ProtectedRoute requiredRoles={['admin', 'user', 'member']}>
             <Layout>
               <QuotesPage />
             </Layout>
@@ -229,7 +229,7 @@ function AppRoutes() {
       <Route
         path="/invoices"
         element={
-          <ProtectedRoute requiredRoles={['admin', 'manager']}>
+          <ProtectedRoute requiredRoles={['admin', 'user']}>
             <Layout>
               <InvoicesPage />
             </Layout>
@@ -240,7 +240,7 @@ function AppRoutes() {
       <Route
         path="/emails"
         element={
-          <ProtectedRoute requiredRoles={['admin', 'manager']}>
+          <ProtectedRoute requiredRoles={['admin', 'user']}>
             <Layout>
               <EmailsPage />
             </Layout>
@@ -251,7 +251,7 @@ function AppRoutes() {
       <Route
         path="/reports"
         element={
-          <ProtectedRoute requiredRoles={['admin', 'manager']}>
+          <ProtectedRoute requiredRoles={['admin', 'user']}>
             <Layout>
               <ReportsPage />
             </Layout>

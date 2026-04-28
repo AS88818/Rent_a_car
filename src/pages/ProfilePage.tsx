@@ -62,7 +62,7 @@ export function ProfilePage() {
             <p className="text-sm text-gray-600">Overview and quick stats</p>
           </button>
 
-          {userRole !== 'mechanic' && (
+          {userRole !== 'member' && (
             <button
               onClick={() => navigate('/bookings')}
               className="w-full px-4 py-3 text-left border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"

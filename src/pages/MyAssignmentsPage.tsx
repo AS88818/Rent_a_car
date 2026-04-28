@@ -56,7 +56,7 @@ interface DrivingJob {
 
 export function MyAssignmentsPage() {
   const { user, branchId, userRole } = useAuth();
-  const isAdminOrManager = userRole === 'admin' || userRole === 'manager';
+  const isAdminOrManager = userRole === 'admin' || userRole === 'user';
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [maintenanceJobs, setMaintenanceJobs] = useState<MaintenanceJob[]>([]);
   const [drivingJobs, setDrivingJobs] = useState<DrivingJob[]>([]);
@@ -360,7 +360,7 @@ export function MyAssignmentsPage() {
       </div>
 
       {/* Maintenance Jobs Section */}
-      {(effectiveRole === 'mechanic' || effectiveRole === 'admin' || effectiveRole === 'manager' || maintenanceJobs.length > 0) && (
+      {(effectiveRole === 'member' || effectiveRole === 'admin' || effectiveRole === 'user' || maintenanceJobs.length > 0) && (
         <div className="mb-10">
           <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Wrench className="w-5 h-5 text-blue-600" />
@@ -384,7 +384,7 @@ export function MyAssignmentsPage() {
       )}
 
       {/* Driving Jobs Section */}
-      {(effectiveRole === 'driver' || effectiveRole === 'admin' || effectiveRole === 'manager' || drivingJobs.length > 0) && (
+      {(effectiveRole === 'driver' || effectiveRole === 'admin' || effectiveRole === 'user' || drivingJobs.length > 0) && (
         <div className="mb-10">
           <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Car className="w-5 h-5 text-green-600" />

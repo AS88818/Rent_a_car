@@ -28,7 +28,8 @@ export function Layout({ children }: LayoutProps) {
     }
   };
 
-  const canAccessBookings = ['admin', 'manager'].includes(userRole || '');
+  const canAccessBookings = ['admin', 'user', 'member'].includes(userRole || '');
+  const canAccessInvoiceEmailReports = ['admin', 'user'].includes(userRole || '');
 
   const menuItems = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -41,18 +42,18 @@ export function Layout({ children }: LayoutProps) {
     ...(canAccessBookings ? [
       { label: 'Create Quotation', href: '/quotation', icon: FileText }
     ] : []),
-    ...(userRole === 'admin' || userRole === 'manager' ? [
+    ...(canAccessBookings ? [
       { label: 'Quotes', href: '/quotes', icon: Receipt }
     ] : []),
     ...(canAccessBookings ? [
       { label: 'Bookings', href: '/bookings', icon: Calendar },
       { label: 'Create Booking', href: '/bookings/create', icon: PlusCircle }
     ] : []),
-    ...(userRole === 'admin' || userRole === 'manager' ? [
+    ...(canAccessInvoiceEmailReports ? [
       { label: 'Create Invoice', href: '/invoices', icon: FileText },
       { label: 'Emails', href: '/emails', icon: Mail }
     ] : []),
-    ...(userRole === 'admin' || userRole === 'manager' ? [
+    ...(canAccessInvoiceEmailReports ? [
       { label: 'Reports', href: '/reports', icon: BarChart3 }
     ] : []),
     ...(userRole === 'admin' ? [

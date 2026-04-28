@@ -11,6 +11,7 @@ interface SnagResolutionModalProps {
     resolutionMethod: ResolutionMethod;
     resolutionNotes: string;
     assignedToUserId?: string;
+    resolvedByExternal?: string;
     checkedByUserId?: string;
     photoUrls?: string[];
     maintenanceLog?: Omit<MaintenanceLog, 'id' | 'created_at'>;
@@ -38,6 +39,8 @@ export function SnagResolutionModal({
   const [resolutionMethod, setResolutionMethod] = useState<ResolutionMethod>('Repaired');
   const [resolutionNotes, setResolutionNotes] = useState('');
   const [assignedToUserId, setAssignedToUserId] = useState('');
+  const [resolverType, setResolverType] = useState<'registered' | 'external'>('registered');
+  const [resolvedByExternal, setResolvedByExternal] = useState('');
   const [checkedByUserId, setCheckedByUserId] = useState('');
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [createMaintenanceLog, setCreateMaintenanceLog] = useState(false);
@@ -98,6 +101,8 @@ export function SnagResolutionModal({
     setResolutionMethod('Repaired');
     setResolutionNotes('');
     setAssignedToUserId('');
+    setResolverType('registered');
+    setResolvedByExternal('');
     setCheckedByUserId('');
     setPhotoUrls([]);
     setCreateMaintenanceLog(false);
@@ -119,13 +124,15 @@ export function SnagResolutionModal({
     if (!snag) return;
 
     const needsAssignment = !snag.assigned_to;
-    if (needsAssignment && !assignedToUserId) return;
+    if (needsAssignment && resolverType === 'registered' && !assignedToUserId) return;
+    if (needsAssignment && resolverType === 'external' && !resolvedByExternal.trim()) return;
 
     const resolution: any = {
       snagId: snag.id,
       resolutionMethod,
       resolutionNotes,
-      assignedToUserId: needsAssignment ? assignedToUserId : undefined,
+      assignedToUserId: (needsAssignment && resolverType === 'registered') ? assignedToUserId : undefined,
+      resolvedByExternal: resolverType === 'external' ? resolvedByExternal.trim() : undefined,
       checkedByUserId: checkedByUserId || undefined,
       photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
     };
@@ -162,7 +169,7 @@ export function SnagResolutionModal({
   };
 
   // Users available for "checked by" — exclude the resolver (can't check own work)
-  const resolverUserId = snag?.assigned_to || assignedToUserId;
+  const resolverUserId = snag?.assigned_to || (resolverType === 'registered' ? assignedToUserId : undefined);
   const checkableUsers = users.filter(u => u.id !== resolverUserId);
 
   if (!isOpen || !snag) return null;
@@ -198,23 +205,51 @@ export function SnagResolutionModal({
               <p className="text-sm text-gray-900 font-medium">{snag.description}</p>
             </div>
 
-            {!snag.assigned_to && users.length > 0 && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <p className="text-sm text-amber-800 font-medium mb-2">
+            {!snag.assigned_to && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
+                <p className="text-sm text-amber-800 font-medium">
                   This snag has no assignee. Who resolved it?
                 </p>
                 <select
-                  value={assignedToUserId}
-                  onChange={e => setAssignedToUserId(e.target.value)}
-                  required
+                  value={resolverType === 'external' ? 'external' : assignedToUserId}
+                  onChange={e => {
+                    const v = e.target.value;
+                    if (v === 'external') {
+                      setResolverType('external');
+                      setAssignedToUserId('');
+                    } else {
+                      setResolverType('registered');
+                      setAssignedToUserId(v);
+                      setResolvedByExternal('');
+                    }
+                  }}
+                  required={resolverType !== 'external'}
                   disabled={submitting}
                   className="w-full px-4 py-2 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none disabled:opacity-50 text-base bg-white"
                 >
                   <option value="">— Select who resolved this snag —</option>
-                  {users.map(u => (
-                    <option key={u.id} value={u.id}>{u.full_name} ({u.role})</option>
-                  ))}
+                  {users.length > 0 && (
+                    <optgroup label="Registered Users">
+                      {users.map(u => (
+                        <option key={u.id} value={u.id}>{u.full_name} ({u.role})</option>
+                      ))}
+                    </optgroup>
+                  )}
+                  <optgroup label="External">
+                    <option value="external">Other (External)</option>
+                  </optgroup>
                 </select>
+                {resolverType === 'external' && (
+                  <input
+                    type="text"
+                    placeholder="Enter name or service center"
+                    value={resolvedByExternal}
+                    onChange={e => setResolvedByExternal(e.target.value)}
+                    required
+                    disabled={submitting}
+                    className="w-full px-4 py-2 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none disabled:opacity-50 text-base"
+                  />
+                )}
               </div>
             )}
 

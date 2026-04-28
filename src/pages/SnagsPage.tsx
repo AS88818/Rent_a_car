@@ -53,9 +53,9 @@ export function SnagsPage() {
     try {
       // Mechanics and managers should see ALL snags across all branches (cross-branch access)
       // Other roles see only their branch
-      const snagBranchFilter = (userRole === 'mechanic' || userRole === 'manager') ? undefined : (branchId || undefined);
+      const snagBranchFilter = (userRole === 'member' || userRole === 'user') ? undefined : (branchId || undefined);
       // Mechanics and managers should also see ALL vehicles across all branches
-      const vehicleBranchFilter = (userRole === 'mechanic' || userRole === 'manager') ? undefined : (branchId || undefined);
+      const vehicleBranchFilter = (userRole === 'member' || userRole === 'user') ? undefined : (branchId || undefined);
 
       const [vehiclesData, snagsData, usersData] = await Promise.all([
         snagService.getVehiclesWithSnagCounts(vehicleBranchFilter),
@@ -196,6 +196,7 @@ export function SnagsPage() {
     resolutionMethod: any;
     resolutionNotes: string;
     assignedToUserId?: string;
+    resolvedByExternal?: string;
     checkedByUserId?: string;
     photoUrls?: string[];
     maintenanceLog?: any;
@@ -204,7 +205,7 @@ export function SnagsPage() {
 
     setSubmitting(true);
     try {
-      // If the snag was unassigned, assign the resolver before closing
+      // If the snag was unassigned and resolved by a registered user, record the assignment
       if (resolution.assignedToUserId) {
         await snagAssignmentService.createAssignment({
           snag_id: resolution.snagId,
@@ -214,27 +215,23 @@ export function SnagsPage() {
         });
       }
 
+      const resolutionBase = {
+        snag_id: resolution.snagId,
+        resolution_method: resolution.resolutionMethod,
+        resolution_notes: resolution.resolutionNotes,
+        resolved_by: user.id,
+        resolved_by_external: resolution.resolvedByExternal,
+        checked_by: resolution.checkedByUserId,
+        photo_urls: resolution.photoUrls,
+      };
+
       if (resolution.maintenanceLog) {
         await snagResolutionService.createResolutionWithMaintenanceLog(
-          {
-            snag_id: resolution.snagId,
-            resolution_method: resolution.resolutionMethod,
-            resolution_notes: resolution.resolutionNotes,
-            resolved_by: user.id,
-            checked_by: resolution.checkedByUserId,
-            photo_urls: resolution.photoUrls,
-          },
+          resolutionBase,
           resolution.maintenanceLog
         );
       } else {
-        await snagResolutionService.createResolution({
-          snag_id: resolution.snagId,
-          resolution_method: resolution.resolutionMethod,
-          resolution_notes: resolution.resolutionNotes,
-          resolved_by: user.id,
-          checked_by: resolution.checkedByUserId,
-          photo_urls: resolution.photoUrls,
-        });
+        await snagResolutionService.createResolution(resolutionBase);
       }
 
       showToast('Snag resolved successfully', 'success');
