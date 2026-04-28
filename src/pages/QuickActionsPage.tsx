@@ -474,7 +474,7 @@ export function QuickActionsPage() {
                           <input
                             type="number"
                             value={editingMileage.get(vehicle.id) ?? vehicle.current_mileage ?? ''}
-                            onFocus={(e) => {
+                            onFocus={() => {
                               const currentValue = vehicle.current_mileage?.toString() || '';
                               setEditingMileage(prev => new Map(prev).set(vehicle.id, currentValue));
                             }}

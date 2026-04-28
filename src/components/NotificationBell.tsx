@@ -1,4 +1,4 @@
-import { Bell, Check, CheckCheck, Wrench, Car, Calendar, Shield, FileCheck } from 'lucide-react';
+import { Bell, CheckCheck, Wrench, Car, Calendar, Shield, FileCheck } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { Notification, NotificationType } from '../types/database';
 import { notificationService } from '../services/api';

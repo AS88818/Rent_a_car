@@ -89,7 +89,7 @@ export function VehicleFormModal({
         reg_number: formData.reg_number,
         category_id: formData.category_id,
         branch_id: formData.branch_id || null,
-        status: mode === 'add' ? 'Available' : vehicle?.status,
+        status: (mode === 'add' ? 'Available' : vehicle?.status) ?? 'Available',
         health_flag: formData.status as 'Excellent' | 'OK' | 'Grounded',
         insurance_expiry: formData.insurance_expiry,
         mot_expiry: formData.mot_expiry,

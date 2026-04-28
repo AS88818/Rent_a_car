@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { userService, branchService } from '../services/api';
-import { UserRole, Branch, AuthUser } from '../types/database';
+import { Branch, AuthUser } from '../types/database';
 import { showToast } from '../lib/toast';
 import { getRoleLabel, getRoleDescription } from '../lib/permissions';
 import { useAuth } from '../lib/auth-context';

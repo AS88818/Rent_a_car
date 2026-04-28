@@ -87,12 +87,12 @@ export function exportCalendarToPDF(options: PDFExportOptions) {
   doc.rect(margin, yPos, contentWidth, 8, 'F');
 
   doc.setFontSize(10);
-  doc.setFont(undefined, 'bold');
+  doc.setFont('helvetica','bold');
   dayNames.forEach((day, i) => {
     const x = margin + (i * cellWidth) + (cellWidth / 2);
     doc.text(day, x, yPos + 5, { align: 'center' });
   });
-  doc.setFont(undefined, 'normal');
+  doc.setFont('helvetica','normal');
 
   yPos += 8;
 
@@ -113,13 +113,13 @@ export function exportCalendarToPDF(options: PDFExportOptions) {
       }
 
       doc.setFontSize(9);
-      doc.setFont(undefined, day.isToday ? 'bold' : 'normal');
+      doc.setFont('helvetica',day.isToday ? 'bold' : 'normal');
       const textColor = day.isToday ? [0, 0, 255] : day.isCurrentMonth ? [0, 0, 0] : [150, 150, 150];
       doc.setTextColor(textColor[0], textColor[1], textColor[2]);
       doc.text(String(day.dayOfMonth), x + 2, rowY + 4);
 
       doc.setTextColor(0, 0, 0);
-      doc.setFont(undefined, 'normal');
+      doc.setFont('helvetica','normal');
 
       if (day.isCurrentMonth) {
         const dayBookings = getBookingsForDay(day, bookings, vehicles, selectedCategories);

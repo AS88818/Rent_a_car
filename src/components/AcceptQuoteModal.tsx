@@ -3,6 +3,7 @@ import { CheckCircle, X, Car, MapPin, AlertCircle } from 'lucide-react';
 import { quotationService, vehicleService, branchService } from '../services/api';
 import { showToast } from '../lib/toast';
 import { useNavigate } from 'react-router-dom';
+import { Vehicle } from '../types/database';
 
 interface Quote {
   id: string;
@@ -24,13 +25,6 @@ interface AcceptQuoteModalProps {
   onSuccess: () => void;
 }
 
-interface Vehicle {
-  id: string;
-  reg_number: string;
-  status: string;
-  branch_id?: string;
-}
-
 interface Branch {
   id: string;
   branch_name: string;
@@ -44,7 +38,7 @@ interface BranchAvailability {
 }
 
 interface VehicleWithBranch extends Vehicle {
-  branchName?: string;
+  branchName: string;
 }
 
 export function AcceptQuoteModal({ quote, onClose, onSuccess }: AcceptQuoteModalProps) {
@@ -199,7 +193,7 @@ export function AcceptQuoteModal({ quote, onClose, onSuccess }: AcceptQuoteModal
 
     setLoading(true);
     try {
-      const booking = await quotationService.convertQuoteToBooking(
+      await quotationService.convertQuoteToBooking(
         quote.id,
         selectedCategory,
         selectedVehicle,

@@ -28,7 +28,7 @@ export function SettingsPage() {
   const [branchLocation, setBranchLocation] = useState('');
   const [branchContact, setBranchContact] = useState('');
 
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [, setShowConfirmModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ action: () => void; message: string } | null>(null);
 
   useEffect(() => {
@@ -498,7 +498,8 @@ export function SettingsPage() {
       {confirmAction && (
         <ConfirmModal
           isOpen={!!confirmAction}
-          onClose={() => {
+          title="Confirm Action"
+          onCancel={() => {
             setConfirmAction(null);
             setShowConfirmModal(false);
           }}

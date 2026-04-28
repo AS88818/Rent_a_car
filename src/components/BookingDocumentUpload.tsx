@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Upload, FileText, X, Download, Trash2 } from 'lucide-react';
+import { Upload, FileText, Download, Trash2 } from 'lucide-react';
 import { bookingDocumentService } from '../services/api';
 import { BookingDocument } from '../types/database';
 import { showToast } from '../lib/toast';

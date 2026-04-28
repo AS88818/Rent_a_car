@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { invoiceService, quotationService } from '../services/api';
+import { invoiceService } from '../services/api';
 import { Invoice, PaymentStatus, PaymentMethod } from '../types/database';
 import { showToast } from '../lib/toast';
 import { generateInvoicePDF, companySettingsToPDFInfo } from '../lib/pdf-utils';
@@ -14,8 +14,6 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
-  DollarSign,
-  Calendar,
   Download,
   X,
   Mail,
@@ -32,7 +30,7 @@ export function InvoicesPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<PaymentStatus | 'all'>('all');
-  const [paymentMethodFilter, setPaymentMethodFilter] = useState<PaymentMethod | 'all'>('all');
+  const [paymentMethodFilter] = useState<PaymentMethod | 'all'>('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -522,11 +520,11 @@ export function InvoicesPage() {
                           <span className="ml-2 font-semibold">{formatCurrency(cat.total)}</span>
                         </div>
                       </div>
-                      {cat.deposit > 0 && (
+                      {cat.securityDeposit > 0 && (
                         <div className="mt-2 pt-2 border-t border-gray-300">
                           <div className="bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
                             <span className="text-sm text-amber-800 font-medium">
-                              Refundable Deposit: {formatCurrency(cat.deposit)}
+                              Refundable Deposit: {formatCurrency(cat.securityDeposit)}
                             </span>
                           </div>
                         </div>

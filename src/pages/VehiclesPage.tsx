@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { vehicleService, categoryService, branchService, imageService, bookingService } from '../services/api';
 import { Vehicle, VehicleCategory, Branch, VehicleImage, Booking } from '../types/database';
-import { Search, Car, Gauge, Plus, X, ArrowUpDown, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Search, Car, Gauge, Plus, X, RefreshCw, AlertTriangle } from 'lucide-react';
 import { daysUntilExpiry, nowNaive } from '../lib/utils';
 import { showToast } from '../lib/toast';
 import { VehicleTypeBadge } from '../components/VehicleTypeBadge';

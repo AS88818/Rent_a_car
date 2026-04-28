@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
-import { Zap, Wrench, MapPin, Settings as SettingsIcon } from 'lucide-react';
+import { Zap, Wrench, MapPin } from 'lucide-react';
 
 export function ProfilePage() {
   const navigate = useNavigate();

@@ -11,7 +11,7 @@ interface LocationUpdateModalProps {
 
 export function LocationUpdateModal({ vehicle, onClose, onConfirm }: LocationUpdateModalProps) {
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [selectedBranchId, setSelectedBranchId] = useState(vehicle.branch_id);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(vehicle.branch_id ?? '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);

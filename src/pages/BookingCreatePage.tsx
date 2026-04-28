@@ -15,7 +15,7 @@ interface VehicleWithBranch extends Vehicle {
 
 export function BookingCreatePage() {
   const navigate = useNavigate();
-  const { branchId, userRole } = useAuth();
+  const { branchId } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [categories, setCategories] = useState<VehicleCategory[]>([]);
   const [vehicles, setVehicles] = useState<VehicleWithBranch[]>([]);
@@ -139,12 +139,6 @@ export function BookingCreatePage() {
     }
   }, [currentStep]);
 
-  const setDefaultTime = (dateValue: string, isStart: boolean): string => {
-    if (!dateValue) return '';
-    const date = dateValue.split('T')[0];
-    const time = isStart ? '09:00' : '18:00';
-    return `${date}T${time}`;
-  };
 
   const validateDateTime = () => {
     const errors: string[] = [];

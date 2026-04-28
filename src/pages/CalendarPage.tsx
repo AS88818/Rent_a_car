@@ -11,7 +11,6 @@ import {
   getMonthCalendar,
   getMonthName,
   getDateRangeForPeriod,
-  formatDateRange,
   getCategoryColor,
   getBookingStatusStyle,
   CalendarWeek,
@@ -45,7 +44,6 @@ export function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [showFilters, setShowFilters] = useState(false);
-  const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [calendarWeeks, setCalendarWeeks] = useState<CalendarWeek[]>([]);
   const [quickPeriod, setQuickPeriod] = useState('this_month');
@@ -373,23 +371,6 @@ export function CalendarPage() {
       !v.is_personal &&
       !bookedVehicleIds.has(v.id)
     );
-  };
-
-  const getBookingsGroupedByDate = () => {
-    const grouped: { [date: string]: DayBooking[] } = {};
-
-    calendarWeeks.forEach(week => {
-      week.days.forEach(day => {
-        if (day.isCurrentMonth) {
-          const dayBookings = getBookingsForDay(day);
-          if (dayBookings.length > 0) {
-            grouped[day.dateString] = dayBookings;
-          }
-        }
-      });
-    });
-
-    return Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
   };
 
   const getBookingsForDate = (date: Date): DayBooking[] => {

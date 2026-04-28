@@ -363,7 +363,7 @@ export function UserManagementPage() {
 
           <ConfirmModal
             isOpen={showDeleteModal}
-            onClose={() => {
+            onCancel={() => {
               setShowDeleteModal(false);
               setSelectedUser(null);
             }}
@@ -371,7 +371,7 @@ export function UserManagementPage() {
             title="Delete User"
             message={`Are you sure you want to delete ${selectedUser.full_name}? This action cannot be undone.`}
             confirmText="Delete"
-            confirmStyle="danger"
+            variant="danger"
           />
         </>
       )}

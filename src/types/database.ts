@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'manager' | 'mechanic' | 'driver';
+export type UserRole = 'admin' | 'manager' | 'mechanic' | 'driver' | 'staff';
 
 export interface Branch {
   id: string;
@@ -354,6 +354,7 @@ export interface AuthUser {
   role: UserRole;
   branch_id?: string;
   status: string;
+  phone?: string;
   deleted_at?: string;
 }
 

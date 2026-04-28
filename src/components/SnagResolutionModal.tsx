@@ -34,7 +34,6 @@ export function SnagResolutionModal({
   branchId,
   submitting = false,
   users = [],
-  currentUserId,
 }: SnagResolutionModalProps) {
   const [resolutionMethod, setResolutionMethod] = useState<ResolutionMethod>('Repaired');
   const [resolutionNotes, setResolutionNotes] = useState('');
@@ -48,6 +47,8 @@ export function SnagResolutionModal({
   const [workDone, setWorkDone] = useState('');
   const [workCategory, setWorkCategory] = useState('');
   const [performedByUserId, setPerformedByUserId] = useState('');
+  const [performedByType, setPerformedByType] = useState<'registered' | 'other'>('registered');
+  const [performedByOther, setPerformedByOther] = useState('');
   const [maintenanceCheckedByUserId, setMaintenanceCheckedByUserId] = useState('');
   const [maintenanceNotes, setMaintenanceNotes] = useState('');
   const [maintenancePhotoUrls, setMaintenancePhotoUrls] = useState<string[]>([]);
@@ -62,7 +63,7 @@ export function SnagResolutionModal({
   // - for unassigned snags: use whoever was selected as the resolver
   // - for already-assigned snags: use the existing assignee
   useEffect(() => {
-    if (createMaintenanceLog && !performedByUserId) {
+    if (createMaintenanceLog && performedByType === 'registered' && !performedByUserId) {
       const prefillUserId = assignedToUserId || snag?.assigned_to;
       if (prefillUserId) setPerformedByUserId(prefillUserId);
     }
@@ -105,6 +106,8 @@ export function SnagResolutionModal({
     setWorkDone('');
     setWorkCategory('');
     setPerformedByUserId('');
+    setPerformedByType('registered');
+    setPerformedByOther('');
     setMaintenanceCheckedByUserId('');
     setMaintenanceNotes('');
     setMaintenancePhotoUrls([]);
@@ -128,14 +131,24 @@ export function SnagResolutionModal({
     };
 
     if (createMaintenanceLog && vehicleId && branchId) {
-      const performedByUser = users.find(u => u.id === performedByUserId);
+      let performedByName = '';
+      let performedByUserIdValue: string | undefined = undefined;
+      if (performedByType === 'other') {
+        if (!performedByOther.trim()) return;
+        performedByName = performedByOther.trim();
+      } else {
+        if (!performedByUserId) return;
+        const performedByUser = users.find(u => u.id === performedByUserId);
+        performedByName = performedByUser?.full_name || '';
+        performedByUserIdValue = performedByUserId;
+      }
       resolution.maintenanceLog = {
         vehicle_id: vehicleId,
         service_date: serviceDate,
         mileage: parseInt(mileage),
         work_done: workDone,
-        performed_by: performedByUser?.full_name || '',
-        performed_by_user_id: performedByUserId || undefined,
+        performed_by: performedByName,
+        performed_by_user_id: performedByUserIdValue,
         checked_by_user_id: maintenanceCheckedByUserId || undefined,
         notes: maintenanceNotes || undefined,
         photo_urls: maintenancePhotoUrls.length > 0 ? maintenancePhotoUrls : undefined,
@@ -263,10 +276,12 @@ export function SnagResolutionModal({
                 Resolution Photos (Optional)
               </label>
               <PhotoUpload
-                onPhotosUploaded={setPhotoUrls}
-                bucketName="maintenance-photos"
+                onUpload={url => setPhotoUrls(prev => [...prev, url])}
                 disabled={submitting}
               />
+              {photoUrls.length > 0 && (
+                <p className="text-xs text-gray-500 mt-2">{photoUrls.length} photo(s) uploaded</p>
+              )}
             </div>
 
             <div className="border-t border-gray-200 pt-6">
@@ -362,17 +377,44 @@ export function SnagResolutionModal({
                       Performed By <span className="text-red-500">*</span>
                     </label>
                     <select
-                      value={performedByUserId}
-                      onChange={e => setPerformedByUserId(e.target.value)}
+                      value={performedByType === 'other' ? 'other' : performedByUserId}
+                      onChange={e => {
+                        const value = e.target.value;
+                        if (value === 'other') {
+                          setPerformedByType('other');
+                          setPerformedByUserId('');
+                        } else {
+                          setPerformedByType('registered');
+                          setPerformedByUserId(value);
+                          setPerformedByOther('');
+                        }
+                      }}
                       required={createMaintenanceLog}
                       disabled={submitting}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 text-base bg-white"
                     >
                       <option value="">— Select mechanic or service provider —</option>
-                      {users.map(u => (
-                        <option key={u.id} value={u.id}>{u.full_name} ({u.role})</option>
-                      ))}
+                      <optgroup label="Registered Users">
+                        {users.map(u => (
+                          <option key={u.id} value={u.id}>{u.full_name} ({u.role})</option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="External">
+                        <option value="other">Other (External)</option>
+                      </optgroup>
                     </select>
+
+                    {performedByType === 'other' && (
+                      <input
+                        type="text"
+                        placeholder="Enter name or service center"
+                        value={performedByOther}
+                        onChange={e => setPerformedByOther(e.target.value)}
+                        required={createMaintenanceLog}
+                        disabled={submitting}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 text-base mt-2"
+                      />
+                    )}
                   </div>
 
                   {checkableUsers.length > 0 && (
@@ -413,10 +455,12 @@ export function SnagResolutionModal({
                       Maintenance Photos
                     </label>
                     <PhotoUpload
-                      onPhotosUploaded={setMaintenancePhotoUrls}
-                      bucketName="maintenance-photos"
+                      onUpload={url => setMaintenancePhotoUrls(prev => [...prev, url])}
                       disabled={submitting}
                     />
+                    {maintenancePhotoUrls.length > 0 && (
+                      <p className="text-xs text-gray-500 mt-2">{maintenancePhotoUrls.length} photo(s) uploaded</p>
+                    )}
                   </div>
                 </div>
               )}

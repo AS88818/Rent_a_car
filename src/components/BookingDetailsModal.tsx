@@ -10,7 +10,7 @@ interface BookingDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   booking: Booking | null;
-  vehicle: Vehicle | null;
+  vehicle: (Vehicle & { category?: string }) | null;
   branches: Branch[];
   onEdit?: () => void;
   onCancel?: () => void;

@@ -1,7 +1,7 @@
 import { User, Car } from 'lucide-react';
 
 interface VehicleTypeBadgeProps {
-  isPersonal: boolean;
+  isPersonal?: boolean;
   size?: 'sm' | 'md' | 'lg';
   showIcon?: boolean;
   className?: string;

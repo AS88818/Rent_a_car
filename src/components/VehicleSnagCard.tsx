@@ -26,7 +26,6 @@ export function VehicleSnagCard({
   onAssignSnag,
   onResolveSnag,
   showClosedSnags = false,
-  userRole,
   users = [],
   highlightSnagId,
   defaultExpanded = false,

@@ -2,7 +2,7 @@ import { X, ChevronLeft, ChevronRight, Calendar, MapPin, User, Phone, Mail, Car,
 import { useEffect, useState } from 'react';
 import { Vehicle, Booking, Branch, AuthUser, VehicleCategory } from '../types/database';
 import { userService } from '../services/api';
-import { getAvailableVehicles, calculateBookingDuration, getHealthColor, checkInsuranceExpiryDuringBooking, formatDate, daysUntilExpiry } from '../lib/utils';
+import { getAvailableVehicles, calculateBookingDuration, getHealthColor, checkInsuranceExpiryDuringBooking, daysUntilExpiry } from '../lib/utils';
 
 interface BookingFormModalProps {
   isOpen: boolean;

@@ -12,8 +12,6 @@ interface EmailSendingSettingsProps {
 }
 
 export function EmailSendingSettings({
-  googleClientId,
-  googleClientSecret,
   isConfigured,
 }: EmailSendingSettingsProps) {
   const [connecting, setConnecting] = useState(false);

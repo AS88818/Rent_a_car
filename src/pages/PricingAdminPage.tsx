@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { quotationService } from '../services/api';
 import { CategoryPricing, PricingConfig, SeasonRule } from '../types/database';
 import { showToast } from '../lib/toast';
-import { DollarSign, Save, Edit, X, TrendingUp, Percent, RefreshCw, Calendar, Plus, Trash2 } from 'lucide-react';
+import { DollarSign, Save, Edit, X, TrendingUp, RefreshCw, Calendar, Plus, Trash2 } from 'lucide-react';
 
 export function PricingAdminPage() {
   const [pricingConfig, setPricingConfig] = useState<PricingConfig | null>(null);

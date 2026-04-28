@@ -2,12 +2,9 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
-  Gauge,
-  Activity,
   Wrench,
   FileText,
   AlertTriangle,
-  Shield,
   Calendar,
   MapPin,
   Edit,
@@ -27,7 +24,6 @@ import {
   vehicleService,
   bookingService,
   maintenanceService,
-  mileageService,
   snagService,
   categoryService,
   branchService,
@@ -344,7 +340,6 @@ export function VehicleDetailsPage() {
   const currentAndUpcomingBookings = bookings
     .filter((b) => {
       const endDate = new Date(b.end_datetime);
-      const startDate = new Date(b.start_datetime);
       return (
         b.status !== 'Completed' &&
         b.status !== 'Cancelled' &&

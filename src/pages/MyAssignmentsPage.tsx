@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../lib/auth-context';
-import { snagAssignmentService, snagService, userService, maintenanceService, bookingService } from '../services/api';
+import { snagAssignmentService, userService, maintenanceService, bookingService } from '../services/api';
 import { Snag, AuthUser } from '../types/database';
 import { showToast } from '../lib/toast';
 import { Calendar, AlertCircle, CheckCircle, RefreshCw, ChevronDown, Wrench, Car } from 'lucide-react';
@@ -68,7 +68,7 @@ export function MyAssignmentsPage() {
   const [reassigning, setReassigning] = useState(false);
   const [teamUsers, setTeamUsers] = useState<AuthUser[]>([]);
   const [viewingUserId, setViewingUserId] = useState<string>('');
-  const [viewingUserRole, setViewingUserRole] = useState<string>(userRole || '');
+  const [, setViewingUserRole] = useState<string>(userRole || '');
 
   useEffect(() => {
     if (user?.id) {

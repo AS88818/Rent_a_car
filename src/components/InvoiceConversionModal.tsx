@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X, FileText, Calendar, DollarSign } from 'lucide-react';
 import { Quote, CategoryQuoteResult, InvoiceSelectedCategory, PaymentMethod } from '../types/database';
-import { invoiceService, quotationService } from '../services/api';
+import { invoiceService } from '../services/api';
 import { showToast } from '../lib/toast';
 
 interface InvoiceConversionModalProps {

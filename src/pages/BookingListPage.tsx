@@ -34,8 +34,8 @@ export function BookingListPage() {
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
-  const [documents, setDocuments] = useState<BookingDocument[]>([]);
-  const [loadingDocs, setLoadingDocs] = useState(false);
+  const [, setDocuments] = useState<BookingDocument[]>([]);
+  const [, setLoadingDocs] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -110,7 +110,7 @@ export function BookingListPage() {
 
       setLoadingDocs(true);
       try {
-        const docs = await bookingDocumentService.getBookingDocuments(selectedBooking.id);
+        const docs = await bookingDocumentService.getDocuments(selectedBooking.id);
         setDocuments(docs);
       } catch (error) {
         console.error('Failed to load documents:', error);
@@ -278,7 +278,7 @@ export function BookingListPage() {
     }
   });
 
-  const uniqueHealthValues = Array.from(new Set(bookings.map(b => b.vehicle?.health_flag).filter(Boolean)));
+  const uniqueHealthValues: string[] = Array.from(new Set(bookings.map(b => b.vehicle?.health_flag).filter((h): h is NonNullable<typeof h> => Boolean(h))));
 
   if (loading) {
     return (

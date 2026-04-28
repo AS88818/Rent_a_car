@@ -546,7 +546,7 @@ export function generateInvoicePDF(invoice: Invoice, company?: PDFCompanyInfo): 
   doc.text('TOTAL:', totalsStartX, yPosition);
   doc.text(formatCurrency(invoice.total_amount), pageWidth - margin - 35, yPosition);
 
-  if (invoice.deposit_amount && invoice.deposit_amount > 0) {
+  if (invoice.security_deposit_amount && invoice.security_deposit_amount > 0) {
     yPosition += 12;
     doc.setLineWidth(0.5);
     doc.setDrawColor(200, 200, 200);
@@ -557,7 +557,7 @@ export function generateInvoicePDF(invoice: Invoice, company?: PDFCompanyInfo): 
     doc.setFontSize(10);
     doc.setTextColor(37, 99, 235);
     doc.text('Deposit Required (25%):', totalsStartX, yPosition);
-    doc.text(formatCurrency(invoice.deposit_amount), pageWidth - margin - 35, yPosition);
+    doc.text(formatCurrency(invoice.security_deposit_amount), pageWidth - margin - 35, yPosition);
     yPosition += 7;
 
     doc.setFont('helvetica', 'normal');
@@ -760,7 +760,7 @@ export function generateInvoicePDFBase64(invoice: Invoice, company?: PDFCompanyI
   doc.text('TOTAL:', totalsStartX, yPosition);
   doc.text(formatCurrency(invoice.total_amount), pageWidth - margin - 35, yPosition);
 
-  if (invoice.deposit_amount && invoice.deposit_amount > 0) {
+  if (invoice.security_deposit_amount && invoice.security_deposit_amount > 0) {
     yPosition += 12;
     doc.setLineWidth(0.5);
     doc.setDrawColor(200, 200, 200);
@@ -771,7 +771,7 @@ export function generateInvoicePDFBase64(invoice: Invoice, company?: PDFCompanyI
     doc.setFontSize(10);
     doc.setTextColor(37, 99, 235);
     doc.text('Deposit Required (25%):', totalsStartX, yPosition);
-    doc.text(formatCurrency(invoice.deposit_amount), pageWidth - margin - 35, yPosition);
+    doc.text(formatCurrency(invoice.security_deposit_amount), pageWidth - margin - 35, yPosition);
     yPosition += 7;
 
     doc.setFont('helvetica', 'normal');

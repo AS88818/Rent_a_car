@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { UserPlus } from 'lucide-react';
 import { useAuth } from '../lib/auth-context';
 import { useCompanySettings } from '../lib/company-settings-context';
 import { branchService } from '../services/api';

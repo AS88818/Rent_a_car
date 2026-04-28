@@ -10,6 +10,7 @@ import {
   CategoryPricing,
   SeasonRule,
   Quote,
+  CategoryQuoteResult,
   PricingConfig,
   AuthUser,
   UserRole,
@@ -1032,7 +1033,7 @@ export const quotationService = {
     return data as Quote;
   },
 
-  async createQuote(quote: Omit<Quote, 'id' | 'created_at'>) {
+  async createQuote(quote: Omit<Quote, 'id' | 'created_at' | 'quote_reference'>) {
     const { data, error } = await supabase
       .from('quotes')
       .insert([quote])

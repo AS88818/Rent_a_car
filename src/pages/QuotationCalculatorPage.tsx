@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Calculator, Copy, RotateCcw, Save, MapPin, FileText, Share2, MessageCircle, Mail, FolderOpen, Trash2, Clock, Receipt, Check, CheckCircle, Plus, X, Car, User, ArrowRightLeft } from 'lucide-react';
+import { ArrowLeft, Copy, RotateCcw, Save, MapPin, FileText, MessageCircle, Mail, Trash2, Clock, Check, CheckCircle, Plus, X, Car, User, ArrowRightLeft } from 'lucide-react';
 import { quotationService, vehicleService, bookingService, branchService, categoryService } from '../services/api';
-import { CategoryPricing, SeasonRule, CategoryQuoteResult, Branch, PricingConfig, Quote, VehicleCategory } from '../types/database';
+import { CategoryPricing, SeasonRule, CategoryQuoteResult, Branch, PricingConfig, Quote, VehicleCategory, Vehicle, Booking } from '../types/database';
 import { showToast } from '../lib/toast';
 import { useAuth } from '../lib/auth-context';
 import { generateQuotePDFBase64, companySettingsToPDFInfo } from '../lib/pdf-utils';
@@ -58,7 +58,7 @@ export function QuotationCalculatorPage() {
   const [selectedDropoffBranchId, setSelectedDropoffBranchId] = useState('');
   const [visibleCategories, setVisibleCategories] = useState<string[]>([]);
   const [savedQuoteReference, setSavedQuoteReference] = useState<string | null>(null);
-  const [pricingConfig, setPricingConfig] = useState<PricingConfig | null>(null);
+  const [, setPricingConfig] = useState<PricingConfig | null>(null);
   const [draftQuotes, setDraftQuotes] = useState<Quote[]>([]);
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
   const [showDrafts, setShowDrafts] = useState(false);

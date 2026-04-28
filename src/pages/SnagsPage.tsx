@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
-import { snagService, userService, vehicleService, snagAssignmentService, snagResolutionService } from '../services/api';
+import { snagService, userService, snagAssignmentService, snagResolutionService } from '../services/api';
 import { Snag, VehicleWithSnagCount, AuthUser } from '../types/database';
 import { showToast } from '../lib/toast';
 import { Plus, Filter, ArrowUpDown, RefreshCw } from 'lucide-react';

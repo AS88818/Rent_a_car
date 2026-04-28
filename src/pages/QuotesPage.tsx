@@ -18,25 +18,7 @@ import { quotationService } from '../services/api';
 import { showToast } from '../lib/toast';
 import { InvoiceConversionModal } from '../components/InvoiceConversionModal';
 import { AcceptQuoteModal } from '../components/AcceptQuoteModal';
-
-interface Quote {
-  id: string;
-  client_name: string;
-  client_phone?: string;
-  pickup_location?: string;
-  dropoff_location?: string;
-  start_date: string;
-  end_date: string;
-  quote_reference: string;
-  status: 'Draft' | 'Active' | 'Accepted' | 'Converted' | 'Expired';
-  created_at: string;
-  quote_data: { [key: string]: any };
-  expiration_date: string | null;
-  extended_expiration: boolean;
-  client_email?: string;
-  booking_id?: string;
-  converted_at?: string;
-}
+import { Quote } from '../types/database';
 
 interface EditExpirationModalProps {
   quote: Quote;
@@ -256,7 +238,7 @@ export default function QuotesPage() {
     navigate('/quotation', { state: { loadQuote: quote } });
   };
 
-  const getDaysRemaining = (expirationDate: string | null): number | null => {
+  const getDaysRemaining = (expirationDate: string | null | undefined): number | null => {
     if (!expirationDate) return null;
     const now = new Date();
     const expiry = new Date(expirationDate);

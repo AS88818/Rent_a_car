@@ -118,8 +118,15 @@ export function isDateInRange(date: Date, start: Date, end: Date): boolean {
   return dateTime >= start.getTime() && dateTime <= end.getTime();
 }
 
-export function getCategoryColor(categoryName: string, index: number): string {
-  const colors = [
+export interface CategoryColor {
+  bg: string;
+  border: string;
+  text: string;
+  dot: string;
+}
+
+export function getCategoryColor(_categoryName: string, index: number): CategoryColor {
+  const colors: CategoryColor[] = [
     { bg: 'bg-blue-100', border: 'border-blue-500', text: 'text-blue-900', dot: 'bg-blue-500' },
     { bg: 'bg-green-100', border: 'border-green-500', text: 'text-green-900', dot: 'bg-green-500' },
     { bg: 'bg-amber-100', border: 'border-amber-500', text: 'text-amber-900', dot: 'bg-amber-500' },

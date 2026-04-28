@@ -37,6 +37,7 @@ import { VehicleTypeBadge } from '../components/VehicleTypeBadge';
 
 interface VehicleWithBranch extends Vehicle {
   branch_name?: string;
+  category?: string;
 }
 
 interface SnagCount {
@@ -864,18 +865,6 @@ export function DashboardPage() {
                       vehicle.branch_name!.toLowerCase().includes(b.branch_name.toLowerCase())
                     );
                   }
-
-                  const startLocationBranch = booking.start_location ? branches.find(b => {
-                    const branchName = b.branch_name.toLowerCase().trim();
-                    const startLoc = booking.start_location.toLowerCase().trim();
-                    if (branchName === startLoc) return true;
-                    if (branchName.includes(startLoc) || startLoc.includes(branchName)) return true;
-                    const branchFirstWord = branchName.split(' ')[0];
-                    const locationFirstWord = startLoc.split(' ')[0];
-                    if (branchFirstWord.length >= 3 && locationFirstWord.length >= 3 &&
-                        branchFirstWord === locationFirstWord) return true;
-                    return false;
-                  }) : null;
 
                   const vehicleLocationName = vehicleBranch?.branch_name || vehicle?.branch_name || '';
                   const hasLocationMismatch = checkLocationMismatch(
