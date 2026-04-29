@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Copy, RotateCcw, Save, MapPin, FileText, MessageCircle, Mail, Trash2, Clock, Check, CheckCircle, Plus, X, Car, User, ArrowRightLeft } from 'lucide-react';
+import { ArrowLeft, Copy, RotateCcw, Save, MapPin, FileText, MessageCircle, Mail, Trash2, Clock, Check, CheckCircle, Plus, X, Car, User, ArrowRightLeft, AlertTriangle } from 'lucide-react';
 import { quotationService, vehicleService, bookingService, branchService, categoryService } from '../services/api';
 import { CategoryPricing, SeasonRule, CategoryQuoteResult, Branch, PricingConfig, Quote, VehicleCategory, Vehicle, Booking } from '../types/database';
 import { showToast } from '../lib/toast';
@@ -1461,9 +1461,33 @@ export function QuotationCalculatorPage() {
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                 />
               </div>
-              <p className="text-xs text-amber-600 mt-1">
-                ⚠️ Pickup or dropoff is outside operating hours (9 AM - 6 PM). Enter surcharge amount.
-              </p>
+              {(() => {
+                const startTime = inputs.startDateTime?.split('T')[1];
+                const endTime = inputs.endDateTime?.split('T')[1];
+                const officeStart = 9 * 60;
+                const officeEnd = 18 * 60;
+                const startMins = startTime ? startTime.split(':').slice(0,2).map(Number).reduce((h,m,i) => i===0 ? h*60+m : h+m, 0) : null;
+                const endMins = endTime ? endTime.split(':').slice(0,2).map(Number).reduce((h,m,i) => i===0 ? h*60+m : h+m, 0) : null;
+                const startOutside = startMins !== null && (startMins < officeStart || startMins > officeEnd);
+                const endOutside = endMins !== null && (endMins < officeStart || endMins > officeEnd);
+                return (
+                  <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 mt-1">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <h4 className="font-medium text-amber-900 mb-2">Outside Office Hours Charges</h4>
+                        <div className="space-y-1 text-sm text-amber-800">
+                          {startOutside && <p>• Pickup outside office hours</p>}
+                          {endOutside && <p>• Drop-off outside office hours</p>}
+                        </div>
+                        <p className="text-xs text-amber-700 mt-2">
+                          Office hours: 9:00 AM - 6:00 PM. Pickups/drop-offs outside these hours incur additional charges.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 

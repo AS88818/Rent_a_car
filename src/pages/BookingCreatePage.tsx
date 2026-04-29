@@ -673,30 +673,6 @@ export function BookingCreatePage() {
                 </div>
               )}
 
-              {outsideHoursCharges.totalExtraCharge > 0 && validationErrors.length === 0 && (
-                <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <h4 className="font-medium text-amber-900 mb-2">Outside Office Hours Charges</h4>
-                      <div className="space-y-1 text-sm text-amber-800">
-                        {outsideHoursCharges.startOutsideHours && (
-                          <p>• Pickup outside office hours: <span className="font-semibold">KES {outsideHoursCharges.startCharge.toLocaleString()}</span></p>
-                        )}
-                        {outsideHoursCharges.endOutsideHours && (
-                          <p>• Drop-off outside office hours: <span className="font-semibold">KES {outsideHoursCharges.endCharge.toLocaleString()}</span></p>
-                        )}
-                        <p className="font-semibold pt-1 border-t border-amber-300 mt-2">
-                          Total Extra Charges: KES {outsideHoursCharges.totalExtraCharge.toLocaleString()}
-                        </p>
-                      </div>
-                      <p className="text-xs text-amber-700 mt-2">
-                        Office hours: 9:00 AM - 6:00 PM. Pickups/drop-offs outside these hours incur additional charges.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {validationErrors.length > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">
