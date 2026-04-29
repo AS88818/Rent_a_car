@@ -1466,8 +1466,9 @@ export function QuotationCalculatorPage() {
                 const endTime = inputs.endDateTime?.split('T')[1];
                 const officeStart = 9 * 60;
                 const officeEnd = 18 * 60;
-                const startMins = startTime ? startTime.split(':').slice(0,2).map(Number).reduce((h,m,i) => i===0 ? h*60+m : h+m, 0) : null;
-                const endMins = endTime ? endTime.split(':').slice(0,2).map(Number).reduce((h,m,i) => i===0 ? h*60+m : h+m, 0) : null;
+                const toMins = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+                const startMins = startTime ? toMins(startTime) : null;
+                const endMins = endTime ? toMins(endTime) : null;
                 const startOutside = startMins !== null && (startMins < officeStart || startMins > officeEnd);
                 const endOutside = endMins !== null && (endMins < officeStart || endMins > officeEnd);
                 return (
