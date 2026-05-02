@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../lib/auth-context';
-import { snagAssignmentService, userService, maintenanceService, bookingService } from '../services/api';
+import { snagAssignmentService, userService, maintenanceService, bookingService, snagResolutionService } from '../services/api';
 import { Snag, AuthUser } from '../types/database';
 import { showToast } from '../lib/toast';
 import { Calendar, AlertCircle, CheckCircle, RefreshCw, ChevronDown, Wrench, Car } from 'lucide-react';
@@ -131,8 +131,6 @@ export function MyAssignmentsPage() {
 
     setSubmitting(true);
     try {
-      const { snagResolutionService } = await import('../services/api');
-
       if (resolution.maintenanceLog) {
         await snagResolutionService.createResolutionWithMaintenanceLog(
           {

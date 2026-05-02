@@ -5,6 +5,7 @@ import { bookingService, vehicleService, categoryService, branchService } from '
 import { Vehicle, VehicleCategory, Branch, Booking } from '../types/database';
 import { showToast } from '../lib/toast';
 import { autoSyncToCompanyCalendar } from '../services/calendar-service';
+import { supabase } from '../lib/supabase';
 import { getAvailableVehicles, calculateBookingDuration, checkInsuranceExpiryDuringBooking, formatDate, daysUntilExpiry } from '../lib/utils';
 import { ArrowLeft, Check, CheckCircle, Calendar, MapPin, AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
 import { BookingDocumentUpload } from '../components/BookingDocumentUpload';
@@ -295,7 +296,7 @@ export function BookingCreatePage() {
     setCalendarSyncing(true);
     setCalendarSyncStatus('pending');
     setCalendarSyncError(null);
-    const { data: booking } = await (await import('../lib/supabase')).supabase
+    const { data: booking } = await supabase
       .from('bookings').select('*').eq('id', createdBookingId).maybeSingle();
     if (booking) {
       const result = await autoSyncToCompanyCalendar(booking, selectedVehicle);

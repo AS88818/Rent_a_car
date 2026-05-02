@@ -421,7 +421,7 @@ export const bookingService = {
       };
 
       // For vehicle_id changes, resolve reg_numbers for human-readable display
-      let vehicleRegMap: Record<string, string> = {};
+      const vehicleRegMap: Record<string, string> = {};
       if ('vehicle_id' in updates && updates.vehicle_id !== booking.vehicle_id) {
         const ids = [booking.vehicle_id, updates.vehicle_id].filter(Boolean) as string[];
         const { data: vehicleRows } = await supabase

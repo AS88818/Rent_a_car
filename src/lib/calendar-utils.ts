@@ -17,7 +17,7 @@ export function getMonthCalendar(year: number, month: number): CalendarWeek[] {
   startDate.setDate(startDate.getDate() - firstDay.getDay());
 
   const weeks: CalendarWeek[] = [];
-  let currentDate = new Date(startDate);
+  const currentDate = new Date(startDate);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 

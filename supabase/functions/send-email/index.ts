@@ -77,7 +77,7 @@ function buildMimeEmail(to: string, subject: string, body: string): string {
   // Base64url encode
   const encoder = new TextEncoder();
   const data = encoder.encode(mime);
-  let base64 = btoa(String.fromCharCode(...data));
+  const base64 = btoa(String.fromCharCode(...data));
   return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 

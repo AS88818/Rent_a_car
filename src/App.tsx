@@ -1,50 +1,63 @@
+import { lazy, Suspense } from 'react';
+import type { ComponentType } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/auth-context';
 import { CompanySettingsProvider } from './lib/company-settings-context';
 import { Toast } from './components/Toast';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { LoginPage } from './pages/LoginPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { BookingListPage } from './pages/BookingListPage';
-import { BookingCreatePage } from './pages/BookingCreatePage';
-import { VehiclesPage } from './pages/VehiclesPage';
-import { VehicleDetailsPage } from './pages/VehicleDetailsPage';
-import { QuickActionsPage } from './pages/QuickActionsPage';
-import { CalendarPage } from './pages/CalendarPage';
-import { MaintenancePage } from './pages/MaintenancePage';
-import { SnagsPage } from './pages/SnagsPage';
-import { MyAssignmentsPage } from './pages/MyAssignmentsPage';
-import { SettingsPage } from './pages/SettingsPage';
-import { CompanySettingsPage } from './pages/CompanySettingsPage';
-import { ProfilePage } from './pages/ProfilePage';
-import { QuotationCalculatorPage } from './pages/QuotationCalculatorPage';
-import { UserManagementPage } from './pages/UserManagementPage';
-import { PricingAdminPage } from './pages/PricingAdminPage';
-import { InvoicesPage } from './pages/InvoicesPage';
-import { EmailsPage } from './pages/EmailsPage';
-import QuotesPage from './pages/QuotesPage';
-import { ReportsPage } from './pages/ReportsPage';
-import { OAuthCallbackPage } from './pages/OAuthCallbackPage';
-import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
-import { ResetPasswordPage } from './pages/ResetPasswordPage';
+
+const lazyNamed = <T extends Record<string, unknown>, K extends keyof T>(
+  loader: () => Promise<T>,
+  exportName: K
+) => lazy(() => loader().then(module => ({ default: module[exportName] as ComponentType })));
+
+const LoginPage = lazyNamed(() => import('./pages/LoginPage'), 'LoginPage');
+const DashboardPage = lazyNamed(() => import('./pages/DashboardPage'), 'DashboardPage');
+const BookingListPage = lazyNamed(() => import('./pages/BookingListPage'), 'BookingListPage');
+const BookingCreatePage = lazyNamed(() => import('./pages/BookingCreatePage'), 'BookingCreatePage');
+const VehiclesPage = lazyNamed(() => import('./pages/VehiclesPage'), 'VehiclesPage');
+const VehicleDetailsPage = lazyNamed(() => import('./pages/VehicleDetailsPage'), 'VehicleDetailsPage');
+const QuickActionsPage = lazyNamed(() => import('./pages/QuickActionsPage'), 'QuickActionsPage');
+const CalendarPage = lazyNamed(() => import('./pages/CalendarPage'), 'CalendarPage');
+const MaintenancePage = lazyNamed(() => import('./pages/MaintenancePage'), 'MaintenancePage');
+const SnagsPage = lazyNamed(() => import('./pages/SnagsPage'), 'SnagsPage');
+const MyAssignmentsPage = lazyNamed(() => import('./pages/MyAssignmentsPage'), 'MyAssignmentsPage');
+const SettingsPage = lazyNamed(() => import('./pages/SettingsPage'), 'SettingsPage');
+const CompanySettingsPage = lazyNamed(() => import('./pages/CompanySettingsPage'), 'CompanySettingsPage');
+const ProfilePage = lazyNamed(() => import('./pages/ProfilePage'), 'ProfilePage');
+const QuotationCalculatorPage = lazyNamed(() => import('./pages/QuotationCalculatorPage'), 'QuotationCalculatorPage');
+const UserManagementPage = lazyNamed(() => import('./pages/UserManagementPage'), 'UserManagementPage');
+const PricingAdminPage = lazyNamed(() => import('./pages/PricingAdminPage'), 'PricingAdminPage');
+const InvoicesPage = lazyNamed(() => import('./pages/InvoicesPage'), 'InvoicesPage');
+const EmailsPage = lazyNamed(() => import('./pages/EmailsPage'), 'EmailsPage');
+const QuotesPage = lazy(() => import('./pages/QuotesPage'));
+const ReportsPage = lazyNamed(() => import('./pages/ReportsPage'), 'ReportsPage');
+const OAuthCallbackPage = lazyNamed(() => import('./pages/OAuthCallbackPage'), 'OAuthCallbackPage');
+const ForgotPasswordPage = lazyNamed(() => import('./pages/ForgotPasswordPage'), 'ForgotPasswordPage');
+const ResetPasswordPage = lazyNamed(() => import('./pages/ResetPasswordPage'), 'ResetPasswordPage');
+
+function LoadingScreen() {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    </div>
+  );
+}
 
 function AppRoutes() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return (
-    <Routes>
+    <Suspense fallback={<LoadingScreen />}>
+      <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -271,7 +284,8 @@ function AppRoutes() {
       />
 
       <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Navigate to="/login" />} />
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 }
 
