@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { emailService, userService, vehicleService, categoryService } from '../services/api';
 import { EmailTemplate, EmailQueue, AuthUser, Vehicle, VehicleCategory, TemplateCategory } from '../types/database';
 import { showToast } from '../lib/toast';
+import { getFunctionAuthHeaders } from '../lib/function-auth';
 import {
   Plus,
   Edit,
@@ -289,12 +290,12 @@ export function EmailsPage() {
     setProcessingEmails(true);
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const authHeaders = await getFunctionAuthHeaders();
 
       const response = await fetch(`${supabaseUrl}/functions/v1/process-email-queue`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${supabaseKey}`,
+          ...authHeaders,
           'Content-Type': 'application/json',
         },
       });

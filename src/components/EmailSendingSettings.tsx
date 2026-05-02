@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { CheckCircle2, AlertTriangle, Send, Loader2, Info, Link as LinkIcon, Unlink, Mail } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { showToast } from '../lib/toast';
-import { initiateGmailOAuth, exchangeCodeForTokens } from '../lib/google-oauth';
+import { completeGoogleOAuth, initiateGmailOAuth } from '../lib/google-oauth';
 import { companyCalendarService } from '../services/calendar-service';
 
 interface EmailSendingSettingsProps {
@@ -32,18 +32,7 @@ export function EmailSendingSettings({
 
       if (data.success && data.code) {
         try {
-          const tokens = await exchangeCodeForTokens(data.code);
-          const { data: existing } = await supabase
-            .from('company_settings')
-            .select('id')
-            .limit(1)
-            .maybeSingle();
-          if (existing) {
-            await supabase
-              .from('company_settings')
-              .update({ gmail_refresh_token: tokens.refresh_token || '' })
-              .eq('id', existing.id);
-          }
+          await completeGoogleOAuth(data.code, 'gmail');
           replyFn?.({ type: 'gmail-oauth-complete', success: true });
           showToast('Gmail connected successfully!', 'success');
           await loadStatus();

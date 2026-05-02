@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { Booking, Vehicle } from '../types/database';
 import { getAuthorizationHeader, isTokenExpired, refreshAccessToken } from '../lib/google-oauth';
+import { getFunctionAuthHeaders } from '../lib/function-auth';
 
 interface GoogleCalendarReminder {
   method: 'email' | 'popup';
@@ -21,7 +22,7 @@ interface GoogleCalendarEvent {
 
 interface CompanyCalendarConfig {
   google_access_token: string;
-  google_refresh_token: string;
+  google_refresh_token?: string;
   google_calendar_id?: string;
   google_token_expiry?: string;
   google_sync_enabled: boolean;
@@ -32,7 +33,7 @@ export const companyCalendarService = {
   async getConfig(): Promise<CompanyCalendarConfig | null> {
     const { data, error } = await supabase
       .from('company_settings')
-      .select('google_access_token, google_refresh_token, google_calendar_id, google_token_expiry, google_sync_enabled, google_last_sync_at')
+      .select('google_access_token, google_calendar_id, google_token_expiry, google_sync_enabled, google_last_sync_at')
       .limit(1)
       .maybeSingle();
 
@@ -60,83 +61,74 @@ export const companyCalendarService = {
     refreshToken: string,
     expiresIn: number
   ): Promise<void> {
+    void refreshToken;
     const tokenExpiry = new Date(Date.now() + expiresIn * 1000).toISOString();
 
     await this.updateConfig({
       google_access_token: accessToken,
-      google_refresh_token: refreshToken,
       google_token_expiry: tokenExpiry,
       google_sync_enabled: true,
     });
   },
 
   async disconnect(): Promise<void> {
-    const { data: existing } = await supabase
-      .from('company_settings')
-      .select('id')
-      .limit(1)
-      .maybeSingle();
+    const headers = await getFunctionAuthHeaders();
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/company-settings-secrets`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ clear_google_oauth: true }),
+    });
 
-    if (!existing) return;
-
-    await supabase
-      .from('company_settings')
-      .update({
-        google_access_token: null,
-        google_refresh_token: null,
-        google_token_expiry: null,
-        google_sync_enabled: false,
-        // google_calendar_id intentionally preserved — reconnecting reuses the same calendar
-      })
-      .eq('id', existing.id);
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || 'Failed to disconnect Google Calendar');
+    }
 
     // Do NOT clear event IDs — they are still valid on Google's side.
     // syncOneEvent already handles 404s by creating a fresh event if the stored ID is gone.
   },
 
   async saveGmailRefreshToken(refreshToken: string): Promise<void> {
-    const { data: existing } = await supabase
-      .from('company_settings')
-      .select('id')
-      .limit(1)
-      .maybeSingle();
-
-    if (!existing) return;
-
-    await supabase
-      .from('company_settings')
-      .update({ gmail_refresh_token: refreshToken })
-      .eq('id', existing.id);
+    if (refreshToken) {
+      throw new Error('Gmail tokens must be saved by the google-oauth Edge Function');
+    }
   },
 
   async disconnectGmail(): Promise<void> {
-    const { data: existing } = await supabase
-      .from('company_settings')
-      .select('id')
-      .limit(1)
-      .maybeSingle();
+    const headers = await getFunctionAuthHeaders();
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/company-settings-secrets`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ clear_gmail_refresh_token: true }),
+    });
 
-    if (!existing) return;
-
-    await supabase
-      .from('company_settings')
-      .update({ gmail_refresh_token: null })
-      .eq('id', existing.id);
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || 'Failed to disconnect Gmail');
+    }
   },
 
   async getGmailConnected(): Promise<boolean> {
-    const { data } = await supabase
-      .from('company_settings')
-      .select('gmail_refresh_token')
-      .limit(1)
-      .maybeSingle();
-    return !!(data?.gmail_refresh_token);
+    const headers = await getFunctionAuthHeaders();
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/company-settings-secrets`, {
+      method: 'GET',
+      headers,
+    });
+    if (!response.ok) return false;
+    const data = await response.json();
+    return !!data.has_gmail_refresh_token;
   },
 
   async getValidAccessToken(): Promise<string> {
     const config = await this.getConfig();
 
-    if (!config || !config.google_access_token || !config.google_refresh_token) {
+    if (!config || !config.google_access_token) {
       throw new Error('Google Calendar is not connected');
     }
 
@@ -144,12 +136,7 @@ export const companyCalendarService = {
       return config.google_access_token;
     }
 
-    const tokenResponse = await refreshAccessToken(config.google_refresh_token);
-
-    await this.updateConfig({
-      google_access_token: tokenResponse.access_token,
-      google_token_expiry: new Date(Date.now() + tokenResponse.expires_in * 1000).toISOString(),
-    });
+    const tokenResponse = await refreshAccessToken();
 
     return tokenResponse.access_token;
   },

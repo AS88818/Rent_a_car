@@ -6,11 +6,12 @@ import {
 import { supabase } from '../lib/supabase';
 import { showToast } from '../lib/toast';
 import { companyCalendarService, bookingSyncService } from '../services/calendar-service';
-import { initiateGoogleOAuth, exchangeCodeForTokens } from '../lib/google-oauth';
+import { completeGoogleOAuth, initiateGoogleOAuth } from '../lib/google-oauth';
 
 interface CalendarSyncSettingsProps {
   googleClientId: string;
   googleClientSecret: string;
+  hasGoogleClientSecret?: boolean;
   googleRedirectUri: string;
   onChange: (field: string, value: string) => void;
 }
@@ -18,6 +19,7 @@ interface CalendarSyncSettingsProps {
 export function CalendarSyncSettings({
   googleClientId,
   googleClientSecret,
+  hasGoogleClientSecret = false,
   googleRedirectUri,
   onChange,
 }: CalendarSyncSettingsProps) {
@@ -33,7 +35,7 @@ export function CalendarSyncSettings({
   }>({ connected: false });
   const [loadingStatus, setLoadingStatus] = useState(true);
 
-  const isConfigured = !!(googleClientId && googleClientSecret);
+  const isConfigured = !!(googleClientId && (googleClientSecret || hasGoogleClientSecret));
 
   useEffect(() => {
     loadConnectionStatus();
@@ -46,12 +48,7 @@ export function CalendarSyncSettings({
       if (data.success && data.code) {
         setConnecting(true);
         try {
-          const tokens = await exchangeCodeForTokens(data.code);
-          await companyCalendarService.saveGoogleTokens(
-            tokens.access_token,
-            tokens.refresh_token || '',
-            tokens.expires_in
-          );
+          await completeGoogleOAuth(data.code, 'calendar');
           replyFn?.({ type: 'google-oauth-complete', success: true });
           showToast('Google Calendar connected successfully!', 'success');
           await loadConnectionStatus();
@@ -253,7 +250,7 @@ export function CalendarSyncSettings({
               type={showSecret ? 'text' : 'password'}
               value={googleClientSecret}
               onChange={e => onChange('google_client_secret', e.target.value)}
-              placeholder="Enter your client secret"
+              placeholder={hasGoogleClientSecret ? 'Existing secret saved; enter a new value to replace it' : 'Enter your client secret'}
               className="w-full px-4 py-2.5 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm font-mono"
             />
             <button
@@ -265,7 +262,11 @@ export function CalendarSyncSettings({
               {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
-          <p className="text-xs text-gray-500 mt-1">Found alongside your Client ID in the Google Cloud Console</p>
+          <p className="text-xs text-gray-500 mt-1">
+            {hasGoogleClientSecret && !googleClientSecret
+              ? 'A client secret is already saved securely. Leave blank to keep it.'
+              : 'Found alongside your Client ID in the Google Cloud Console'}
+          </p>
         </div>
 
         <div>

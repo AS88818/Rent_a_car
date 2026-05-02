@@ -2,8 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { categoryService, vehicleService, bookingService } from '../services/api';
-import { autoSyncToCompanyCalendar, companyCalendarService } from '../services/calendar-service';
-import { exchangeCodeForTokens } from '../lib/google-oauth';
+import { autoSyncToCompanyCalendar } from '../services/calendar-service';
+import { completeGoogleOAuth } from '../lib/google-oauth';
 import { VehicleCategory, Vehicle, Booking } from '../types/database';
 import { showToast } from '../lib/toast';
 import { ChevronLeft, ChevronRight, Printer, Download, Filter, X, RefreshCw } from 'lucide-react';
@@ -94,12 +94,7 @@ export function CalendarPage() {
 
     (async () => {
       try {
-        const tokens = await exchangeCodeForTokens(pendingOauthCode);
-        await companyCalendarService.saveGoogleTokens(
-          tokens.access_token,
-          tokens.refresh_token || '',
-          tokens.expires_in
-        );
+        await completeGoogleOAuth(pendingOauthCode, 'calendar');
         setPendingOauthCode(null);
         showToast('Google Calendar connected! Go to Company Settings to verify.', 'success');
       } catch (err: any) {

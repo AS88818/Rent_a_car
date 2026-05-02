@@ -7,6 +7,7 @@ ALTER TABLE snag_assignments ADD COLUMN IF NOT EXISTS assigned_to_external text;
 ALTER TABLE snag_assignments ALTER COLUMN assigned_to DROP NOT NULL;
 
 -- 3. Require at least one of assigned_to or assigned_to_external
+ALTER TABLE snag_assignments DROP CONSTRAINT IF EXISTS snag_assignments_assignee_required;
 ALTER TABLE snag_assignments ADD CONSTRAINT snag_assignments_assignee_required
   CHECK (assigned_to IS NOT NULL OR assigned_to_external IS NOT NULL);
 

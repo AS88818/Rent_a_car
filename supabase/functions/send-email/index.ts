@@ -13,6 +13,34 @@ interface EmailRequest {
   emailType: 'confirmation' | 'pickup_reminder' | 'dropoff_reminder' | 'invoice_receipt';
 }
 
+async function requireAllowedUser(req: Request, supabase: ReturnType<typeof createClient>, allowedRoles: string[]) {
+  const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+  if (!token) {
+    throw new Response(JSON.stringify({ success: false, error: "Missing authorization token" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  if (token === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) return;
+
+  const { data, error } = await supabase.auth.getUser(token);
+  const role = data.user?.app_metadata?.role || data.user?.user_metadata?.role;
+  if (error || !data.user) {
+    throw new Response(JSON.stringify({ success: false, error: "Invalid authorization token" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  if (!allowedRoles.includes(String(role))) {
+    throw new Response(JSON.stringify({ success: false, error: "Insufficient permissions" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+}
+
 // Build MIME email and encode to base64url
 function buildMimeEmail(to: string, subject: string, body: string): string {
   // Check if body contains HTML tags
@@ -66,6 +94,7 @@ Deno.serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    await requireAllowedUser(req, supabase, ["admin", "user", "member"]);
     const { bookingId, invoiceId, emailType }: EmailRequest = await req.json();
 
     if ((!bookingId && !invoiceId) || !emailType) {
@@ -295,6 +324,7 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Error sending email:", error);
 
     return new Response(

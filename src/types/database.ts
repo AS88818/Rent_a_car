@@ -150,6 +150,7 @@ export interface BookingDocument {
   document_type: 'license' | 'contract' | 'id_document' | 'insurance' | 'other';
   document_name: string;
   document_url: string;
+  storage_path?: string;
   file_size: number;
   uploaded_by?: string;
   uploaded_at: string;
@@ -164,6 +165,7 @@ export interface VehicleDocument {
   document_type: 'registration' | 'insurance_certificate' | 'mot_certificate' | 'other';
   document_name: string;
   document_url: string;
+  storage_path?: string;
   file_size: number;
   uploaded_by?: string;
   uploaded_at: string;

@@ -7,6 +7,7 @@ import { CompanySettings } from '../types/database';
 import { showToast } from '../lib/toast';
 import { EmailSendingSettings } from '../components/EmailSendingSettings';
 import { CalendarSyncSettings } from '../components/CalendarSyncSettings';
+import { getFunctionAuthHeaders } from '../lib/function-auth';
 
 type FormSection = 'branding' | 'contact' | 'payment' | 'email' | 'email_sending' | 'calendar_sync';
 
@@ -18,10 +19,11 @@ export function CompanySettingsPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [activeSection, setActiveSection] = useState<FormSection>('branding');
+  const [hasGoogleClientSecret, setHasGoogleClientSecret] = useState(false);
 
   useEffect(() => {
     if (settings.id) {
-      setFormData(prev => ({ ...settings, google_client_id: prev.google_client_id, google_client_secret: prev.google_client_secret, google_redirect_uri: prev.google_redirect_uri }));
+      setFormData(prev => ({ ...settings, google_client_id: prev.google_client_id, google_client_secret: prev.google_client_secret || '', google_redirect_uri: prev.google_redirect_uri }));
       setLoading(false);
       setLoadError(false);
     } else {
@@ -37,18 +39,23 @@ export function CompanySettingsPage() {
 
   useEffect(() => {
     async function loadCredentials() {
-      const { data } = await supabase
-        .from('company_settings')
-        .select('google_client_id, google_client_secret, google_redirect_uri')
-        .limit(1)
-        .maybeSingle();
-      if (data) {
+      try {
+        const headers = await getFunctionAuthHeaders();
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/company-settings-secrets`, {
+          method: 'GET',
+          headers,
+        });
+        if (!response.ok) return;
+        const data = await response.json();
         setFormData(prev => ({
           ...prev,
           google_client_id: data.google_client_id || '',
-          google_client_secret: data.google_client_secret || '',
+          google_client_secret: '',
           google_redirect_uri: data.google_redirect_uri || '',
         }));
+        setHasGoogleClientSecret(Boolean(data.has_google_client_secret));
+      } catch {
+        // Non-admin users never load secret metadata. The route is admin-only.
       }
     }
     loadCredentials();
@@ -93,7 +100,6 @@ export function CompanySettingsPage() {
           currency_code: formData.currency_code,
           currency_locale: formData.currency_locale,
           google_client_id: formData.google_client_id || null,
-          google_client_secret: formData.google_client_secret || null,
           google_redirect_uri: formData.google_redirect_uri || null,
           updated_at: new Date().toISOString(),
           updated_by: user?.id || null,
@@ -101,6 +107,30 @@ export function CompanySettingsPage() {
         .eq('id', settings.id);
 
       if (error) throw error;
+
+      const secretHeaders = await getFunctionAuthHeaders();
+      const secretResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/company-settings-secrets`, {
+        method: 'POST',
+        headers: {
+          ...secretHeaders,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          google_client_id: formData.google_client_id || null,
+          google_client_secret: formData.google_client_secret || '',
+          google_redirect_uri: formData.google_redirect_uri || null,
+        }),
+      });
+
+      if (!secretResponse.ok) {
+        const secretError = await secretResponse.json().catch(() => ({}));
+        throw new Error(secretError.error || 'Failed to save Google OAuth credentials');
+      }
+
+      if (formData.google_client_secret) {
+        setHasGoogleClientSecret(true);
+        setFormData(prev => ({ ...prev, google_client_secret: '' }));
+      }
 
       await refresh();
       showToast('Company settings saved successfully', 'success');
@@ -373,7 +403,7 @@ export function CompanySettingsPage() {
               <EmailSendingSettings
                 googleClientId={formData.google_client_id || ''}
                 googleClientSecret={formData.google_client_secret || ''}
-                isConfigured={!!(formData.google_client_id && formData.google_client_secret)}
+                isConfigured={!!(formData.google_client_id && (formData.google_client_secret || hasGoogleClientSecret))}
               />
             </SettingsCard>
           )}
@@ -383,6 +413,7 @@ export function CompanySettingsPage() {
               <CalendarSyncSettings
                 googleClientId={formData.google_client_id || ''}
                 googleClientSecret={formData.google_client_secret || ''}
+                hasGoogleClientSecret={hasGoogleClientSecret}
                 googleRedirectUri={formData.google_redirect_uri || ''}
                 onChange={(field, value) => handleChange(field as keyof CompanySettings, value)}
               />

@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,6 +17,33 @@ interface QuoteEmailRequest {
   pickupLocation: string;
   rentalType: string;
   pdfBase64: string;
+}
+
+async function requireAllowedUser(req: Request, supabaseUrl: string, serviceKey: string) {
+  const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+  if (!token) {
+    throw new Response(JSON.stringify({ success: false, error: 'Missing authorization token' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const supabase = createClient(supabaseUrl, serviceKey);
+  const { data, error } = await supabase.auth.getUser(token);
+  const role = data.user?.app_metadata?.role || data.user?.user_metadata?.role;
+  if (error || !data.user) {
+    throw new Response(JSON.stringify({ success: false, error: 'Invalid authorization token' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (!['admin', 'user', 'member'].includes(String(role))) {
+    throw new Response(JSON.stringify({ success: false, error: 'Insufficient permissions' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 }
 
 // Build MIME email with attachment and encode to base64url
@@ -91,6 +119,8 @@ Deno.serve(async (req: Request) => {
     if (!supabaseUrl || !supabaseKey) {
       throw new Error('Supabase environment variables are not configured properly');
     }
+
+    await requireAllowedUser(req, supabaseUrl, supabaseKey);
 
     console.log('\n=== Parsing Request ===');
     const payload: QuoteEmailRequest = await req.json();
@@ -239,6 +269,7 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error: any) {
+    if (error instanceof Response) return error;
     console.error('\n=== Error ===');
     console.error('Type:', error.constructor?.name);
     console.error('Message:', error.message);

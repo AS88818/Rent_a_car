@@ -5,6 +5,7 @@ import { Booking, Vehicle, Branch, BookingDocument, BookingAmendment } from '../
 import { formatDate, formatBookingTime, checkInsuranceExpiryDuringBooking, nowNaive } from '../lib/utils';
 import { bookingDocumentService, bookingAmendmentService } from '../services/api';
 import { BookingDocumentUpload } from './BookingDocumentUpload';
+import { showToast } from '../lib/toast';
 
 interface BookingDetailsModalProps {
   isOpen: boolean;
@@ -417,15 +418,20 @@ export function BookingDetailsModal({
                             </div>
                           </div>
                         </div>
-                        <a
-                          href={doc.document_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          onClick={async () => {
+                            try {
+                              const url = await bookingDocumentService.getSignedUrl(doc.id);
+                              window.open(url, '_blank', 'noopener,noreferrer');
+                            } catch (error) {
+                              showToast(error instanceof Error ? error.message : 'Failed to open document', 'error');
+                            }
+                          }}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex-shrink-0"
                           title="Download"
                         >
                           <Download className="w-4 h-4" />
-                        </a>
+                        </button>
                       </div>
                     ))}
                   </div>

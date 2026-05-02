@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { getFunctionAuthHeaders } from '../lib/function-auth';
 import {
   Vehicle,
   Booking,
@@ -1524,12 +1525,12 @@ export const emailService = {
 
   async sendEmail(bookingId: string, emailType: 'confirmation' | 'pickup_reminder' | 'dropoff_reminder') {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    const authHeaders = await getFunctionAuthHeaders();
 
     const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${supabaseKey}`,
+        ...authHeaders,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ bookingId, emailType }),
@@ -1744,12 +1745,12 @@ export const invoiceService = {
 
   async sendInvoiceReceipt(invoiceId: string) {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    const authHeaders = await getFunctionAuthHeaders();
 
     const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${supabaseKey}`,
+        ...authHeaders,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -2278,6 +2279,7 @@ export const bookingDocumentService = {
         document_type: documentType,
         document_name: file.name,
         document_url: publicUrl,
+        storage_path: filePath,
         file_size: file.size,
         uploaded_by: user?.user?.id,
         notes,
@@ -2292,11 +2294,15 @@ export const bookingDocumentService = {
   async deleteDocument(documentId: string) {
     const { data: doc } = await supabase
       .from('booking_documents')
-      .select('document_url')
+      .select('document_url, storage_path')
       .eq('id', documentId)
       .single();
 
-    if (doc?.document_url) {
+    if (doc?.storage_path) {
+      await supabase.storage
+        .from('documents')
+        .remove([doc.storage_path]);
+    } else if (doc?.document_url) {
       const path = doc.document_url.split('/booking-documents/')[1];
       if (path) {
         await supabase.storage
@@ -2311,6 +2317,24 @@ export const bookingDocumentService = {
       .eq('id', documentId);
 
     if (error) throw error;
+  },
+
+  async getSignedUrl(documentId: string) {
+    const authHeaders = await getFunctionAuthHeaders();
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/signed-document-url`, {
+      method: 'POST',
+      headers: {
+        ...authHeaders,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ documentId, kind: 'booking' }),
+    });
+
+    const result = await response.json();
+    if (!response.ok || !result.url) {
+      throw new Error(result.error || 'Failed to create document link');
+    }
+    return result.url as string;
   },
 };
 
@@ -2349,6 +2373,7 @@ export const vehicleDocumentService = {
         document_type: documentType,
         document_name: file.name,
         document_url: publicUrl,
+        storage_path: filePath,
         file_size: file.size,
         uploaded_by: authUser?.user?.id,
         notes,
@@ -2363,11 +2388,15 @@ export const vehicleDocumentService = {
   async deleteDocument(documentId: string) {
     const { data: doc } = await supabase
       .from('vehicle_documents')
-      .select('document_url')
+      .select('document_url, storage_path')
       .eq('id', documentId)
       .single();
 
-    if (doc?.document_url) {
+    if (doc?.storage_path) {
+      await supabase.storage
+        .from('documents')
+        .remove([doc.storage_path]);
+    } else if (doc?.document_url) {
       const path = doc.document_url.split('/vehicle-documents/')[1];
       if (path) {
         await supabase.storage
@@ -2382,6 +2411,24 @@ export const vehicleDocumentService = {
       .eq('id', documentId);
 
     if (error) throw error;
+  },
+
+  async getSignedUrl(documentId: string) {
+    const authHeaders = await getFunctionAuthHeaders();
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/signed-document-url`, {
+      method: 'POST',
+      headers: {
+        ...authHeaders,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ documentId, kind: 'vehicle' }),
+    });
+
+    const result = await response.json();
+    if (!response.ok || !result.url) {
+      throw new Error(result.error || 'Failed to create document link');
+    }
+    return result.url as string;
   },
 };
 

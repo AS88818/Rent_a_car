@@ -17,12 +17,14 @@ create table if not exists maintenance_deletions (
 alter table maintenance_deletions enable row level security;
 
 -- Users can only insert audit records for deletions they performed
+drop policy if exists "Users can insert own maintenance deletions" on maintenance_deletions;
 create policy "Users can insert own maintenance deletions"
   on maintenance_deletions for insert
   to authenticated
   with check (deleted_by = auth.uid());
 
 -- Authenticated users can view all audit records
+drop policy if exists "Authenticated users can view maintenance deletions" on maintenance_deletions;
 create policy "Authenticated users can view maintenance deletions"
   on maintenance_deletions for select
   to authenticated

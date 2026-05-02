@@ -82,6 +82,15 @@ export function BookingDocumentUpload({ bookingId, onDocumentUploaded }: Booking
     }
   };
 
+  const handleDownload = async (documentId: string) => {
+    try {
+      const url = await bookingDocumentService.getSignedUrl(documentId);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Failed to open document', 'error');
+    }
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
@@ -224,15 +233,13 @@ export function BookingDocumentUpload({ bookingId, onDocumentUploaded }: Booking
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <a
-                      href={doc.document_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      onClick={() => handleDownload(doc.id)}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       title="Download"
                     >
                       <Download className="w-4 h-4" />
-                    </a>
+                    </button>
                     <button
                       onClick={() => handleDelete(doc.id)}
                       className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"

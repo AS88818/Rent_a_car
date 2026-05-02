@@ -1,8 +1,8 @@
 import { supabase } from './supabase';
+import { getFunctionAuthHeaders } from './function-auth';
 
 export interface GoogleOAuthConfig {
   clientId: string;
-  clientSecret: string;
   redirectUri: string;
 }
 
@@ -10,28 +10,27 @@ interface GoogleTokenResponse {
   access_token: string;
   refresh_token?: string;
   expires_in: number;
-  scope: string;
-  token_type: string;
+  scope?: string;
+  token_type?: string;
 }
 
 const DEFAULT_REDIRECT_URI = 'https://rent-a-car-in-kenya-g64w.bolt.host/oauth/callback.html';
 
 export async function getCompanyGoogleConfig(): Promise<GoogleOAuthConfig> {
   const { data } = await supabase
-    .from('company_settings')
-    .select('google_client_id, google_client_secret, google_redirect_uri')
+    .from('company_settings_public')
+    .select('google_client_id, google_redirect_uri')
     .limit(1)
     .maybeSingle();
 
   const clientId = data?.google_client_id || import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
-  const clientSecret = data?.google_client_secret || import.meta.env.VITE_GOOGLE_CLIENT_SECRET || '';
   const redirectUri = data?.google_redirect_uri || DEFAULT_REDIRECT_URI;
 
   if (!clientId) {
     throw new Error('Google OAuth Client ID is not configured. Set it in Company Settings or VITE_GOOGLE_CLIENT_ID.');
   }
 
-  return { clientId, clientSecret, redirectUri };
+  return { clientId, redirectUri };
 }
 
 export async function initiateGoogleOAuth(): Promise<void> {
@@ -84,50 +83,47 @@ export async function initiateGmailOAuth(): Promise<void> {
   );
 }
 
-export async function exchangeCodeForTokens(code: string): Promise<GoogleTokenResponse> {
-  const config = await getCompanyGoogleConfig();
-
-  const response = await fetch('https://oauth2.googleapis.com/token', {
+export async function completeGoogleOAuth(code: string, connectionType: 'calendar' | 'gmail'): Promise<GoogleTokenResponse> {
+  const headers = await getFunctionAuthHeaders();
+  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-oauth`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
+      ...headers,
+      'Content-Type': 'application/json',
     },
-    body: new URLSearchParams({
+    body: JSON.stringify({
+      action: 'exchange',
       code,
-      client_id: config.clientId,
-      client_secret: config.clientSecret,
-      redirect_uri: config.redirectUri,
-      grant_type: 'authorization_code',
+      connectionType,
     }),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error_description || 'Failed to exchange code for tokens');
+    throw new Error(error.error || error.error_description || 'Failed to exchange code for tokens');
   }
 
   return await response.json();
 }
 
-export async function refreshAccessToken(refreshToken: string): Promise<GoogleTokenResponse> {
-  const config = await getCompanyGoogleConfig();
+export async function exchangeCodeForTokens(code: string): Promise<GoogleTokenResponse> {
+  return completeGoogleOAuth(code, 'calendar');
+}
 
-  const response = await fetch('https://oauth2.googleapis.com/token', {
+export async function refreshAccessToken(): Promise<GoogleTokenResponse> {
+  const headers = await getFunctionAuthHeaders();
+  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-oauth`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
+      ...headers,
+      'Content-Type': 'application/json',
     },
-    body: new URLSearchParams({
-      refresh_token: refreshToken,
-      client_id: config.clientId,
-      client_secret: config.clientSecret,
-      grant_type: 'refresh_token',
-    }),
+    body: JSON.stringify({ action: 'refresh-calendar' }),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error_description || 'Failed to refresh access token');
+    throw new Error(error.error || error.error_description || 'Failed to refresh access token');
   }
 
   return await response.json();

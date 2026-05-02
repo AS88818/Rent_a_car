@@ -164,6 +164,7 @@ CREATE POLICY "Admins and managers can insert deposit records" ON booking_paymen
 -- to ('admin','user','member') so Members can self-assign / assign others / reassign.
 DROP POLICY IF EXISTS "Staff and managers can create assignments" ON snag_assignments;
 DROP POLICY IF EXISTS "Admin and managers can create assignments" ON snag_assignments;
+DROP POLICY IF EXISTS "Admin user and member can create assignments" ON snag_assignments;
 CREATE POLICY "Admin user and member can create assignments" ON snag_assignments
   FOR INSERT TO authenticated
   WITH CHECK (

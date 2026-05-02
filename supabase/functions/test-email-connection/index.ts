@@ -36,6 +36,31 @@ function buildMimeEmail(to: string, subject: string, body: string): string {
   return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+async function requireAdmin(req: Request, supabase: ReturnType<typeof createClient>) {
+  const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+  if (!token) {
+    throw new Response(JSON.stringify({ success: false, error: "Missing authorization token" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data.user) {
+    throw new Response(JSON.stringify({ success: false, error: "Invalid authorization token" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  if (data.user.app_metadata?.role !== "admin") {
+    throw new Response(JSON.stringify({ success: false, error: "Admin access required" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -45,6 +70,7 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    await requireAdmin(req, supabase);
 
     const { recipientEmail }: { recipientEmail: string } = await req.json();
 
@@ -134,6 +160,7 @@ Deno.serve(async (req: Request) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Error sending test email:", error);
     return new Response(
       JSON.stringify({

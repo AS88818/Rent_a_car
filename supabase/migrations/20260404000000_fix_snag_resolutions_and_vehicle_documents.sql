@@ -19,6 +19,9 @@
 
 DROP POLICY IF EXISTS "Staff can create resolutions" ON snag_resolutions;
 DROP POLICY IF EXISTS "Users can view resolutions in their branch" ON snag_resolutions;
+DROP POLICY IF EXISTS "Authenticated users can view snag resolutions" ON snag_resolutions;
+DROP POLICY IF EXISTS "Staff can create snag resolutions" ON snag_resolutions;
+DROP POLICY IF EXISTS "Staff can update snag resolutions" ON snag_resolutions;
 
 CREATE POLICY "Authenticated users can view snag resolutions"
   ON snag_resolutions FOR SELECT
@@ -64,12 +67,14 @@ CREATE INDEX IF NOT EXISTS idx_vehicle_documents_vehicle_id ON vehicle_documents
 ALTER TABLE vehicle_documents ENABLE ROW LEVEL SECURITY;
 
 -- All authenticated users can view documents
+DROP POLICY IF EXISTS "Authenticated users can view vehicle documents" ON vehicle_documents;
 CREATE POLICY "Authenticated users can view vehicle documents"
   ON vehicle_documents FOR SELECT
   TO authenticated
   USING (true);
 
 -- Admin and manager can insert documents
+DROP POLICY IF EXISTS "Admin and manager can upload vehicle documents" ON vehicle_documents;
 CREATE POLICY "Admin and manager can upload vehicle documents"
   ON vehicle_documents FOR INSERT
   TO authenticated
@@ -78,6 +83,7 @@ CREATE POLICY "Admin and manager can upload vehicle documents"
   );
 
 -- Admin and manager can update documents
+DROP POLICY IF EXISTS "Admin and manager can update vehicle documents" ON vehicle_documents;
 CREATE POLICY "Admin and manager can update vehicle documents"
   ON vehicle_documents FOR UPDATE
   TO authenticated
@@ -89,6 +95,7 @@ CREATE POLICY "Admin and manager can update vehicle documents"
   );
 
 -- Admin can delete documents
+DROP POLICY IF EXISTS "Admin can delete vehicle documents" ON vehicle_documents;
 CREATE POLICY "Admin can delete vehicle documents"
   ON vehicle_documents FOR DELETE
   TO authenticated

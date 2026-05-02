@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { exchangeCodeForTokens } from '../lib/google-oauth';
-import { companyCalendarService } from '../services/calendar-service';
-import { supabase } from '../lib/supabase';
+import { completeGoogleOAuth } from '../lib/google-oauth';
 import { useAuth } from '../lib/auth-context';
 import { showToast } from '../lib/toast';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
@@ -86,21 +84,8 @@ export function OAuthCallbackPage() {
       }
 
       try {
-        const tokens = await exchangeCodeForTokens(code);
-
         if (isGmail) {
-          // Save Gmail refresh token for email sending
-          const { data: existing } = await supabase
-            .from('company_settings')
-            .select('id')
-            .limit(1)
-            .maybeSingle();
-          if (existing) {
-            await supabase
-              .from('company_settings')
-              .update({ gmail_refresh_token: tokens.refresh_token || '' })
-              .eq('id', existing.id);
-          }
+          await completeGoogleOAuth(code, 'gmail');
           setStatus('success');
           if (isPopup) {
             notifyOpenerAndClose(true, 'Gmail connected successfully!');
@@ -109,12 +94,7 @@ export function OAuthCallbackPage() {
             setTimeout(() => navigate('/company-settings', { replace: true }), 2000);
           }
         } else {
-          // Save Calendar tokens
-          await companyCalendarService.saveGoogleTokens(
-            tokens.access_token,
-            tokens.refresh_token || '',
-            tokens.expires_in
-          );
+          await completeGoogleOAuth(code, 'calendar');
           setStatus('success');
           if (isPopup) {
             notifyOpenerAndClose(true, 'Google Calendar connected successfully!');
