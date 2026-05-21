@@ -2131,6 +2131,7 @@ export const snagResolutionService = {
     await snagService.updateSnag(resolution.snag_id, {
       status: 'Closed',
       date_closed: new Date().toISOString().split('T')[0],
+      ...(resolution.resolved_by_external ? { assigned_to_external: resolution.resolved_by_external } : {}),
     });
 
     return data as SnagResolution;
@@ -2155,6 +2156,7 @@ export const snagResolutionService = {
     await snagService.updateSnag(resolution.snag_id, {
       status: 'Closed',
       date_closed: new Date().toISOString().split('T')[0],
+      ...(resolution.resolved_by_external ? { assigned_to_external: resolution.resolved_by_external } : {}),
     });
 
     return { resolution: data as SnagResolution, maintenanceLog: createdLog };
