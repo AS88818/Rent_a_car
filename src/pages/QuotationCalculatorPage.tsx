@@ -446,25 +446,19 @@ export function QuotationCalculatorPage() {
         if (!nonPersonalCategoryNames.has(pricing.category_name)) continue;
         let rentalFee = 0;
 
-        if (offPeakDays > 0) {
-          const offPeakCalc = calculateTieredPricing(
-            offPeakDays,
-            pricing.off_peak_rate,
-            pricing,
-            inputs.hasHalfDay && offPeakDays >= 1
-          );
-          rentalFee += offPeakCalc.totalCost;
-        }
+        const totalSeasonDays = offPeakDays + peakDays;
+        const hybridRate = totalSeasonDays > 0
+          ? (offPeakDays / totalSeasonDays) * pricing.off_peak_rate
+            + (peakDays   / totalSeasonDays) * pricing.peak_rate
+          : pricing.off_peak_rate;
 
-        if (peakDays > 0) {
-          const peakCalc = calculateTieredPricing(
-            peakDays,
-            pricing.peak_rate,
-            pricing,
-            inputs.hasHalfDay && offPeakDays === 0
-          );
-          rentalFee += peakCalc.totalCost;
-        }
+        const rentalCalc = calculateTieredPricing(
+          totalSeasonDays,
+          hybridRate,
+          pricing,
+          inputs.hasHalfDay
+        );
+        rentalFee = rentalCalc.totalCost;
 
         const totalDays = totalRentalDays + (inputs.hasHalfDay ? 0.5 : 0);
         const chauffeurFee = inputs.hasChauffeur ? totalDays * chauffeurFeePerDay : 0;
