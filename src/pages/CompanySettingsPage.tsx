@@ -464,8 +464,8 @@ export function CompanySettingsPage() {
                     ))}
                   </div>
                   <p className="mt-2 text-xs text-gray-500">
-                    <strong>{{pricing_options}}</strong> — auto-generates one line per vehicle category with price and deposit.<br />
-                    <strong>{{quote_reference}}</strong> — only appears if the quote has been saved with a reference number.
+                    <strong>{'{{pricing_options}}'}</strong> — auto-generates one line per vehicle category with price and deposit.<br />
+                    <strong>{'{{quote_reference}}'}</strong> — only appears if the quote has been saved with a reference number.
                   </p>
                 </div>
               </div>
