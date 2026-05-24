@@ -1970,33 +1970,13 @@ For booking or inquiries, please contact us.`;
           </div>
 
           {savedQuoteReference && (
-            <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                  <Save className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Quote Saved Successfully!</p>
-                  <p className="text-lg font-bold text-green-700">{savedQuoteReference}</p>
-                </div>
+            <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                <Save className="w-5 h-5 text-green-600" />
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={shareViaWhatsApp}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
-                  title="Share via WhatsApp"
-                >
-                  <MessageCircle className="w-5 h-5" />
-                  <span className="hidden sm:inline">WhatsApp</span>
-                </button>
-                <button
-                  onClick={shareViaEmail}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
-                  title="Share via Email"
-                >
-                  <Mail className="w-5 h-5" />
-                  <span className="hidden sm:inline">Email</span>
-                </button>
+              <div>
+                <p className="text-sm font-medium text-gray-700">Quote Saved Successfully!</p>
+                <p className="text-lg font-bold text-green-700">{savedQuoteReference}</p>
               </div>
             </div>
           )}

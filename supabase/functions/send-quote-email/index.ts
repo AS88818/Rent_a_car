@@ -188,8 +188,9 @@ Deno.serve(async (req: Request) => {
     console.log('Template found:', template.template_name);
 
     console.log('\n=== Building Email ===');
+    const fmtNum = (n: number) => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     const vehicleOptionsList = (payload.vehicleOptions || [])
-      .map((v, i) => `${i + 1}. ${v.name} at KES ${v.price.toLocaleString()}/-  with a refundable security deposit of KES ${v.deposit.toLocaleString()}/-`)
+      .map((v, i) => `${i + 1}. ${v.name} at KES ${fmtNum(v.price)}/- with a refundable security deposit of KES ${fmtNum(v.deposit)}/-`)
       .join('\n\n');
 
     const allVars: Record<string, string> = {
