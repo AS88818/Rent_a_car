@@ -954,7 +954,7 @@ export function EmailsPage() {
                     <p className="font-medium">Body Preview:</p>
                     <p className="text-gray-600 whitespace-pre-wrap text-xs bg-gray-50 p-2 rounded max-h-40 overflow-y-auto">
                       {(() => {
-                        const plain = template.body.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+                        const plain = template.body.replace(/<[^>]*>/g, '').trim();
                         return plain.substring(0, 400) + (plain.length > 400 ? '...' : '');
                       })()}
                     </p>
