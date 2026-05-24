@@ -698,12 +698,10 @@ For booking or inquiries, please contact us.`;
       });
 
       if (invokeError) {
-        console.error('Invoke error details:', {
-          message: invokeError.message,
-          name: invokeError.name,
-          stack: invokeError.stack,
-        });
-        throw new Error(invokeError.message || 'Failed to send email');
+        console.error('Invoke error details:', invokeError);
+        // result may contain the actual error body from the function even on non-2xx
+        const detail = (result as any)?.error || invokeError.message || 'Failed to send email';
+        throw new Error(detail);
       }
 
       if (!result?.success) {
