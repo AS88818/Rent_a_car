@@ -17,6 +17,7 @@ interface QuoteEmailRequest {
   pickupLocation: string;
   rentalType: string;
   pdfBase64: string;
+  vehicleOptions?: Array<{ name: string; price: number; deposit: number }>;
 }
 
 async function requireAllowedUser(req: Request, supabaseUrl: string, serviceKey: string) {
@@ -187,6 +188,10 @@ Deno.serve(async (req: Request) => {
     console.log('Template found:', template.template_name);
 
     console.log('\n=== Building Email ===');
+    const vehicleOptionsList = (payload.vehicleOptions || [])
+      .map((v, i) => `${i + 1}. ${v.name} at KES ${v.price.toLocaleString()}/-  with a refundable security deposit of KES ${v.deposit.toLocaleString()}/-`)
+      .join('\n\n');
+
     const allVars: Record<string, string> = {
       ...companyVars,
       client_name: payload.clientName,
@@ -196,6 +201,7 @@ Deno.serve(async (req: Request) => {
       duration: payload.duration,
       pickup_location: payload.pickupLocation,
       rental_type: payload.rentalType,
+      vehicle_options: vehicleOptionsList,
     };
 
     let emailBody = template.body;
@@ -205,6 +211,13 @@ Deno.serve(async (req: Request) => {
       emailBody = emailBody.replace(regex, value);
       emailSubject = emailSubject.replace(regex, value);
     });
+
+    // If body is plain text (not HTML), convert to HTML for email rendering
+    if (!emailBody.trimStart().startsWith('<')) {
+      emailBody = '<html><body><pre style="font-family:Arial,sans-serif;white-space:pre-wrap;font-size:14px;line-height:1.6">' +
+        emailBody.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') +
+        '</pre></body></html>';
+    }
 
     // Get a fresh Gmail access token
     console.log('\n=== Refreshing Gmail Access Token ===');

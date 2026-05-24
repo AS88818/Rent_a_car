@@ -952,9 +952,11 @@ export function EmailsPage() {
                     <p className="font-medium">Subject:</p>
                     <p className="text-gray-600 mb-2">{template.subject}</p>
                     <p className="font-medium">Body Preview:</p>
-                    <p className="text-gray-600 whitespace-pre-wrap text-xs bg-gray-50 p-2 rounded max-h-20 overflow-y-auto">
-                      {template.body.substring(0, 200)}
-                      {template.body.length > 200 ? '...' : ''}
+                    <p className="text-gray-600 whitespace-pre-wrap text-xs bg-gray-50 p-2 rounded max-h-40 overflow-y-auto">
+                      {(() => {
+                        const plain = template.body.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+                        return plain.substring(0, 400) + (plain.length > 400 ? '...' : '');
+                      })()}
                     </p>
                   </div>
                   {template.rejection_reason && (

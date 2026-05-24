@@ -489,8 +489,8 @@ export function EmailTemplateFormModal({
                 onChange={(e) => setFormData({ ...formData, body: e.target.value })}
                 required
                 disabled={submitting}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 font-mono text-sm"
-                rows={12}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 font-mono text-sm resize-y"
+                rows={18}
                 placeholder="Dear {{client_name}},&#10;&#10;This is a reminder about your booking...&#10;&#10;Vehicle: {{vehicle_reg}}&#10;Pickup: {{start_date}} at {{start_time}}&#10;&#10;Best regards"
               />
               <div className="flex flex-wrap gap-1 mt-2">

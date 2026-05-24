@@ -686,6 +686,11 @@ For booking or inquiries, please contact us.`;
         pickupLocation: inputs.pickupLocation || 'TBD',
         rentalType: inputs.quoteType === 'self_drive' ? 'Self Drive' : inputs.quoteType === 'chauffeur' ? 'With Chauffeur' : 'Transfer',
         pdfBase64,
+        vehicleOptions: filteredResults.map(r => ({
+          name: r.categoryName,
+          price: r.grandTotal,
+          deposit: r.securityDeposit,
+        })),
       };
 
       const { data: result, error: invokeError } = await supabase.functions.invoke('send-quote-email', {
