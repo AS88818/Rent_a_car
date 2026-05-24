@@ -487,6 +487,7 @@ export function QuotationCalculatorPage() {
           categoryName: pricing.category_name,
           rentalFee,
           chauffeurFee,
+          outsideHoursCharge,
           otherFee1,
           otherFee2,
           subtotal,
@@ -554,41 +555,72 @@ export function QuotationCalculatorPage() {
     setCurrentStep(1);
   };
 
+  const DEFAULT_QUOTE_TEMPLATE = `*{{company_name}} - Vehicle Rental Quote*
+
+{{quote_reference}}*Client:* {{client_name}}
+*Period:* {{period}}
+*Duration:* {{duration}}
+*Pickup:* {{pickup_location}}
+*Drop-off:* {{dropoff_location}}
+*Type:* {{rental_type}}
+
+*Available Options:*
+
+{{pricing_options}}
+
+*Notes:*
+
+1. Prices include 16% VAT
+2. Card payments accepted - 3% transaction fee applies
+3. 25% to book; 75% balance AND refundable deposits are due on day 1 of your rental
+
+_Terms & Conditions Apply_
+
+For booking or inquiries, please contact us.`;
+
   const formatQuoteMessage = () => {
     const rentalDays = calculateRentalDays() + (inputs.hasHalfDay ? 0.5 : 0);
     const filteredResults = results.filter(r => visibleCategories.includes(r.categoryName));
 
-    let message = `*Rent-A-Car Kenya - Vehicle Rental Quote*\n\n`;
-
-    if (savedQuoteReference) {
-      message += `*Reference:* ${savedQuoteReference}\n`;
-    }
-
-    message += `*Client:* ${inputs.clientName}\n`;
-    message += `*Period:* ${inputs.startDateTime.split('T')[0]} ${inputs.startDateTime.split('T')[1]} to ${inputs.endDateTime.split('T')[0]} ${inputs.endDateTime.split('T')[1]}\n`;
-    message += `*Duration:* ${rentalDays} day${rentalDays !== 1 ? 's' : ''}\n`;
-    message += `*Pickup:* ${inputs.pickupLocation || 'TBD'}\n`;
-    message += `*Drop-off:* ${inputs.dropoffLocation || 'TBD'}\n`;
-    message += `*Type:* ${inputs.quoteType === 'self_drive' ? 'Self Drive' : inputs.quoteType === 'chauffeur' ? 'With Chauffeur' : 'Transfer'}\n\n`;
-
-    message += `*Pricing Options:*\n\n`;
-
-    filteredResults.forEach((r, index) => {
-      const dailyRate = rentalDays > 0 ? r.grandTotal / rentalDays : 0;
-      message += `${index + 1}. *${r.categoryName}*\n`;
-      message += `   Total: ${formatCurrency(r.grandTotal)}\n`;
-      message += `   Effective Daily Rate: ${formatCurrency(dailyRate)}\n`;
-      message += `   25% Advance Required: ${formatCurrency(r.advancePayment)}\n`;
+    const pricingOptionsBlock = filteredResults.map((r, index) => {
+      let line = `${index + 1}.  ${r.categoryName} at ${formatCurrency(r.grandTotal)}/-`;
       if (!inputs.hasChauffeur && r.securityDeposit > 0) {
-        message += `   Security Deposit: ${formatCurrency(r.securityDeposit)} (Refundable)\n`;
+        line += ` with a refundable security deposit of ${formatCurrency(r.securityDeposit)}/-`;
       }
-      message += `\n`;
-    });
+      if ((r.outsideHoursCharge ?? 0) > 0) {
+        line += ` (incl. out-of-hours surcharge of ${formatCurrency(r.outsideHoursCharge ?? 0)}/-)`;
+      }
+      if (r.branchAvailability && r.branchAvailability.length > 0) {
+        const availStr = r.branchAvailability
+          .map(b => `${b.branchName}: ${b.availableCount} unit${b.availableCount !== 1 ? 's' : ''}`)
+          .join(', ');
+        line += `\n   Availability: ${availStr}`;
+      } else if (!r.available) {
+        line += `\n   Availability: Subject to Availability`;
+      }
+      return line;
+    }).join('\n\n');
 
-    message += `\n_Terms & Conditions Apply_\n`;
-    message += `\nFor booking or inquiries, please contact us.`;
+    const rentalType = inputs.quoteType === 'self_drive' ? 'Self Drive'
+      : inputs.quoteType === 'chauffeur' ? 'With Chauffeur'
+      : 'Transfer';
 
-    return message;
+    const period = `${inputs.startDateTime.split('T')[0]} ${inputs.startDateTime.split('T')[1]} to ${inputs.endDateTime.split('T')[0]} ${inputs.endDateTime.split('T')[1]}`;
+
+    const vars: Record<string, string> = {
+      company_name: companySettings.company_name || 'Rent-A-Car Kenya',
+      quote_reference: savedQuoteReference ? `*Reference:* ${savedQuoteReference}\n` : '',
+      client_name: inputs.clientName,
+      period,
+      duration: `${rentalDays} day${rentalDays !== 1 ? 's' : ''}`,
+      pickup_location: inputs.pickupLocation || 'TBD',
+      dropoff_location: inputs.dropoffLocation || 'TBD',
+      rental_type: rentalType,
+      pricing_options: pricingOptionsBlock,
+    };
+
+    const template = companySettings.quote_whatsapp_template || DEFAULT_QUOTE_TEMPLATE;
+    return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}}`);
   };
 
   const shareViaWhatsApp = () => {

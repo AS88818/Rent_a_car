@@ -9,7 +9,7 @@ import { EmailSendingSettings } from '../components/EmailSendingSettings';
 import { CalendarSyncSettings } from '../components/CalendarSyncSettings';
 import { getFunctionAuthHeaders } from '../lib/function-auth';
 
-type FormSection = 'branding' | 'contact' | 'payment' | 'email' | 'email_sending' | 'calendar_sync';
+type FormSection = 'branding' | 'contact' | 'payment' | 'email' | 'email_sending' | 'calendar_sync' | 'quote_template';
 
 export function CompanySettingsPage() {
   const { settings, refresh } = useCompanySettings();
@@ -101,6 +101,7 @@ export function CompanySettingsPage() {
           currency_locale: formData.currency_locale,
           google_client_id: formData.google_client_id || null,
           google_redirect_uri: formData.google_redirect_uri || null,
+          quote_whatsapp_template: formData.quote_whatsapp_template || null,
           updated_at: new Date().toISOString(),
           updated_by: user?.id || null,
         })
@@ -148,6 +149,7 @@ export function CompanySettingsPage() {
     { key: 'email', label: 'Email Signature', icon: Mail },
     { key: 'email_sending', label: 'Email Sending', icon: Send },
     { key: 'calendar_sync', label: 'Calendar Sync', icon: Calendar },
+    { key: 'quote_template', label: 'Quote Template', icon: FileText },
   ];
 
   const hasChanges = JSON.stringify(formData) !== JSON.stringify(settings);
@@ -417,6 +419,56 @@ export function CompanySettingsPage() {
                 googleRedirectUri={formData.google_redirect_uri || ''}
                 onChange={(field, value) => handleChange(field as keyof CompanySettings, value)}
               />
+            </SettingsCard>
+          )}
+
+          {activeSection === 'quote_template' && (
+            <SettingsCard title="WhatsApp / Copy Quote Template" description="Customise the message format used when sharing or copying a quote. Use the variables below to insert dynamic values.">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Template
+                  </label>
+                  <textarea
+                    value={formData.quote_whatsapp_template ?? ''}
+                    onChange={e => handleChange('quote_whatsapp_template', e.target.value)}
+                    rows={22}
+                    placeholder={`*{{company_name}} - Vehicle Rental Quote*\n\n{{quote_reference}}*Client:* {{client_name}}\n*Period:* {{period}}\n*Duration:* {{duration}}\n*Pickup:* {{pickup_location}}\n*Drop-off:* {{dropoff_location}}\n*Type:* {{rental_type}}\n\n*Available Options:*\n\n{{pricing_options}}\n\n*Notes:*\n\n1. Prices include 16% VAT\n2. Card payments accepted - 3% transaction fee applies\n3. 25% to book; 75% balance AND refundable deposits are due on day 1 of your rental\n\n_Terms & Conditions Apply_\n\nFor booking or inquiries, please contact us.`}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm resize-y"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Leave blank to use the default template. WhatsApp bold: *text*. WhatsApp italic: _text_.</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-2">Available variables</p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      '{{company_name}}',
+                      '{{quote_reference}}',
+                      '{{client_name}}',
+                      '{{period}}',
+                      '{{duration}}',
+                      '{{pickup_location}}',
+                      '{{dropoff_location}}',
+                      '{{rental_type}}',
+                      '{{pricing_options}}',
+                    ].map(variable => (
+                      <button
+                        key={variable}
+                        type="button"
+                        onClick={() => handleChange('quote_whatsapp_template', (formData.quote_whatsapp_template ?? '') + variable)}
+                        className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs rounded font-mono transition-colors"
+                        title="Click to append to template"
+                      >
+                        {variable}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    <strong>{{pricing_options}}</strong> — auto-generates one line per vehicle category with price and deposit.<br />
+                    <strong>{{quote_reference}}</strong> — only appears if the quote has been saved with a reference number.
+                  </p>
+                </div>
+              </div>
             </SettingsCard>
           )}
         </div>

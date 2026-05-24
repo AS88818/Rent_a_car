@@ -263,6 +263,7 @@ export function MaintenancePage() {
         performed_by_user_id: firstWorkItem.performed_by_user_id,
         checked_by_user_id: firstWorkItem.checked_by_user_id,
         notes: formData.notes,
+        work_category: (firstWorkItem.work_category || undefined) as MaintenanceLog['work_category'],
         branch_id: vehicleBranchId,
         work_items: processedWorkItems,
       });

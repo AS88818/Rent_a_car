@@ -465,6 +465,7 @@ export interface CategoryQuoteResult {
   categoryName: string;
   rentalFee: number;
   chauffeurFee: number;
+  outsideHoursCharge?: number;
   otherFee1: number;
   otherFee2: number;
   subtotal: number;
@@ -642,6 +643,7 @@ export interface CompanySettings {
   google_token_expiry?: string;
   google_sync_enabled?: boolean;
   google_last_sync_at?: string;
+  quote_whatsapp_template?: string;
   updated_at: string;
   updated_by?: string;
 }

@@ -4,7 +4,7 @@ import { useAuth } from '../lib/auth-context';
 import { snagService, userService, snagAssignmentService, snagResolutionService } from '../services/api';
 import { Snag, VehicleWithSnagCount, AuthUser } from '../types/database';
 import { showToast } from '../lib/toast';
-import { Plus, Filter, ArrowUpDown, RefreshCw } from 'lucide-react';
+import { Plus, Filter, ArrowUpDown, RefreshCw, Search } from 'lucide-react';
 import { VehicleSnagCard } from '../components/VehicleSnagCard';
 import { SnagFormModal } from '../components/SnagFormModal';
 import { SnagEditModal } from '../components/SnagEditModal';
@@ -44,6 +44,7 @@ export function SnagsPage() {
   const [showOnlyWithSnags, setShowOnlyWithSnags] = useState(true);
   const [showClosedSnags, setShowClosedSnags] = useState(false);
   const [showDeletedSnags, setShowDeletedSnags] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -282,6 +283,19 @@ export function SnagsPage() {
       }
     });
 
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(v => {
+        if (v.reg_number.toLowerCase().includes(q)) return true;
+        return snags
+          .filter(s => s.vehicle_id === v.id)
+          .some(s =>
+            s.description.toLowerCase().includes(q) ||
+            (s.assigned_to_external ?? '').toLowerCase().includes(q)
+          );
+      });
+    }
+
     return filtered;
   };
 
@@ -326,6 +340,16 @@ export function SnagsPage() {
       </div>
 
       <div className="bg-white rounded-lg shadow p-4 mb-6">
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search by vehicle reg, snag description, or assignee..."
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          />
+        </div>
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex items-center gap-2 flex-1">
             <ArrowUpDown className="w-5 h-5 text-gray-600" />

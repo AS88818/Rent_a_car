@@ -11,7 +11,7 @@ import { ConfirmModal } from '../components/ConfirmModal';
 import { BookingDetailsModal } from '../components/BookingDetailsModal';
 import { BookingFormModal } from '../components/BookingFormModal';
 
-type BookingTimeFilter = 'upcoming' | 'past' | 'all';
+type BookingTimeFilter = 'current' | 'upcoming' | 'past' | 'all';
 
 interface BookingWithDetails extends Booking {
   vehicle?: Vehicle;
@@ -42,7 +42,7 @@ export function BookingListPage() {
   const [filterBranch, setFilterBranch] = useState<string>('');
   const [filterCategory, setFilterCategory] = useState<string>('');
   const [filterHealth, setFilterHealth] = useState<string>('');
-  const [timeFilter, setTimeFilter] = useState<BookingTimeFilter>('upcoming');
+  const [timeFilter, setTimeFilter] = useState<BookingTimeFilter>('current');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('vehicle') || '');
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
@@ -229,9 +229,12 @@ export function BookingListPage() {
     const endDate = new Date(booking.end_datetime);
     const startDate = new Date(booking.start_datetime);
 
-    if (timeFilter === 'upcoming') {
+    if (timeFilter === 'current') {
       if (booking.status === 'Cancelled' || booking.status === 'Completed') return false;
-      if (endDate < now) return false;
+      if (startDate > now || endDate < now) return false;
+    } else if (timeFilter === 'upcoming') {
+      if (booking.status === 'Cancelled' || booking.status === 'Completed') return false;
+      if (startDate <= now) return false;
     } else if (timeFilter === 'past') {
       if (endDate >= now && booking.status !== 'Completed' && booking.status !== 'Cancelled') return false;
     }
@@ -323,6 +326,16 @@ export function BookingListPage() {
       <div className="mb-6">
         <div className="flex gap-2 border-b border-gray-200">
           <button
+            onClick={() => setTimeFilter('current')}
+            className={`px-4 py-2 font-medium transition-colors border-b-2 ${
+              timeFilter === 'current'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Current
+          </button>
+          <button
             onClick={() => setTimeFilter('upcoming')}
             className={`px-4 py-2 font-medium transition-colors border-b-2 ${
               timeFilter === 'upcoming'
@@ -330,7 +343,7 @@ export function BookingListPage() {
                 : 'border-transparent text-gray-600 hover:text-gray-900'
             }`}
           >
-            Current & Upcoming
+            Upcoming
           </button>
           <button
             onClick={() => setTimeFilter('past')}

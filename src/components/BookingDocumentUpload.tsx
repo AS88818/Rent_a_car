@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Upload, FileText, Download, Trash2 } from 'lucide-react';
+import { Upload, FileText, Download, Trash2, X } from 'lucide-react';
 import { bookingDocumentService } from '../services/api';
 import { BookingDocument } from '../types/database';
 import { showToast } from '../lib/toast';
@@ -13,7 +13,8 @@ export function BookingDocumentUpload({ bookingId, onDocumentUploaded }: Booking
   const [documents, setDocuments] = useState<BookingDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [documentType, setDocumentType] = useState<string>('license');
   const [notes, setNotes] = useState('');
 
@@ -38,25 +39,39 @@ export function BookingDocumentUpload({ bookingId, onDocumentUploaded }: Booking
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const maxSize = 10 * 1024 * 1024;
-      if (file.size > maxSize) {
-        showToast('File size must be less than 10MB', 'error');
-        return;
-      }
-      setSelectedFile(file);
+    const files = Array.from(e.target.files ?? []);
+    const maxSize = 10 * 1024 * 1024;
+    const oversized = files.filter(f => f.size > maxSize);
+    if (oversized.length > 0) {
+      showToast(`${oversized.length} file(s) exceed 10MB and were skipped`, 'error');
     }
+    const valid = files.filter(f => f.size <= maxSize);
+    if (valid.length > 0) {
+      setSelectedFiles(valid);
+    }
+    e.target.value = '';
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleUpload = async () => {
-    if (!selectedFile || !bookingId) return;
+    if (selectedFiles.length === 0 || !bookingId) return;
 
     try {
       setUploading(true);
-      await bookingDocumentService.uploadDocument(bookingId, selectedFile, documentType, notes);
-      showToast('Document uploaded successfully', 'success');
-      setSelectedFile(null);
+      for (let i = 0; i < selectedFiles.length; i++) {
+        setUploadProgress(`Uploading ${i + 1} of ${selectedFiles.length}...`);
+        await bookingDocumentService.uploadDocument(bookingId, selectedFiles[i], documentType, notes);
+      }
+      showToast(
+        selectedFiles.length === 1
+          ? 'Document uploaded successfully'
+          : `${selectedFiles.length} documents uploaded successfully`,
+        'success'
+      );
+      setSelectedFiles([]);
       setNotes('');
       setDocumentType('license');
       await loadDocuments();
@@ -67,6 +82,7 @@ export function BookingDocumentUpload({ bookingId, onDocumentUploaded }: Booking
       showToast(error.message || 'Failed to upload document', 'error');
     } finally {
       setUploading(false);
+      setUploadProgress('');
     }
   };
 
@@ -118,9 +134,10 @@ export function BookingDocumentUpload({ bookingId, onDocumentUploaded }: Booking
 
           <div className="text-center">
             <label className="block">
-              <span className="sr-only">Choose file</span>
+              <span className="sr-only">Choose files</span>
               <input
                 type="file"
+                multiple
                 onChange={handleFileSelect}
                 accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                 className="block w-full text-sm text-gray-500
@@ -132,15 +149,24 @@ export function BookingDocumentUpload({ bookingId, onDocumentUploaded }: Booking
                   cursor-pointer"
               />
             </label>
-            {selectedFile && (
-              <p className="mt-2 text-sm text-gray-600">
-                Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
-              </p>
-            )}
           </div>
 
-          {selectedFile && (
+          {selectedFiles.length > 0 && (
             <div className="space-y-3">
+              <div className="space-y-1">
+                {selectedFiles.map((file, index) => (
+                  <div key={index} className="flex items-center justify-between bg-gray-50 rounded px-3 py-1.5 text-sm">
+                    <span className="text-gray-700 truncate">{file.name} <span className="text-gray-400">({formatFileSize(file.size)})</span></span>
+                    <button
+                      onClick={() => removeFile(index)}
+                      className="ml-2 text-gray-400 hover:text-red-500 flex-shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Document Type
@@ -165,7 +191,7 @@ export function BookingDocumentUpload({ bookingId, onDocumentUploaded }: Booking
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add any notes about this document..."
+                  placeholder="Add any notes about these documents..."
                   rows={2}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
@@ -178,11 +204,15 @@ export function BookingDocumentUpload({ bookingId, onDocumentUploaded }: Booking
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Upload className="w-4 h-4" />
-                  {uploading ? 'Uploading...' : 'Upload Document'}
+                  {uploading
+                    ? uploadProgress
+                    : selectedFiles.length === 1
+                      ? 'Upload Document'
+                      : `Upload ${selectedFiles.length} Documents`}
                 </button>
                 <button
                   onClick={() => {
-                    setSelectedFile(null);
+                    setSelectedFiles([]);
                     setNotes('');
                   }}
                   className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -194,7 +224,7 @@ export function BookingDocumentUpload({ bookingId, onDocumentUploaded }: Booking
           )}
 
           <p className="text-xs text-gray-500 text-center">
-            Supported formats: PDF, JPG, PNG, DOC, DOCX (Max 10MB)
+            Supported formats: PDF, JPG, PNG, DOC, DOCX (Max 10MB per file)
           </p>
         </div>
       </div>

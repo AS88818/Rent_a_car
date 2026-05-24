@@ -289,6 +289,7 @@ export const bookingSyncService = {
 
     const overrides: GoogleCalendarReminder[] = [
       { method: 'popup', minutes: 1440 },
+      { method: 'popup', minutes: 120 },
     ];
 
     // Compute 10 AM Kenya time on the return day (treating naive digits as UTC).
