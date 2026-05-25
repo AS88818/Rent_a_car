@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Upload, FileText, Download, Trash2 } from 'lucide-react';
+import { Upload, FileText, Download, Trash2, Info } from 'lucide-react';
 import { vehicleDocumentService } from '../services/api';
 import { VehicleDocument } from '../types/database';
 import { showToast } from '../lib/toast';
@@ -103,6 +103,10 @@ export function VehicleDocumentUpload({ vehicleId, onDocumentUploaded }: Vehicle
 
   return (
     <div className="space-y-4">
+      <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+        <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+        <span>These are permanent records for this vehicle (e.g. registration, insurance). For client documents related to a specific rental (e.g. driver's licence, contract), upload them via the booking instead.</span>
+      </div>
       <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
         <div className="space-y-4">
           <div className="flex items-center justify-center">
