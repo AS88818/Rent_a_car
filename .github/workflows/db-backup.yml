@@ -15,9 +15,11 @@ jobs:
 
       - name: Create backup
         run: |
+          set -o pipefail 
           FILENAME="backup_$(date +%Y-%m-%d_%H-%M-%S).sql.gz"
           pg_dump "${{ secrets.SUPABASE_DB_URL }}" | gzip > "$FILENAME"
           echo "FILENAME=$FILENAME" >> $GITHUB_ENV
+          ls -lh "$FILENAME"
 
       - name: Install rclone
         run: curl https://rclone.org/install.sh | sudo bash
