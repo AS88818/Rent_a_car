@@ -44,7 +44,7 @@ jobs:
           RCLONE_CONFIG_GDRIVE_SCOPE=drive \
           RCLONE_CONFIG_GDRIVE_TOKEN="${RCLONE_TOKEN}" \
           RCLONE_CONFIG_GDRIVE_ROOT_FOLDER_ID="${GDRIVE_FOLDER_ID}" \
-          rclone copy "${FILENAME}" gdrive:
+          rclone copy ${{ env.FILENAME }} gdrive:
 
       - name: Delete backups older than 30 days
         env:
@@ -60,4 +60,4 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: rm -f "${FILENAME}"
+        run: rm -f ${{ env.FILENAME }}
