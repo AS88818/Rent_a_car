@@ -35,29 +35,23 @@ jobs:
         run: curl https://rclone.org/install.sh | sudo bash
 
       - name: Upload to Google Drive
-        env:
-          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
-          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
         run: |
-          RCLONE_TOKEN="{\"access_token\":\"${ACCESS_TOKEN}\",\"token_type\":\"Bearer\",\"expiry\":\"2099-01-01T00:00:00Z\"}"
-          RCLONE_CONFIG_GDRIVE_TYPE=drive \
-          RCLONE_CONFIG_GDRIVE_SCOPE=drive \
-          RCLONE_CONFIG_GDRIVE_TOKEN="${RCLONE_TOKEN}" \
-          RCLONE_CONFIG_GDRIVE_ROOT_FOLDER_ID="${GDRIVE_FOLDER_ID}" \
-          rclone copy ${{ env.FILENAME }} gdrive:
+          export RCLONE_CONFIG_GDRIVE_TYPE=drive
+          export RCLONE_CONFIG_GDRIVE_SCOPE=drive
+          export RCLONE_CONFIG_GDRIVE_ROOT_FOLDER_ID="${{ secrets.GDRIVE_FOLDER_ID }}"
+          TOKEN="${{ steps.auth.outputs.access_token }}"
+          export RCLONE_CONFIG_GDRIVE_TOKEN="{\"access_token\":\"$TOKEN\",\"token_type\":\"Bearer\",\"expiry\":\"2099-01-01T00:00:00Z\"}"
+          rclone copy "$FILENAME" gdrive:
 
       - name: Delete backups older than 30 days
-        env:
-          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
-          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
         run: |
-          RCLONE_TOKEN="{\"access_token\":\"${ACCESS_TOKEN}\",\"token_type\":\"Bearer\",\"expiry\":\"2099-01-01T00:00:00Z\"}"
-          RCLONE_CONFIG_GDRIVE_TYPE=drive \
-          RCLONE_CONFIG_GDRIVE_SCOPE=drive \
-          RCLONE_CONFIG_GDRIVE_TOKEN="${RCLONE_TOKEN}" \
-          RCLONE_CONFIG_GDRIVE_ROOT_FOLDER_ID="${GDRIVE_FOLDER_ID}" \
+          export RCLONE_CONFIG_GDRIVE_TYPE=drive
+          export RCLONE_CONFIG_GDRIVE_SCOPE=drive
+          export RCLONE_CONFIG_GDRIVE_ROOT_FOLDER_ID="${{ secrets.GDRIVE_FOLDER_ID }}"
+          TOKEN="${{ steps.auth.outputs.access_token }}"
+          export RCLONE_CONFIG_GDRIVE_TOKEN="{\"access_token\":\"$TOKEN\",\"token_type\":\"Bearer\",\"expiry\":\"2099-01-01T00:00:00Z\"}"
           rclone delete gdrive: --min-age 30d
 
       - name: Cleanup
         if: always()
-        run: rm -f ${{ env.FILENAME }}
+        run: rm -f "$FILENAME"
