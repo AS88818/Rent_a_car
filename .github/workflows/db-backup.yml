@@ -22,7 +22,7 @@ jobs:
         run: |
           set -o pipefail 
           FILENAME="backup_$(date +%Y-%m-%d_%H-%M-%S).sql.gz"
-          pg_dump "${{ secrets.SUPABASE_DB_URL }}" | gzip > "$FILENAME"
+          /usr/lib/postgresql/17/bin/pg_dump "${{ secrets.SUPABASE_DB_URL }}" | gzip > "$FILENAME"
           echo "FILENAME=$FILENAME" >> $GITHUB_ENV
           ls -lh "$FILENAME"
 
