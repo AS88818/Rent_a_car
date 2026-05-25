@@ -2,8 +2,8 @@ name: Daily Database Backup
 
 on:
   schedule:
-    - cron: '0 2 * * *'  # 2am UTC every day
-  workflow_dispatch:       # allows manual trigger from GitHub UI
+    - cron: '0 2 * * *'
+  workflow_dispatch:
 
 permissions:
   id-token: write
