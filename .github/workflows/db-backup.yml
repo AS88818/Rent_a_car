@@ -5,10 +5,6 @@ on:
     - cron: '0 2 * * *'
   workflow_dispatch:
 
-permissions:
-  id-token: write
-  contents: read
-
 jobs:
   backup:
     runs-on: ubuntu-latest
@@ -23,35 +19,19 @@ jobs:
           pg_dump "${{ secrets.SUPABASE_DB_URL }}" | gzip > "$FILENAME"
           echo "FILENAME=$FILENAME" >> $GITHUB_ENV
 
-      - name: Authenticate to Google Cloud
-        id: auth
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: 'projects/58988569747/locations/global/workloadIdentityPools/github-actions/providers/github-actions'
-          service_account: 'rantacarbackups@fleet-hub-calendar-sync-id.iam.gserviceaccount.com'
-          token_format: 'access_token'
-          access_token_scopes: 'https://www.googleapis.com/auth/drive'
-
       - name: Install rclone
         run: curl https://rclone.org/install.sh | sudo bash
 
-      - name: Upload to Google Drive
+      - name: Setup rclone config
         run: |
-          export RCLONE_CONFIG_GDRIVE_TYPE=drive
-          export RCLONE_CONFIG_GDRIVE_SCOPE=drive
-          export RCLONE_CONFIG_GDRIVE_ROOT_FOLDER_ID="${{ secrets.GDRIVE_FOLDER_ID }}"
-          TOKEN="${{ steps.auth.outputs.access_token }}"
-          export RCLONE_CONFIG_GDRIVE_TOKEN="{\"access_token\":\"$TOKEN\",\"token_type\":\"Bearer\",\"expiry\":\"2099-01-01T00:00:00Z\"}"
-          rclone copy "$FILENAME" gdrive:
+          mkdir -p ~/.config/rclone
+          echo "${{ secrets.RCLONE_CONFIG_B64 }}" | base64 -d > ~/.config/rclone/rclone.conf
+
+      - name: Upload to Google Drive
+        run: rclone copy "$FILENAME" gdrive:RentACarBackups/
 
       - name: Delete backups older than 30 days
-        run: |
-          export RCLONE_CONFIG_GDRIVE_TYPE=drive
-          export RCLONE_CONFIG_GDRIVE_SCOPE=drive
-          export RCLONE_CONFIG_GDRIVE_ROOT_FOLDER_ID="${{ secrets.GDRIVE_FOLDER_ID }}"
-          TOKEN="${{ steps.auth.outputs.access_token }}"
-          export RCLONE_CONFIG_GDRIVE_TOKEN="{\"access_token\":\"$TOKEN\",\"token_type\":\"Bearer\",\"expiry\":\"2099-01-01T00:00:00Z\"}"
-          rclone delete gdrive: --min-age 30d
+        run: rclone delete gdrive:RentACarBackups/ --min-age 30d
 
       - name: Cleanup
         if: always()
