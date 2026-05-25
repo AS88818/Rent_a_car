@@ -5,6 +5,10 @@ on:
     - cron: '0 2 * * *'  # 2am UTC every day
   workflow_dispatch:       # allows manual trigger from GitHub UI
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   backup:
     runs-on: ubuntu-latest
@@ -19,29 +23,41 @@ jobs:
           pg_dump "${{ secrets.SUPABASE_DB_URL }}" | gzip > "$FILENAME"
           echo "FILENAME=$FILENAME" >> $GITHUB_ENV
 
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: 'projects/58988569747/locations/global/workloadIdentityPools/github-actions/providers/github'
+          service_account: 'rantacarbackups@fleet-hub-calendar-sync-id.iam.gserviceaccount.com'
+          token_format: 'access_token'
+
       - name: Install rclone
         run: curl https://rclone.org/install.sh | sudo bash
 
-      - name: Setup Google Drive credentials
-        run: |
-          echo '${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}' > /tmp/sa.json
-          mkdir -p ~/.config/rclone
-          cat > ~/.config/rclone/rclone.conf << EOF
-          [gdrive]
-          type = drive
-          scope = drive
-          service_account_file = /tmp/sa.json
-          root_folder_id = ${{ secrets.GDRIVE_FOLDER_ID }}
-          EOF
-
       - name: Upload to Google Drive
-        run: rclone copy "${{ env.FILENAME }}" gdrive:
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
+        run: |
+          RCLONE_TOKEN="{\"access_token\":\"${ACCESS_TOKEN}\",\"token_type\":\"Bearer\",\"expiry\":\"2099-01-01T00:00:00Z\"}"
+          RCLONE_CONFIG_GDRIVE_TYPE=drive \
+          RCLONE_CONFIG_GDRIVE_SCOPE=drive \
+          RCLONE_CONFIG_GDRIVE_TOKEN="${RCLONE_TOKEN}" \
+          RCLONE_CONFIG_GDRIVE_ROOT_FOLDER_ID="${GDRIVE_FOLDER_ID}" \
+          rclone copy "${FILENAME}" gdrive:
 
       - name: Delete backups older than 30 days
-        run: rclone delete gdrive: --min-age 30d
-
-      - name: Cleanup local files
-        if: always()
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
         run: |
-          rm -f "${{ env.FILENAME }}"
-          rm -f /tmp/sa.json
+          RCLONE_TOKEN="{\"access_token\":\"${ACCESS_TOKEN}\",\"token_type\":\"Bearer\",\"expiry\":\"2099-01-01T00:00:00Z\"}"
+          RCLONE_CONFIG_GDRIVE_TYPE=drive \
+          RCLONE_CONFIG_GDRIVE_SCOPE=drive \
+          RCLONE_CONFIG_GDRIVE_TOKEN="${RCLONE_TOKEN}" \
+          RCLONE_CONFIG_GDRIVE_ROOT_FOLDER_ID="${GDRIVE_FOLDER_ID}" \
+          rclone delete gdrive: --min-age 30d
+
+      - name: Cleanup
+        if: always()
+        run: rm -f "${FILENAME}"
