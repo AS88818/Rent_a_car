@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User } from '@supabase/supabase-js';
+import LogRocket from 'logrocket';
 import { supabase } from './supabase';
 import { UserRole } from '../types/database';
 
@@ -32,6 +33,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const role = (session.user.app_metadata?.role as UserRole) || 'member';
           setUserRole(role);
           setBranchId((session.user.app_metadata?.branch_id as string) || null);
+          LogRocket.identify(session.user.id, {
+            name: session.user.user_metadata?.full_name || '',
+            email: session.user.email || '',
+            role: (session.user.app_metadata?.role as string) || '',
+          });
         }
       } catch (error) {
         console.error('Auth init error:', error);
@@ -48,6 +54,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const role = (session.user.app_metadata?.role as UserRole) || 'member';
         setUserRole(role);
         setBranchId((session.user.app_metadata?.branch_id as string) || null);
+        LogRocket.identify(session.user.id, {
+          name: session.user.user_metadata?.full_name || '',
+          email: session.user.email || '',
+          role: (session.user.app_metadata?.role as string) || '',
+        });
       } else {
         setUser(null);
         setUserRole(null);
