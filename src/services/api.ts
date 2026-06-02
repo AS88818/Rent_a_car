@@ -1502,15 +1502,6 @@ export const emailService = {
     });
   },
 
-  async revertTemplateToDraft(id: string) {
-    return this.updateEmailTemplate(id, {
-      approval_status: 'draft',
-      approved_by: null,
-      approved_at: null,
-      rejection_reason: null,
-    } as unknown as Partial<EmailTemplate>);
-  },
-
   async duplicateTemplate(id: string, newName: string, newKey: string) {
     const original = await supabase
       .from('email_templates')
