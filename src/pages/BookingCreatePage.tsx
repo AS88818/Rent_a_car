@@ -2,18 +2,20 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { bookingService, vehicleService, categoryService, branchService } from '../services/api';
-import { Vehicle, VehicleCategory, Branch, Booking } from '../types/database';
+import { Vehicle, VehicleCategory, Branch, Booking, PaymentMethod } from '../types/database';
 import { showToast } from '../lib/toast';
 import { autoSyncToCompanyCalendar } from '../services/calendar-service';
 import { supabase } from '../lib/supabase';
 import { getAvailableVehicles, calculateBookingDuration, checkInsuranceExpiryDuringBooking, formatDate, daysUntilExpiry } from '../lib/utils';
-import { ArrowLeft, Check, CheckCircle, Calendar, MapPin, AlertTriangle, RefreshCw, Loader2, Gauge } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle, Calendar, MapPin, AlertTriangle, RefreshCw, Loader2, Gauge, CreditCard } from 'lucide-react';
 import { BookingDocumentUpload } from '../components/BookingDocumentUpload';
 import { useCompanySettings } from '../lib/company-settings-context';
 
 interface VehicleWithBranch extends Vehicle {
   branch_name?: string;
 }
+
+const SECURITY_DEPOSIT_METHODS: PaymentMethod[] = ['Cash', 'Mobile Money', 'Bank Transfer', 'Card', 'Other'];
 
 export function BookingCreatePage() {
   const navigate = useNavigate();
@@ -50,6 +52,13 @@ export function BookingCreatePage() {
     invoice_number: '',
     handover_mileage: '',
     return_mileage: '',
+    security_deposit_collected: false,
+    security_deposit_collected_date: '',
+    security_deposit_method: '' as PaymentMethod | '',
+    security_deposit_reference_number: '',
+    security_deposit_refunded: false,
+    security_deposit_refunded_date: '',
+    security_deposit_notes: '',
   });
 
   const [startLocationType, setStartLocationType] = useState<'branch' | 'other'>('branch');
@@ -232,6 +241,11 @@ export function BookingCreatePage() {
       return;
     }
 
+    if (formData.security_deposit_collected && !formData.security_deposit_method) {
+      showToast('Select how the security deposit was received', 'error');
+      return;
+    }
+
     const handoverMileage = parseMileageValue(formData.handover_mileage);
     const returnMileage = parseMileageValue(formData.return_mileage);
 
@@ -283,6 +297,27 @@ export function BookingCreatePage() {
         chauffeur_name: formData.booking_type === 'chauffeur' ? formData.chauffeur_name : undefined,
         invoice_number: formData.invoice_number || undefined,
         outside_hours_charges: outsideHoursCharges.totalExtraCharge,
+        security_deposit_collected: formData.security_deposit_collected,
+        security_deposit_collected_date:
+          formData.security_deposit_collected && formData.security_deposit_collected_date
+            ? formData.security_deposit_collected_date
+            : null,
+        security_deposit_method:
+          formData.security_deposit_collected && formData.security_deposit_method
+            ? formData.security_deposit_method
+            : null,
+        security_deposit_reference_number:
+          formData.security_deposit_collected && formData.security_deposit_reference_number.trim()
+            ? formData.security_deposit_reference_number.trim()
+            : null,
+        security_deposit_refunded: formData.security_deposit_refunded,
+        security_deposit_refunded_date:
+          formData.security_deposit_refunded && formData.security_deposit_refunded_date
+            ? formData.security_deposit_refunded_date
+            : null,
+        security_deposit_notes: formData.security_deposit_notes.trim()
+          ? formData.security_deposit_notes.trim()
+          : null,
         ...(formData.handover_mileage.trim() !== '' ? { handover_mileage: handoverMileage } : {}),
         ...(formData.return_mileage.trim() !== '' ? { return_mileage: returnMileage } : {}),
       });
@@ -1242,6 +1277,115 @@ export function BookingCreatePage() {
                   placeholder="Enter invoice number if applicable"
                 />
                 <p className="text-xs text-gray-500 mt-1">Link this booking to an existing invoice</p>
+              </div>
+
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <div className="flex items-center gap-2 mb-3">
+                  <CreditCard className="w-4 h-4 text-gray-600" />
+                  <h3 className="text-sm font-medium text-gray-700">Security Deposit Reminder</h3>
+                </div>
+
+                <label className="flex items-center gap-2 text-sm text-gray-700 mb-3">
+                  <input
+                    type="checkbox"
+                    checked={formData.security_deposit_collected}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setFormData({
+                        ...formData,
+                        security_deposit_collected: checked,
+                        security_deposit_collected_date: checked
+                          ? formData.security_deposit_collected_date || new Date().toISOString().split('T')[0]
+                          : '',
+                        security_deposit_method: checked ? formData.security_deposit_method : '',
+                        security_deposit_reference_number: checked ? formData.security_deposit_reference_number : '',
+                      });
+                    }}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  Security deposit received
+                </label>
+
+                {formData.security_deposit_collected && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Received Date</label>
+                      <input
+                        type="date"
+                        value={formData.security_deposit_collected_date}
+                        onChange={(e) => setFormData({ ...formData, security_deposit_collected_date: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Received Via <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={formData.security_deposit_method}
+                        onChange={(e) => setFormData({ ...formData, security_deposit_method: e.target.value as PaymentMethod | '' })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
+                      >
+                        <option value="">Select method</option>
+                        {SECURITY_DEPOSIT_METHODS.map(method => (
+                          <option key={method} value={method}>{method}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Reference</label>
+                      <input
+                        type="text"
+                        value={formData.security_deposit_reference_number}
+                        onChange={(e) => setFormData({ ...formData, security_deposit_reference_number: e.target.value })}
+                        placeholder="M-Pesa, bank, card, receipt..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <label className="flex items-center gap-2 text-sm text-gray-700 mb-3">
+                  <input
+                    type="checkbox"
+                    checked={formData.security_deposit_refunded}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setFormData({
+                        ...formData,
+                        security_deposit_refunded: checked,
+                        security_deposit_refunded_date: checked
+                          ? formData.security_deposit_refunded_date || new Date().toISOString().split('T')[0]
+                          : '',
+                      });
+                    }}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  Security deposit refunded
+                </label>
+
+                {formData.security_deposit_refunded && (
+                  <div className="mb-3">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Refunded Date</label>
+                    <input
+                      type="date"
+                      value={formData.security_deposit_refunded_date}
+                      onChange={(e) => setFormData({ ...formData, security_deposit_refunded_date: e.target.value })}
+                      className="w-full md:w-1/3 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Deposit Notes</label>
+                  <textarea
+                    value={formData.security_deposit_notes}
+                    onChange={(e) => setFormData({ ...formData, security_deposit_notes: e.target.value })}
+                    rows={2}
+                    placeholder="Anything staff should know before refunding"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none text-base"
+                  />
+                </div>
               </div>
 
               <div>

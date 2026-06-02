@@ -118,10 +118,12 @@ export interface Booking {
   advance_payment_method?: string;
   security_deposit_amount?: number;
   security_deposit_collected?: boolean;
-  security_deposit_collected_date?: string;
+  security_deposit_collected_date?: string | null;
+  security_deposit_method?: PaymentMethod | null;
+  security_deposit_reference_number?: string | null;
   security_deposit_refunded?: boolean;
-  security_deposit_refunded_date?: string;
-  security_deposit_notes?: string;
+  security_deposit_refunded_date?: string | null;
+  security_deposit_notes?: string | null;
   balance_amount?: number;
   outside_hours_charges?: number;
   handover_mileage?: number | null;

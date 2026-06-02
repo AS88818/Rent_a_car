@@ -1,6 +1,6 @@
-import { X, ChevronLeft, ChevronRight, Calendar, MapPin, User, Phone, Mail, Car, Users as UsersIcon, ArrowRightLeft, AlertTriangle, Gauge } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Calendar, MapPin, User, Phone, Mail, Car, Users as UsersIcon, ArrowRightLeft, AlertTriangle, Gauge, CreditCard } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Vehicle, Booking, Branch, AuthUser, VehicleCategory } from '../types/database';
+import { Vehicle, Booking, Branch, AuthUser, VehicleCategory, PaymentMethod } from '../types/database';
 import { userService } from '../services/api';
 import { getAvailableVehicles, calculateBookingDuration, getHealthColor, checkInsuranceExpiryDuringBooking, daysUntilExpiry } from '../lib/utils';
 import { showToast } from '../lib/toast';
@@ -25,6 +25,13 @@ interface BookingFormModalProps {
     invoice_number?: string;
     handover_mileage?: number;
     return_mileage?: number;
+    security_deposit_collected?: boolean;
+    security_deposit_collected_date?: string | null;
+    security_deposit_method?: PaymentMethod | null;
+    security_deposit_reference_number?: string | null;
+    security_deposit_refunded?: boolean;
+    security_deposit_refunded_date?: string | null;
+    security_deposit_notes?: string | null;
   }) => Promise<void>;
   vehicles: Vehicle[];
   bookings: Booking[];
@@ -33,6 +40,8 @@ interface BookingFormModalProps {
   editingBooking?: Booking | null;
   submitting?: boolean;
 }
+
+const SECURITY_DEPOSIT_METHODS: PaymentMethod[] = ['Cash', 'Mobile Money', 'Bank Transfer', 'Card', 'Other'];
 
 export function BookingFormModal({
   isOpen,
@@ -65,6 +74,13 @@ export function BookingFormModal({
     invoice_number: '',
     handover_mileage: '',
     return_mileage: '',
+    security_deposit_collected: false,
+    security_deposit_collected_date: '',
+    security_deposit_method: '' as PaymentMethod | '',
+    security_deposit_reference_number: '',
+    security_deposit_refunded: false,
+    security_deposit_refunded_date: '',
+    security_deposit_notes: '',
   });
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
@@ -89,6 +105,8 @@ export function BookingFormModal({
         const snappedHour = m >= 45 ? h + 1 : h;
         return `${datePart}T${String(snappedHour).padStart(2, '0')}:${String(snappedMin).padStart(2, '0')}`;
       };
+      const formatForDateInput = (value?: string | null) =>
+        value ? value.replace(' ', 'T').substring(0, 10) : '';
 
       setStep(3);
       const editingVehicle = vehicles.find(v => v.id === editingBooking.vehicle_id);
@@ -111,6 +129,13 @@ export function BookingFormModal({
         invoice_number: editingBooking.invoice_number || '',
         handover_mileage: editingBooking.handover_mileage != null ? String(editingBooking.handover_mileage) : '',
         return_mileage: editingBooking.return_mileage != null ? String(editingBooking.return_mileage) : '',
+        security_deposit_collected: Boolean(editingBooking.security_deposit_collected),
+        security_deposit_collected_date: formatForDateInput(editingBooking.security_deposit_collected_date),
+        security_deposit_method: editingBooking.security_deposit_method || '',
+        security_deposit_reference_number: editingBooking.security_deposit_reference_number || '',
+        security_deposit_refunded: Boolean(editingBooking.security_deposit_refunded),
+        security_deposit_refunded_date: formatForDateInput(editingBooking.security_deposit_refunded_date),
+        security_deposit_notes: editingBooking.security_deposit_notes || '',
       });
 
       // Restore location select state so the dropdowns show the correct pre-selected values
@@ -200,6 +225,13 @@ export function BookingFormModal({
       invoice_number: '',
       handover_mileage: '',
       return_mileage: '',
+      security_deposit_collected: false,
+      security_deposit_collected_date: '',
+      security_deposit_method: '',
+      security_deposit_reference_number: '',
+      security_deposit_refunded: false,
+      security_deposit_refunded_date: '',
+      security_deposit_notes: '',
     });
     setAvailableVehicles([]);
     setSelectedCategoryId('');
@@ -254,6 +286,11 @@ export function BookingFormModal({
       return;
     }
 
+    if (clientData.security_deposit_collected && !clientData.security_deposit_method) {
+      showToast('Select how the security deposit was received', 'error');
+      return;
+    }
+
     const handoverMileageChanged = !editingBooking || handoverMileage !== editingBooking.handover_mileage;
     const currentVehicleMileage = selectedVehicle?.current_mileage ?? 0;
     if (handoverMileageChanged && handoverMileage < currentVehicleMileage) {
@@ -279,9 +316,40 @@ export function BookingFormModal({
       mileageFields.return_mileage = returnMileage;
     }
 
+    const depositFields = {
+      security_deposit_collected: clientData.security_deposit_collected,
+      security_deposit_collected_date:
+        clientData.security_deposit_collected && clientData.security_deposit_collected_date
+          ? clientData.security_deposit_collected_date
+          : null,
+      security_deposit_method:
+        clientData.security_deposit_collected && clientData.security_deposit_method
+          ? clientData.security_deposit_method
+          : null,
+      security_deposit_reference_number:
+        clientData.security_deposit_collected && clientData.security_deposit_reference_number.trim()
+          ? clientData.security_deposit_reference_number.trim()
+          : null,
+      security_deposit_refunded: clientData.security_deposit_refunded,
+      security_deposit_refunded_date:
+        clientData.security_deposit_refunded && clientData.security_deposit_refunded_date
+          ? clientData.security_deposit_refunded_date
+          : null,
+      security_deposit_notes: clientData.security_deposit_notes.trim()
+        ? clientData.security_deposit_notes.trim()
+        : null,
+    };
+
     const {
       handover_mileage: _handoverMileageInput,
       return_mileage: _returnMileageInput,
+      security_deposit_collected: _securityDepositCollected,
+      security_deposit_collected_date: _securityDepositCollectedDate,
+      security_deposit_method: _securityDepositMethod,
+      security_deposit_reference_number: _securityDepositReferenceNumber,
+      security_deposit_refunded: _securityDepositRefunded,
+      security_deposit_refunded_date: _securityDepositRefundedDate,
+      security_deposit_notes: _securityDepositNotes,
       ...bookingClientData
     } = clientData;
 
@@ -291,6 +359,7 @@ export function BookingFormModal({
       chauffeur_id: clientData.chauffeur_id || undefined,
       chauffeur_name: clientData.chauffeur_id ? clientData.chauffeur_name : undefined,
       ...mileageFields,
+      ...depositFields,
     });
 
     handleClose();
@@ -1045,6 +1114,122 @@ export function BookingFormModal({
                       disabled={submitting}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
                     />
+                  </div>
+
+                  <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <div className="flex items-center gap-2 mb-3">
+                      <CreditCard className="w-4 h-4 text-gray-600" />
+                      <h3 className="text-sm font-medium text-gray-700">Security Deposit Reminder</h3>
+                    </div>
+
+                    <label className="flex items-center gap-2 text-sm text-gray-700 mb-3">
+                      <input
+                        type="checkbox"
+                        checked={clientData.security_deposit_collected}
+                        onChange={e => {
+                          const checked = e.target.checked;
+                          setClientData({
+                            ...clientData,
+                            security_deposit_collected: checked,
+                            security_deposit_collected_date: checked
+                              ? clientData.security_deposit_collected_date || new Date().toISOString().split('T')[0]
+                              : '',
+                            security_deposit_method: checked ? clientData.security_deposit_method : '',
+                            security_deposit_reference_number: checked ? clientData.security_deposit_reference_number : '',
+                          });
+                        }}
+                        disabled={submitting}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      Security deposit received
+                    </label>
+
+                    {clientData.security_deposit_collected && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Received Date</label>
+                          <input
+                            type="date"
+                            value={clientData.security_deposit_collected_date}
+                            onChange={e => setClientData({ ...clientData, security_deposit_collected_date: e.target.value })}
+                            disabled={submitting}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 text-base"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            Received Via <span className="text-red-500">*</span>
+                          </label>
+                          <select
+                            value={clientData.security_deposit_method}
+                            onChange={e => setClientData({ ...clientData, security_deposit_method: e.target.value as PaymentMethod | '' })}
+                            disabled={submitting}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 text-base"
+                          >
+                            <option value="">Select method</option>
+                            {SECURITY_DEPOSIT_METHODS.map(method => (
+                              <option key={method} value={method}>{method}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Reference</label>
+                          <input
+                            type="text"
+                            value={clientData.security_deposit_reference_number}
+                            onChange={e => setClientData({ ...clientData, security_deposit_reference_number: e.target.value })}
+                            disabled={submitting}
+                            placeholder="M-Pesa, bank, card, receipt..."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 text-base"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <label className="flex items-center gap-2 text-sm text-gray-700 mb-3">
+                      <input
+                        type="checkbox"
+                        checked={clientData.security_deposit_refunded}
+                        onChange={e => {
+                          const checked = e.target.checked;
+                          setClientData({
+                            ...clientData,
+                            security_deposit_refunded: checked,
+                            security_deposit_refunded_date: checked
+                              ? clientData.security_deposit_refunded_date || new Date().toISOString().split('T')[0]
+                              : '',
+                          });
+                        }}
+                        disabled={submitting}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      Security deposit refunded
+                    </label>
+
+                    {clientData.security_deposit_refunded && (
+                      <div className="mb-3">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Refunded Date</label>
+                        <input
+                          type="date"
+                          value={clientData.security_deposit_refunded_date}
+                          onChange={e => setClientData({ ...clientData, security_deposit_refunded_date: e.target.value })}
+                          disabled={submitting}
+                          className="w-full md:w-1/3 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 text-base"
+                        />
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Deposit Notes</label>
+                      <textarea
+                        value={clientData.security_deposit_notes}
+                        onChange={e => setClientData({ ...clientData, security_deposit_notes: e.target.value })}
+                        disabled={submitting}
+                        placeholder="Anything staff should know before refunding"
+                        rows={2}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 resize-none text-base"
+                      />
+                    </div>
                   </div>
 
                   <div>

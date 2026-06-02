@@ -404,6 +404,10 @@ export const bookingService = {
         'start_location', 'end_location', 'client_name', 'contact',
         'notes', 'booking_type', 'chauffeur_name',
         'handover_mileage', 'return_mileage',
+        'security_deposit_collected', 'security_deposit_collected_date',
+        'security_deposit_method', 'security_deposit_reference_number',
+        'security_deposit_refunded', 'security_deposit_refunded_date',
+        'security_deposit_notes',
       ] as const;
       const normalizeAmendmentValue = (val: any, field: string): string => {
         if (val === null || val === undefined || val === '') return '';
@@ -450,6 +454,13 @@ export const bookingService = {
         chauffeur_name: 'chauffeur',
         handover_mileage: 'handover mileage',
         return_mileage: 'return mileage',
+        security_deposit_collected: 'security deposit received',
+        security_deposit_collected_date: 'security deposit received date',
+        security_deposit_method: 'security deposit method',
+        security_deposit_reference_number: 'security deposit reference',
+        security_deposit_refunded: 'security deposit refunded',
+        security_deposit_refunded_date: 'security deposit refunded date',
+        security_deposit_notes: 'security deposit notes',
       };
 
       const amendmentEntries = trackFields

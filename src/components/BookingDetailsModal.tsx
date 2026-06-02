@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, User, Phone, Mail, Car, AlertTriangle, FileText, Edit, Download, Eye, XCircle, History, ChevronDown, ChevronUp, Gauge } from 'lucide-react';
+import { X, Calendar, MapPin, User, Phone, Mail, Car, AlertTriangle, FileText, Edit, Download, Eye, XCircle, History, ChevronDown, ChevronUp, Gauge, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Booking, Vehicle, Branch, BookingDocument, BookingAmendment } from '../types/database';
 import { formatDate, formatBookingTime, checkInsuranceExpiryDuringBooking, nowNaive } from '../lib/utils';
@@ -112,6 +112,13 @@ export function BookingDetailsModal({
   const avgDailyKm = booking.avg_daily_km ?? (
     mileageDistance != null && durationDays > 0 ? mileageDistance / durationDays : null
   );
+  const hasSecurityDepositInfo = bookingType === 'self_drive' ||
+    (booking.security_deposit_amount ?? 0) > 0 ||
+    Boolean(booking.security_deposit_collected) ||
+    Boolean(booking.security_deposit_method) ||
+    Boolean(booking.security_deposit_reference_number) ||
+    Boolean(booking.security_deposit_refunded) ||
+    Boolean(booking.security_deposit_notes);
 
   const hasInsuranceIssue = vehicle?.insurance_expiry &&
     (booking.status === 'Active') &&
@@ -413,6 +420,73 @@ export function BookingDetailsModal({
                   )}
                 </div>
               </div>
+
+              {hasSecurityDepositInfo && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Security Deposit</h3>
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                        <CreditCard className="w-5 h-5 text-emerald-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Refundable Deposit Amount</p>
+                        <p className="font-semibold text-gray-900">
+                          {booking.security_deposit_amount != null && booking.security_deposit_amount > 0
+                            ? `KES ${booking.security_deposit_amount.toLocaleString()}`
+                            : 'Not recorded'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-xs text-gray-500">Received</p>
+                        <p className={`font-semibold ${booking.security_deposit_collected ? 'text-green-700' : 'text-gray-900'}`}>
+                          {booking.security_deposit_collected ? 'Yes' : 'No'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Received Date</p>
+                        <p className="font-semibold text-gray-900">
+                          {booking.security_deposit_collected_date ? formatDate(booking.security_deposit_collected_date) : 'Not recorded'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Received Via</p>
+                        <p className="font-semibold text-gray-900">
+                          {booking.security_deposit_method || 'Not recorded'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Reference</p>
+                        <p className="font-semibold text-gray-900 break-words">
+                          {booking.security_deposit_reference_number || 'Not recorded'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Refunded</p>
+                        <p className={`font-semibold ${booking.security_deposit_refunded ? 'text-blue-700' : 'text-gray-900'}`}>
+                          {booking.security_deposit_refunded ? 'Yes' : 'No'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Refunded Date</p>
+                        <p className="font-semibold text-gray-900">
+                          {booking.security_deposit_refunded_date ? formatDate(booking.security_deposit_refunded_date) : 'Not recorded'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {booking.security_deposit_notes && (
+                      <div className="mt-4 rounded-lg border border-gray-200 bg-white p-3">
+                        <p className="text-xs text-gray-500">Deposit Notes</p>
+                        <p className="text-sm font-medium text-gray-900 whitespace-pre-wrap">{booking.security_deposit_notes}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {bookingType === 'chauffeur' && (
                 <div>

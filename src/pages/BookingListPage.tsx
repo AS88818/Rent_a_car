@@ -4,7 +4,7 @@ import { useAuth } from '../lib/auth-context';
 import { bookingService, vehicleService, branchService, categoryService, bookingDocumentService } from '../services/api';
 import { Booking, Vehicle, Branch, VehicleCategory, BookingDocument } from '../types/database';
 import { checkInsuranceExpiryDuringBooking, checkLocationMismatch, formatBookingDate, formatBookingTime, nowNaive } from '../lib/utils';
-import { Plus, X, Car, Calendar, MapPin, Phone, Search, RefreshCw, AlertCircle, AlertTriangle, User, ArrowUpDown } from 'lucide-react';
+import { Plus, X, Car, Calendar, MapPin, Phone, Search, RefreshCw, AlertCircle, AlertTriangle, User, ArrowUpDown, CreditCard } from 'lucide-react';
 import { showToast } from '../lib/toast';
 import { autoSyncToCompanyCalendar, autoDeleteFromCompanyCalendar } from '../services/calendar-service';
 import { ConfirmModal } from '../components/ConfirmModal';
@@ -568,6 +568,12 @@ export function BookingListPage() {
                       }`}>
                         {booking.status}
                       </span>
+                      {(booking.security_deposit_collected || booking.security_deposit_method) && (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <CreditCard className="w-3 h-3" />
+                          Deposit: {booking.security_deposit_method || 'Received'}
+                        </span>
+                      )}
                       {booking.vehicle?.insurance_expiry &&
                         (booking.status === 'Active') &&
                         checkInsuranceExpiryDuringBooking(
