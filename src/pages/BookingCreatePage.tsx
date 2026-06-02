@@ -235,6 +235,11 @@ export function BookingCreatePage() {
     const handoverMileage = parseMileageValue(formData.handover_mileage);
     const returnMileage = parseMileageValue(formData.return_mileage);
 
+    if (!saveAsDraft && handoverMileage === undefined) {
+      showToast('Handover mileage is required to create a booking', 'error');
+      return;
+    }
+
     if (returnMileage !== undefined && handoverMileage === undefined) {
       showToast('Enter handover mileage before return mileage', 'error');
       return;
@@ -335,7 +340,7 @@ export function BookingCreatePage() {
     if (step === 2) return formData.start_datetime && formData.end_datetime && formData.start_location && formData.end_location && validationErrors.length === 0;
     if (step === 3) return selectedCategory !== '';
     if (step === 4) return selectedVehicle !== null;
-    if (step === 5) return formData.client_name && (formData.contact || formData.client_email) && !mileageInvalid && !(formData.return_mileage.trim() !== '' && formData.handover_mileage.trim() === '');
+    if (step === 5) return formData.client_name && (formData.contact || formData.client_email) && hasValidHandoverMileage && !mileageInvalid && !(formData.return_mileage.trim() !== '' && formData.handover_mileage.trim() === '');
     return true;
   };
 
@@ -1084,7 +1089,7 @@ export function BookingCreatePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Handover KM
+                      Handover KM <span className="text-red-600">*</span>
                     </label>
                     <input
                       type="number"
@@ -1099,6 +1104,7 @@ export function BookingCreatePage() {
                         Vehicle currently shows {Math.round(selectedVehicle.current_mileage || 0).toLocaleString()} km
                       </p>
                     )}
+                    <p className="text-xs text-gray-500 mt-1">Required before confirming the booking.</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">

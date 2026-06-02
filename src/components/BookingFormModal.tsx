@@ -249,6 +249,11 @@ export function BookingFormModal({
     const handoverMileage = parseMileageValue(clientData.handover_mileage);
     const returnMileage = parseMileageValue(clientData.return_mileage);
 
+    if (handoverMileage === undefined) {
+      showToast('Handover mileage is required to create a booking', 'error');
+      return;
+    }
+
     if (returnMileage !== undefined && handoverMileage === undefined) {
       showToast('Enter handover mileage before return mileage', 'error');
       return;
@@ -307,6 +312,9 @@ export function BookingFormModal({
   const submitDisabled = !clientData.vehicle_id ||
     !clientData.client_name ||
     (!clientData.contact && !clientData.client_email) ||
+    clientData.handover_mileage.trim() === '' ||
+    handoverMileageValue === null ||
+    !Number.isFinite(handoverMileageValue) ||
     mileageInvalid ||
     (clientData.return_mileage.trim() !== '' && clientData.handover_mileage.trim() === '') ||
     submitting;
@@ -804,7 +812,7 @@ export function BookingFormModal({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Handover KM
+                          Handover KM <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="number"
@@ -820,6 +828,7 @@ export function BookingFormModal({
                             Vehicle currently shows {Math.round(selectedVehicle.current_mileage || 0).toLocaleString()} km
                           </p>
                         )}
+                        <p className="text-xs text-gray-500 mt-1">Required before saving this booking.</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
