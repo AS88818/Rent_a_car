@@ -30,6 +30,9 @@ import {
   PaymentMethod,
   BookingDeposit,
   VehicleDocument,
+  ReportPreview,
+  ReportSubscriptionWithUser,
+  ReportType,
 } from '../types/database';
 import { checkBookingConflict, calculateVehicleHealth, nowNaive } from '../lib/utils';
 
@@ -1598,6 +1601,66 @@ export const emailService = {
       .delete()
       .in('status', ['pending', 'failed']);
     if (error) throw error;
+  },
+};
+
+export const reportService = {
+  async getMySubscriptions(userId: string) {
+    const { data, error } = await supabase
+      .from('report_subscriptions')
+      .select('*, user:users(id, email, full_name, role, branch_id, status, phone, deleted_at)')
+      .eq('user_id', userId)
+      .order('report_type');
+
+    if (error) throw error;
+    return data as ReportSubscriptionWithUser[];
+  },
+
+  async getAllSubscriptions() {
+    const { data, error } = await supabase
+      .from('report_subscriptions')
+      .select('*, user:users(id, email, full_name, role, branch_id, status, phone, deleted_at)')
+      .order('report_type');
+
+    if (error) throw error;
+    return data as ReportSubscriptionWithUser[];
+  },
+
+  async updateSubscription(id: string, enabled: boolean) {
+    const { data, error } = await supabase
+      .from('report_subscriptions')
+      .update({ enabled })
+      .eq('id', id)
+      .select('*, user:users(id, email, full_name, role, branch_id, status, phone, deleted_at)')
+      .single();
+
+    if (error) throw error;
+    return data as ReportSubscriptionWithUser;
+  },
+
+  async callReportFunction(
+    reportType: ReportType,
+    action: 'preview' | 'test'
+  ): Promise<{ success: boolean; report?: ReportPreview; queued?: number; error?: string }> {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const authHeaders = await getFunctionAuthHeaders();
+    const functionName = reportType === 'daily_ops_digest' ? 'daily-ops-digest' : 'weekly-finance-brief';
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
+      method: 'POST',
+      headers: {
+        ...authHeaders,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ action }),
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to run report function');
+    }
+
+    return result;
   },
 };
 

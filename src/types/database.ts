@@ -532,6 +532,8 @@ export interface EmailQueue {
   id: string;
   booking_id?: string | null;
   invoice_id?: string | null;
+  context_type?: 'booking' | 'invoice' | 'report' | null;
+  context_id?: string | null;
   email_type: string;
   recipient_email: string;
   recipient_name: string;
@@ -544,6 +546,28 @@ export interface EmailQueue {
   attempts: number;
   created_at: string;
   updated_at: string;
+}
+
+export type ReportType = 'daily_ops_digest' | 'weekly_finance_brief';
+
+export interface ReportSubscription {
+  id: string;
+  user_id: string;
+  report_type: ReportType;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReportSubscriptionWithUser extends ReportSubscription {
+  user?: AuthUser | null;
+}
+
+export interface ReportPreview {
+  subject: string;
+  html: string;
+  generatedAt: string;
+  metrics: Record<string, number | string>;
 }
 
 export type PaymentStatus = 'Pending' | 'Partially Paid' | 'Paid' | 'Overdue';
