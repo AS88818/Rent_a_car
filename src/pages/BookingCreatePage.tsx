@@ -272,8 +272,8 @@ export function BookingCreatePage() {
         chauffeur_name: formData.booking_type === 'chauffeur' ? formData.chauffeur_name : undefined,
         invoice_number: formData.invoice_number || undefined,
         outside_hours_charges: outsideHoursCharges.totalExtraCharge,
-        handover_mileage: handoverMileage,
-        return_mileage: returnMileage,
+        ...(formData.handover_mileage.trim() !== '' ? { handover_mileage: handoverMileage } : {}),
+        ...(formData.return_mileage.trim() !== '' ? { return_mileage: returnMileage } : {}),
       });
 
       // Update vehicle's branch_id if it was null or different
@@ -979,13 +979,7 @@ export function BookingCreatePage() {
                   return (
                     <button
                       key={vehicle.id}
-                      onClick={() => {
-                        setSelectedVehicle(vehicle);
-                        setFormData(prev => ({
-                          ...prev,
-                          handover_mileage: prev.handover_mileage || String(Math.round(vehicle.current_mileage || 0)),
-                        }));
-                      }}
+                      onClick={() => setSelectedVehicle(vehicle)}
                       className={`p-6 rounded-lg border-2 transition-all text-left hover:shadow-md ${
                         selectedVehicle?.id === vehicle.id
                           ? 'border-blue-600 bg-blue-50'

@@ -152,10 +152,10 @@ SELECT
   google_sync_enabled,
   google_last_sync_at,
   google_redirect_uri,
-  quote_whatsapp_template,
-  daily_mileage_allowance_km,
   updated_at,
-  updated_by
+  updated_by,
+  quote_whatsapp_template,
+  daily_mileage_allowance_km
 FROM company_settings;
 
 COMMENT ON COLUMN company_settings.daily_mileage_allowance_km IS 'Global included mileage allowance per rental day, in kilometres.';

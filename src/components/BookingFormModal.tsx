@@ -259,13 +259,26 @@ export function BookingFormModal({
       return;
     }
 
+    const mileageFields: { handover_mileage?: number; return_mileage?: number } = {};
+    if (clientData.handover_mileage.trim() !== '' && handoverMileage !== undefined) {
+      mileageFields.handover_mileage = handoverMileage;
+    }
+    if (clientData.return_mileage.trim() !== '' && returnMileage !== undefined) {
+      mileageFields.return_mileage = returnMileage;
+    }
+
+    const {
+      handover_mileage: _handoverMileageInput,
+      return_mileage: _returnMileageInput,
+      ...bookingClientData
+    } = clientData;
+
     await onSubmit({
       ...dateData,
-      ...clientData,
+      ...bookingClientData,
       chauffeur_id: clientData.chauffeur_id || undefined,
       chauffeur_name: clientData.chauffeur_id ? clientData.chauffeur_name : undefined,
-      handover_mileage: handoverMileage,
-      return_mileage: returnMileage,
+      ...mileageFields,
     });
 
     handleClose();
@@ -726,11 +739,7 @@ export function BookingFormModal({
                           return (
                             <div
                               key={vehicle.id}
-                              onClick={() => setClientData({
-                                ...clientData,
-                                vehicle_id: vehicle.id,
-                                handover_mileage: clientData.handover_mileage || String(Math.round(vehicle.current_mileage || 0)),
-                              })}
+                              onClick={() => setClientData({ ...clientData, vehicle_id: vehicle.id })}
                               className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
                                 clientData.vehicle_id === vehicle.id
                                   ? 'border-blue-500 bg-blue-50'
