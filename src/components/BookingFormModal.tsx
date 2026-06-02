@@ -254,6 +254,13 @@ export function BookingFormModal({
       return;
     }
 
+    const handoverMileageChanged = !editingBooking || handoverMileage !== editingBooking.handover_mileage;
+    const currentVehicleMileage = selectedVehicle?.current_mileage ?? 0;
+    if (handoverMileageChanged && handoverMileage < currentVehicleMileage) {
+      showToast(`Handover mileage cannot be lower than the vehicle's current mileage (${Math.round(currentVehicleMileage).toLocaleString()} km)`, 'error');
+      return;
+    }
+
     if (returnMileage !== undefined && handoverMileage === undefined) {
       showToast('Enter handover mileage before return mileage', 'error');
       return;
@@ -309,12 +316,18 @@ export function BookingFormModal({
   const totalMileageAllowance = bookingDays * dailyMileageAllowance;
   const excessMileage = mileageDistance !== null ? Math.max(0, mileageDistance - totalMileageAllowance) : null;
   const mileageInvalid = mileageDistance !== null && mileageDistance < 0;
+  const handoverMileageChanged = !editingBooking || handoverMileageValue !== (editingBooking.handover_mileage ?? null);
+  const currentVehicleMileage = selectedVehicle?.current_mileage ?? 0;
+  const handoverBelowCurrent = handoverMileageChanged &&
+    hasValidHandoverMileage &&
+    handoverMileageValue! < currentVehicleMileage;
   const submitDisabled = !clientData.vehicle_id ||
     !clientData.client_name ||
     (!clientData.contact && !clientData.client_email) ||
     clientData.handover_mileage.trim() === '' ||
     handoverMileageValue === null ||
     !Number.isFinite(handoverMileageValue) ||
+    handoverBelowCurrent ||
     mileageInvalid ||
     (clientData.return_mileage.trim() !== '' && clientData.handover_mileage.trim() === '') ||
     submitting;
@@ -848,7 +861,14 @@ export function BookingFormModal({
                       </div>
                     </div>
 
-                    {mileageInvalid ? (
+                    {handoverBelowCurrent ? (
+                      <div className="mt-3 flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-red-700">
+                          Handover mileage must be at least {Math.round(currentVehicleMileage).toLocaleString()} km.
+                        </p>
+                      </div>
+                    ) : mileageInvalid ? (
                       <div className="mt-3 flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
                         <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
                         <p className="text-sm text-red-700">Return mileage cannot be lower than handover mileage.</p>

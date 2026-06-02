@@ -42,7 +42,7 @@ export function BookingListPage() {
   const [filterBranch, setFilterBranch] = useState<string>('');
   const [filterCategory, setFilterCategory] = useState<string>('');
   const [filterHealth, setFilterHealth] = useState<string>('');
-  const [timeFilter, setTimeFilter] = useState<BookingTimeFilter>('current');
+  const [timeFilter, setTimeFilter] = useState<BookingTimeFilter>('all');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('vehicle') || '');
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');

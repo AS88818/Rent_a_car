@@ -240,6 +240,12 @@ export function BookingCreatePage() {
       return;
     }
 
+    const currentVehicleMileage = selectedVehicle.current_mileage || 0;
+    if (!saveAsDraft && handoverMileage !== undefined && handoverMileage < currentVehicleMileage) {
+      showToast(`Handover mileage cannot be lower than the vehicle's current mileage (${Math.round(currentVehicleMileage).toLocaleString()} km)`, 'error');
+      return;
+    }
+
     if (returnMileage !== undefined && handoverMileage === undefined) {
       showToast('Enter handover mileage before return mileage', 'error');
       return;
@@ -340,7 +346,7 @@ export function BookingCreatePage() {
     if (step === 2) return formData.start_datetime && formData.end_datetime && formData.start_location && formData.end_location && validationErrors.length === 0;
     if (step === 3) return selectedCategory !== '';
     if (step === 4) return selectedVehicle !== null;
-    if (step === 5) return formData.client_name && (formData.contact || formData.client_email) && hasValidHandoverMileage && !mileageInvalid && !(formData.return_mileage.trim() !== '' && formData.handover_mileage.trim() === '');
+    if (step === 5) return formData.client_name && (formData.contact || formData.client_email) && hasValidHandoverMileage && !handoverBelowCurrent && !mileageInvalid && !(formData.return_mileage.trim() !== '' && formData.handover_mileage.trim() === '');
     return true;
   };
 
@@ -477,6 +483,8 @@ export function BookingCreatePage() {
   const totalMileageAllowance = bookingDays * dailyMileageAllowance;
   const excessMileage = mileageDistance !== null ? Math.max(0, mileageDistance - totalMileageAllowance) : null;
   const mileageInvalid = mileageDistance !== null && mileageDistance < 0;
+  const currentVehicleMileage = selectedVehicle?.current_mileage ?? 0;
+  const handoverBelowCurrent = hasValidHandoverMileage && handoverMileageValue! < currentVehicleMileage;
 
   return (
     <div className="max-w-4xl mx-auto p-4">
@@ -1123,7 +1131,14 @@ export function BookingCreatePage() {
                   </div>
                 </div>
 
-                {mileageInvalid ? (
+                {handoverBelowCurrent ? (
+                  <div className="mt-3 flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-700">
+                      Handover mileage must be at least {Math.round(currentVehicleMileage).toLocaleString()} km.
+                    </p>
+                  </div>
+                ) : mileageInvalid ? (
                   <div className="mt-3 flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
                     <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
                     <p className="text-sm text-red-700">Return mileage cannot be lower than handover mileage.</p>
