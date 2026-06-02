@@ -249,8 +249,8 @@ export function BookingCreatePage() {
     const handoverMileage = parseMileageValue(formData.handover_mileage);
     const returnMileage = parseMileageValue(formData.return_mileage);
 
-    if (!saveAsDraft && handoverMileage === undefined) {
-      showToast('Handover mileage is required to create a booking', 'error');
+    if (formData.handover_mileage.trim() !== '' && handoverMileage === undefined) {
+      showToast('Enter a valid handover mileage', 'error');
       return;
     }
 
@@ -381,7 +381,7 @@ export function BookingCreatePage() {
     if (step === 2) return formData.start_datetime && formData.end_datetime && formData.start_location && formData.end_location && validationErrors.length === 0;
     if (step === 3) return selectedCategory !== '';
     if (step === 4) return selectedVehicle !== null;
-    if (step === 5) return formData.client_name && (formData.contact || formData.client_email) && hasValidHandoverMileage && !handoverBelowCurrent && !mileageInvalid && !(formData.return_mileage.trim() !== '' && formData.handover_mileage.trim() === '');
+    if (step === 5) return formData.client_name && (formData.contact || formData.client_email) && !handoverMileageInvalidInput && !handoverBelowCurrent && !mileageInvalid && !(formData.return_mileage.trim() !== '' && formData.handover_mileage.trim() === '');
     return true;
   };
 
@@ -518,6 +518,7 @@ export function BookingCreatePage() {
   const totalMileageAllowance = bookingDays * dailyMileageAllowance;
   const excessMileage = mileageDistance !== null ? Math.max(0, mileageDistance - totalMileageAllowance) : null;
   const mileageInvalid = mileageDistance !== null && mileageDistance < 0;
+  const handoverMileageInvalidInput = formData.handover_mileage.trim() !== '' && !Number.isFinite(handoverMileageValue);
   const currentVehicleMileage = selectedVehicle?.current_mileage ?? 0;
   const handoverBelowCurrent = hasValidHandoverMileage && handoverMileageValue! < currentVehicleMileage;
 
@@ -1132,7 +1133,7 @@ export function BookingCreatePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Handover KM <span className="text-red-600">*</span>
+                      Handover KM <span className="text-gray-400">(optional)</span>
                     </label>
                     <input
                       type="number"
@@ -1147,7 +1148,9 @@ export function BookingCreatePage() {
                         Vehicle currently shows {Math.round(selectedVehicle.current_mileage || 0).toLocaleString()} km
                       </p>
                     )}
-                    <p className="text-xs text-gray-500 mt-1">Required before confirming the booking.</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Leave blank when creating future bookings. Record the actual odometer at pickup/handover.
+                    </p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">

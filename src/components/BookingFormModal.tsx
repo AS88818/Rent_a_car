@@ -281,8 +281,8 @@ export function BookingFormModal({
     const handoverMileage = parseMileageValue(clientData.handover_mileage);
     const returnMileage = parseMileageValue(clientData.return_mileage);
 
-    if (handoverMileage === undefined) {
-      showToast('Handover mileage is required to create a booking', 'error');
+    if (clientData.handover_mileage.trim() !== '' && handoverMileage === undefined) {
+      showToast('Enter a valid handover mileage', 'error');
       return;
     }
 
@@ -293,7 +293,7 @@ export function BookingFormModal({
 
     const handoverMileageChanged = !editingBooking || handoverMileage !== editingBooking.handover_mileage;
     const currentVehicleMileage = selectedVehicle?.current_mileage ?? 0;
-    if (handoverMileageChanged && handoverMileage < currentVehicleMileage) {
+    if (handoverMileage !== undefined && handoverMileageChanged && handoverMileage < currentVehicleMileage) {
       showToast(`Handover mileage cannot be lower than the vehicle's current mileage (${Math.round(currentVehicleMileage).toLocaleString()} km)`, 'error');
       return;
     }
@@ -385,6 +385,7 @@ export function BookingFormModal({
   const totalMileageAllowance = bookingDays * dailyMileageAllowance;
   const excessMileage = mileageDistance !== null ? Math.max(0, mileageDistance - totalMileageAllowance) : null;
   const mileageInvalid = mileageDistance !== null && mileageDistance < 0;
+  const handoverMileageInvalidInput = clientData.handover_mileage.trim() !== '' && !Number.isFinite(handoverMileageValue);
   const handoverMileageChanged = !editingBooking || handoverMileageValue !== (editingBooking.handover_mileage ?? null);
   const currentVehicleMileage = selectedVehicle?.current_mileage ?? 0;
   const handoverBelowCurrent = handoverMileageChanged &&
@@ -393,9 +394,7 @@ export function BookingFormModal({
   const submitDisabled = !clientData.vehicle_id ||
     !clientData.client_name ||
     (!clientData.contact && !clientData.client_email) ||
-    clientData.handover_mileage.trim() === '' ||
-    handoverMileageValue === null ||
-    !Number.isFinite(handoverMileageValue) ||
+    handoverMileageInvalidInput ||
     handoverBelowCurrent ||
     mileageInvalid ||
     (clientData.return_mileage.trim() !== '' && clientData.handover_mileage.trim() === '') ||
@@ -894,7 +893,7 @@ export function BookingFormModal({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Handover KM <span className="text-red-500">*</span>
+                          Handover KM <span className="text-gray-400">(optional)</span>
                         </label>
                         <input
                           type="number"
@@ -910,7 +909,9 @@ export function BookingFormModal({
                             Vehicle currently shows {Math.round(selectedVehicle.current_mileage || 0).toLocaleString()} km
                           </p>
                         )}
-                        <p className="text-xs text-gray-500 mt-1">Required before saving this booking.</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Leave blank when creating future bookings. Record the actual odometer at pickup/handover.
+                        </p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
