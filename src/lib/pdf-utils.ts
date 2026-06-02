@@ -32,6 +32,8 @@ interface QuotePDFData {
   pickupLocation: string;
   dropoffLocation: string;
   rentalType: string;
+  dailyMileageAllowance?: number;
+  totalMileageAllowance?: number;
   categories: QuoteCategory[];
 }
 
@@ -351,6 +353,24 @@ export function generateQuotePDFBase64(data: QuotePDFData, company?: PDFCompanyI
   doc.text('Type:', margin + 5, yPosition);
   doc.setFont('helvetica', 'normal');
   doc.text(data.rentalType, margin + 40, yPosition);
+
+  if (data.dailyMileageAllowance && data.totalMileageAllowance) {
+    yPosition += 20;
+    doc.setFillColor(240, 253, 244);
+    doc.rect(margin, yPosition, contentWidth, 18, 'F');
+    yPosition += 7;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Inclusions', margin + 5, yPosition);
+    yPosition += 6;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(
+      `Mileage allowance: ${data.totalMileageAllowance.toLocaleString()} km - ${data.duration} x ${data.dailyMileageAllowance.toLocaleString()} km/day`,
+      margin + 5,
+      yPosition
+    );
+  }
 
   yPosition += 20;
   doc.setFontSize(14);

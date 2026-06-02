@@ -403,6 +403,7 @@ export const bookingService = {
         'start_datetime', 'end_datetime', 'vehicle_id', 'status',
         'start_location', 'end_location', 'client_name', 'contact',
         'notes', 'booking_type', 'chauffeur_name',
+        'handover_mileage', 'return_mileage',
       ] as const;
       const normalizeAmendmentValue = (val: any, field: string): string => {
         if (val === null || val === undefined || val === '') return '';
@@ -447,6 +448,8 @@ export const bookingService = {
         client_name: 'client name',
         booking_type: 'booking type',
         chauffeur_name: 'chauffeur',
+        handover_mileage: 'handover mileage',
+        return_mileage: 'return mileage',
       };
 
       const amendmentEntries = trackFields

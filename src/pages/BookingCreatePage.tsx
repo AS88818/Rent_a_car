@@ -7,8 +7,9 @@ import { showToast } from '../lib/toast';
 import { autoSyncToCompanyCalendar } from '../services/calendar-service';
 import { supabase } from '../lib/supabase';
 import { getAvailableVehicles, calculateBookingDuration, checkInsuranceExpiryDuringBooking, formatDate, daysUntilExpiry } from '../lib/utils';
-import { ArrowLeft, Check, CheckCircle, Calendar, MapPin, AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle, Calendar, MapPin, AlertTriangle, RefreshCw, Loader2, Gauge } from 'lucide-react';
 import { BookingDocumentUpload } from '../components/BookingDocumentUpload';
+import { useCompanySettings } from '../lib/company-settings-context';
 
 interface VehicleWithBranch extends Vehicle {
   branch_name?: string;
@@ -17,6 +18,7 @@ interface VehicleWithBranch extends Vehicle {
 export function BookingCreatePage() {
   const navigate = useNavigate();
   const { branchId } = useAuth();
+  const { settings } = useCompanySettings();
   const [currentStep, setCurrentStep] = useState(1);
   const [categories, setCategories] = useState<VehicleCategory[]>([]);
   const [vehicles, setVehicles] = useState<VehicleWithBranch[]>([]);
@@ -46,6 +48,8 @@ export function BookingCreatePage() {
     booking_type: 'self_drive' as 'self_drive' | 'chauffeur' | 'transfer',
     chauffeur_name: '',
     invoice_number: '',
+    handover_mileage: '',
+    return_mileage: '',
   });
 
   const [startLocationType, setStartLocationType] = useState<'branch' | 'other'>('branch');
@@ -198,6 +202,12 @@ export function BookingCreatePage() {
     return errors.length === 0;
   };
 
+  const parseMileageValue = (value: string) => {
+    if (value.trim() === '') return undefined;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  };
+
   const handleSubmit = async (saveAsDraft = false) => {
     if (!selectedVehicle) {
       showToast('Please select a vehicle', 'error');
@@ -219,6 +229,19 @@ export function BookingCreatePage() {
 
     if (!saveAsDraft && !formData.contact && !formData.client_email) {
       showToast('Please enter either phone number or email address', 'error');
+      return;
+    }
+
+    const handoverMileage = parseMileageValue(formData.handover_mileage);
+    const returnMileage = parseMileageValue(formData.return_mileage);
+
+    if (returnMileage !== undefined && handoverMileage === undefined) {
+      showToast('Enter handover mileage before return mileage', 'error');
+      return;
+    }
+
+    if (handoverMileage !== undefined && returnMileage !== undefined && returnMileage < handoverMileage) {
+      showToast('Return mileage cannot be lower than handover mileage', 'error');
       return;
     }
 
@@ -249,6 +272,8 @@ export function BookingCreatePage() {
         chauffeur_name: formData.booking_type === 'chauffeur' ? formData.chauffeur_name : undefined,
         invoice_number: formData.invoice_number || undefined,
         outside_hours_charges: outsideHoursCharges.totalExtraCharge,
+        handover_mileage: handoverMileage,
+        return_mileage: returnMileage,
       });
 
       // Update vehicle's branch_id if it was null or different
@@ -310,7 +335,7 @@ export function BookingCreatePage() {
     if (step === 2) return formData.start_datetime && formData.end_datetime && formData.start_location && formData.end_location && validationErrors.length === 0;
     if (step === 3) return selectedCategory !== '';
     if (step === 4) return selectedVehicle !== null;
-    if (step === 5) return formData.client_name && (formData.contact || formData.client_email);
+    if (step === 5) return formData.client_name && (formData.contact || formData.client_email) && !mileageInvalid && !(formData.return_mileage.trim() !== '' && formData.handover_mileage.trim() === '');
     return true;
   };
 
@@ -433,6 +458,20 @@ export function BookingCreatePage() {
   const duration = formData.start_datetime && formData.end_datetime
     ? calculateBookingDuration(formData.start_datetime, formData.end_datetime)
     : null;
+  const bookingDays = formData.start_datetime && formData.end_datetime
+    ? Math.max(1, Math.ceil((new Date(formData.end_datetime).getTime() - new Date(formData.start_datetime).getTime()) / 86400000))
+    : 0;
+  const dailyMileageAllowance = settings.daily_mileage_allowance_km || 250;
+  const handoverMileageValue = formData.handover_mileage.trim() === '' ? null : Number(formData.handover_mileage);
+  const returnMileageValue = formData.return_mileage.trim() === '' ? null : Number(formData.return_mileage);
+  const hasValidHandoverMileage = handoverMileageValue !== null && Number.isFinite(handoverMileageValue);
+  const hasValidReturnMileage = returnMileageValue !== null && Number.isFinite(returnMileageValue);
+  const mileageDistance = hasValidHandoverMileage && hasValidReturnMileage
+    ? returnMileageValue! - handoverMileageValue!
+    : null;
+  const totalMileageAllowance = bookingDays * dailyMileageAllowance;
+  const excessMileage = mileageDistance !== null ? Math.max(0, mileageDistance - totalMileageAllowance) : null;
+  const mileageInvalid = mileageDistance !== null && mileageDistance < 0;
 
   return (
     <div className="max-w-4xl mx-auto p-4">
@@ -940,7 +979,13 @@ export function BookingCreatePage() {
                   return (
                     <button
                       key={vehicle.id}
-                      onClick={() => setSelectedVehicle(vehicle)}
+                      onClick={() => {
+                        setSelectedVehicle(vehicle);
+                        setFormData(prev => ({
+                          ...prev,
+                          handover_mileage: prev.handover_mileage || String(Math.round(vehicle.current_mileage || 0)),
+                        }));
+                      }}
                       className={`p-6 rounded-lg border-2 transition-all text-left hover:shadow-md ${
                         selectedVehicle?.id === vehicle.id
                           ? 'border-blue-600 bg-blue-50'
@@ -1037,6 +1082,82 @@ export function BookingCreatePage() {
             )}
 
             <div className="space-y-4">
+              <div className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Gauge className="w-4 h-4 text-gray-600" />
+                  <h3 className="text-sm font-semibold text-gray-900">Mileage</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Handover KM
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.handover_mileage}
+                      onChange={(e) => setFormData({ ...formData, handover_mileage: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder={selectedVehicle ? String(Math.round(selectedVehicle.current_mileage || 0)) : '0'}
+                    />
+                    {selectedVehicle && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Vehicle currently shows {Math.round(selectedVehicle.current_mileage || 0).toLocaleString()} km
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Return KM
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.return_mileage}
+                      onChange={(e) => setFormData({ ...formData, return_mileage: e.target.value })}
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        mileageInvalid ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                      }`}
+                      placeholder="Enter when returned"
+                    />
+                  </div>
+                </div>
+
+                {mileageInvalid ? (
+                  <div className="mt-3 flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-700">Return mileage cannot be lower than handover mileage.</p>
+                  </div>
+                ) : mileageDistance !== null ? (
+                  <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                      <p className="text-xs text-gray-500">Distance</p>
+                      <p className="text-sm font-semibold text-gray-900">{mileageDistance.toLocaleString()} km</p>
+                    </div>
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                      <p className="text-xs text-gray-500">Avg Daily</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {bookingDays > 0 ? Math.round(mileageDistance / bookingDays).toLocaleString() : 0} km/day
+                      </p>
+                    </div>
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                      <p className="text-xs text-gray-500">Included</p>
+                      <p className="text-sm font-semibold text-gray-900">{totalMileageAllowance.toLocaleString()} km</p>
+                    </div>
+                    <div className={`border rounded-lg p-3 ${excessMileage && excessMileage > 0 ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'}`}>
+                      <p className="text-xs text-gray-500">Excess</p>
+                      <p className={`text-sm font-semibold ${excessMileage && excessMileage > 0 ? 'text-orange-700' : 'text-green-700'}`}>
+                        {(excessMileage || 0).toLocaleString()} km
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-500 mt-3">
+                    Included allowance: {totalMileageAllowance.toLocaleString()} km ({bookingDays || 0} day{bookingDays === 1 ? '' : 's'} x {dailyMileageAllowance.toLocaleString()} km/day)
+                  </p>
+                )}
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Client Name <span className="text-red-600">*</span>

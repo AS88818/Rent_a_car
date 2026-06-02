@@ -124,6 +124,9 @@ export interface Booking {
   security_deposit_notes?: string;
   balance_amount?: number;
   outside_hours_charges?: number;
+  handover_mileage?: number | null;
+  return_mileage?: number | null;
+  avg_daily_km?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -473,6 +476,8 @@ export interface CategoryQuoteResult {
   grandTotal: number;
   securityDeposit: number;
   advancePayment: number;
+  dailyMileageAllowance?: number;
+  totalMileageAllowance?: number;
   available: boolean;
   branchAvailability?: Array<{
     branchId: string;
@@ -644,6 +649,7 @@ export interface CompanySettings {
   google_sync_enabled?: boolean;
   google_last_sync_at?: string;
   quote_whatsapp_template?: string;
+  daily_mileage_allowance_km?: number;
   updated_at: string;
   updated_by?: string;
 }

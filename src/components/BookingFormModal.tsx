@@ -1,8 +1,10 @@
-import { X, ChevronLeft, ChevronRight, Calendar, MapPin, User, Phone, Mail, Car, Users as UsersIcon, ArrowRightLeft, AlertTriangle } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Calendar, MapPin, User, Phone, Mail, Car, Users as UsersIcon, ArrowRightLeft, AlertTriangle, Gauge } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Vehicle, Booking, Branch, AuthUser, VehicleCategory } from '../types/database';
 import { userService } from '../services/api';
 import { getAvailableVehicles, calculateBookingDuration, getHealthColor, checkInsuranceExpiryDuringBooking, daysUntilExpiry } from '../lib/utils';
+import { showToast } from '../lib/toast';
+import { useCompanySettings } from '../lib/company-settings-context';
 
 interface BookingFormModalProps {
   isOpen: boolean;
@@ -21,6 +23,8 @@ interface BookingFormModalProps {
     chauffeur_id?: string;
     chauffeur_name?: string;
     invoice_number?: string;
+    handover_mileage?: number;
+    return_mileage?: number;
   }) => Promise<void>;
   vehicles: Vehicle[];
   bookings: Booking[];
@@ -41,6 +45,7 @@ export function BookingFormModal({
   editingBooking,
   submitting = false,
 }: BookingFormModalProps) {
+  const { settings } = useCompanySettings();
   const [step, setStep] = useState(1);
   const [dateData, setDateData] = useState({
     start_datetime: '',
@@ -58,6 +63,8 @@ export function BookingFormModal({
     chauffeur_id: '',
     chauffeur_name: '',
     invoice_number: '',
+    handover_mileage: '',
+    return_mileage: '',
   });
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
@@ -102,6 +109,8 @@ export function BookingFormModal({
         chauffeur_id: editingBooking.chauffeur_id || '',
         chauffeur_name: editingBooking.chauffeur_name || '',
         invoice_number: editingBooking.invoice_number || '',
+        handover_mileage: editingBooking.handover_mileage != null ? String(editingBooking.handover_mileage) : '',
+        return_mileage: editingBooking.return_mileage != null ? String(editingBooking.return_mileage) : '',
       });
 
       // Restore location select state so the dropdowns show the correct pre-selected values
@@ -189,6 +198,8 @@ export function BookingFormModal({
       chauffeur_id: '',
       chauffeur_name: '',
       invoice_number: '',
+      handover_mileage: '',
+      return_mileage: '',
     });
     setAvailableVehicles([]);
     setSelectedCategoryId('');
@@ -224,8 +235,27 @@ export function BookingFormModal({
     setStep(2);
   };
 
+  const parseMileageValue = (value: string) => {
+    if (value.trim() === '') return undefined;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  };
+
   const handleSubmit = async () => {
     if (!clientData.vehicle_id || !clientData.client_name || (!clientData.contact && !clientData.client_email)) {
+      return;
+    }
+
+    const handoverMileage = parseMileageValue(clientData.handover_mileage);
+    const returnMileage = parseMileageValue(clientData.return_mileage);
+
+    if (returnMileage !== undefined && handoverMileage === undefined) {
+      showToast('Enter handover mileage before return mileage', 'error');
+      return;
+    }
+
+    if (handoverMileage !== undefined && returnMileage !== undefined && returnMileage < handoverMileage) {
+      showToast('Return mileage cannot be lower than handover mileage', 'error');
       return;
     }
 
@@ -234,6 +264,8 @@ export function BookingFormModal({
       ...clientData,
       chauffeur_id: clientData.chauffeur_id || undefined,
       chauffeur_name: clientData.chauffeur_id ? clientData.chauffeur_name : undefined,
+      handover_mileage: handoverMileage,
+      return_mileage: returnMileage,
     });
 
     handleClose();
@@ -244,6 +276,27 @@ export function BookingFormModal({
   const duration = dateData.start_datetime && dateData.end_datetime
     ? calculateBookingDuration(dateData.start_datetime, dateData.end_datetime)
     : null;
+  const selectedVehicle = vehicles.find(v => v.id === clientData.vehicle_id);
+  const bookingDays = dateData.start_datetime && dateData.end_datetime
+    ? Math.max(1, Math.ceil((new Date(dateData.end_datetime).getTime() - new Date(dateData.start_datetime).getTime()) / 86400000))
+    : 0;
+  const dailyMileageAllowance = settings.daily_mileage_allowance_km || 250;
+  const handoverMileageValue = clientData.handover_mileage.trim() === '' ? null : Number(clientData.handover_mileage);
+  const returnMileageValue = clientData.return_mileage.trim() === '' ? null : Number(clientData.return_mileage);
+  const hasValidHandoverMileage = handoverMileageValue !== null && Number.isFinite(handoverMileageValue);
+  const hasValidReturnMileage = returnMileageValue !== null && Number.isFinite(returnMileageValue);
+  const mileageDistance = hasValidHandoverMileage && hasValidReturnMileage
+    ? returnMileageValue! - handoverMileageValue!
+    : null;
+  const totalMileageAllowance = bookingDays * dailyMileageAllowance;
+  const excessMileage = mileageDistance !== null ? Math.max(0, mileageDistance - totalMileageAllowance) : null;
+  const mileageInvalid = mileageDistance !== null && mileageDistance < 0;
+  const submitDisabled = !clientData.vehicle_id ||
+    !clientData.client_name ||
+    (!clientData.contact && !clientData.client_email) ||
+    mileageInvalid ||
+    (clientData.return_mileage.trim() !== '' && clientData.handover_mileage.trim() === '') ||
+    submitting;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -673,7 +726,11 @@ export function BookingFormModal({
                           return (
                             <div
                               key={vehicle.id}
-                              onClick={() => setClientData({ ...clientData, vehicle_id: vehicle.id })}
+                              onClick={() => setClientData({
+                                ...clientData,
+                                vehicle_id: vehicle.id,
+                                handover_mileage: clientData.handover_mileage || String(Math.round(vehicle.current_mileage || 0)),
+                              })}
                               className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
                                 clientData.vehicle_id === vehicle.id
                                   ? 'border-blue-500 bg-blue-50'
@@ -730,6 +787,84 @@ export function BookingFormModal({
                 </div>
 
                 <div className="border-t border-gray-200 pt-6 space-y-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Gauge className="w-4 h-4 text-gray-600" />
+                      <h3 className="text-sm font-medium text-gray-700">Mileage</h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Handover KM
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={clientData.handover_mileage}
+                          onChange={e => setClientData({ ...clientData, handover_mileage: e.target.value })}
+                          disabled={submitting}
+                          placeholder={selectedVehicle ? String(Math.round(selectedVehicle.current_mileage || 0)) : '0'}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
+                        />
+                        {selectedVehicle && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Vehicle currently shows {Math.round(selectedVehicle.current_mileage || 0).toLocaleString()} km
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Return KM
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={clientData.return_mileage}
+                          onChange={e => setClientData({ ...clientData, return_mileage: e.target.value })}
+                          disabled={submitting}
+                          placeholder="Enter when returned"
+                          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base ${
+                            mileageInvalid ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                          }`}
+                        />
+                      </div>
+                    </div>
+
+                    {mileageInvalid ? (
+                      <div className="mt-3 flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-red-700">Return mileage cannot be lower than handover mileage.</p>
+                      </div>
+                    ) : mileageDistance !== null ? (
+                      <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                          <p className="text-xs text-gray-500">Distance</p>
+                          <p className="text-sm font-semibold text-gray-900">{mileageDistance.toLocaleString()} km</p>
+                        </div>
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                          <p className="text-xs text-gray-500">Avg Daily</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {bookingDays > 0 ? Math.round(mileageDistance / bookingDays).toLocaleString() : 0} km/day
+                          </p>
+                        </div>
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                          <p className="text-xs text-gray-500">Included</p>
+                          <p className="text-sm font-semibold text-gray-900">{totalMileageAllowance.toLocaleString()} km</p>
+                        </div>
+                        <div className={`border rounded-lg p-3 ${excessMileage && excessMileage > 0 ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'}`}>
+                          <p className="text-xs text-gray-500">Excess</p>
+                          <p className={`text-sm font-semibold ${excessMileage && excessMileage > 0 ? 'text-orange-700' : 'text-green-700'}`}>
+                            {(excessMileage || 0).toLocaleString()} km
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500 mt-2">
+                        Included allowance: {totalMileageAllowance.toLocaleString()} km ({bookingDays || 0} day{bookingDays === 1 ? '' : 's'} x {dailyMileageAllowance.toLocaleString()} km/day)
+                      </p>
+                    )}
+                  </div>
+
                   <h3 className="text-sm font-medium text-gray-700 mb-3">Booking Type</h3>
                   <div className="grid grid-cols-3 gap-3 mb-6">
                     <button
@@ -941,7 +1076,7 @@ export function BookingFormModal({
                 key="submit"
                 type="button"
                 onClick={handleSubmit}
-                disabled={!clientData.vehicle_id || !clientData.client_name || (!clientData.contact && !clientData.client_email) || submitting}
+                disabled={submitDisabled}
                 className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? 'Saving...' : editingBooking ? 'Update Booking' : 'Create Booking'}

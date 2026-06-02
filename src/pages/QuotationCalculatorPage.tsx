@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Copy, RotateCcw, Save, MapPin, FileText, MessageCircle, Mail, Trash2, Clock, Check, CheckCircle, Plus, X, Car, User, ArrowRightLeft, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Copy, RotateCcw, Save, MapPin, FileText, MessageCircle, Mail, Trash2, Clock, Check, CheckCircle, Plus, X, Car, User, ArrowRightLeft, AlertTriangle, Gauge } from 'lucide-react';
 import { quotationService, vehicleService, bookingService, branchService, categoryService } from '../services/api';
 import { CategoryPricing, SeasonRule, CategoryQuoteResult, Branch, PricingConfig, Quote, VehicleCategory, Vehicle, Booking } from '../types/database';
 import { showToast } from '../lib/toast';
@@ -422,6 +422,7 @@ export function QuotationCalculatorPage() {
       const { peakDays, offPeakDays } = splitDaysBySeason();
       const totalRentalDays = calculateRentalDays();
       const chauffeurFeePerDay = inputs.chauffeurChargePerDay || 4000;
+      const dailyMileageAllowance = companySettings.daily_mileage_allowance_km || 250;
       const results: CategoryQuoteResult[] = [];
 
       // Hoist fetches outside the loop (PERF-2: single fetch for all categories)
@@ -462,6 +463,7 @@ export function QuotationCalculatorPage() {
 
         const totalDays = totalRentalDays + (inputs.hasHalfDay ? 0.5 : 0);
         const chauffeurFee = inputs.hasChauffeur ? totalDays * chauffeurFeePerDay : 0;
+        const totalMileageAllowance = Math.round(totalDays * dailyMileageAllowance);
 
         // Use manually entered outside hours charge if outside office hours
         const outsideHoursCharge = isOutsideOfficeHours() ? (inputs.outsideHoursCharge || 0) : 0;
@@ -495,6 +497,8 @@ export function QuotationCalculatorPage() {
           grandTotal,
           securityDeposit: securityDepositValue,
           advancePayment: advancePaymentValue,
+          dailyMileageAllowance,
+          totalMileageAllowance,
           available: availabilityResult.available,
           branchAvailability: availabilityResult.branchAvailability,
           breakdown: {
@@ -564,6 +568,9 @@ export function QuotationCalculatorPage() {
 *Drop-off:* {{dropoff_location}}
 *Type:* {{rental_type}}
 
+*Inclusions:*
+{{mileage_allowance}}
+
 *Available Options:*
 
 {{pricing_options}}
@@ -581,6 +588,12 @@ For booking or inquiries, please contact us.`;
   const formatQuoteMessage = () => {
     const rentalDays = calculateRentalDays() + (inputs.hasHalfDay ? 0.5 : 0);
     const filteredResults = results.filter(r => visibleCategories.includes(r.categoryName));
+    const firstResult = filteredResults[0];
+    const dailyMileageAllowance = firstResult?.dailyMileageAllowance ?? companySettings.daily_mileage_allowance_km ?? 250;
+    const totalMileageAllowance = firstResult?.totalMileageAllowance ?? Math.round(rentalDays * dailyMileageAllowance);
+    const mileageAllowanceLine = firstResult
+      ? `${totalMileageAllowance.toLocaleString()} km - ${rentalDays} day${rentalDays !== 1 ? 's' : ''} x ${dailyMileageAllowance.toLocaleString()} km/day`
+      : '';
 
     const pricingOptionsBlock = filteredResults.map((r, index) => {
       let line = `${index + 1}.  ${r.categoryName} at ${formatCurrency(r.grandTotal)}/-`;
@@ -616,6 +629,7 @@ For booking or inquiries, please contact us.`;
       pickup_location: inputs.pickupLocation || 'TBD',
       dropoff_location: inputs.dropoffLocation || 'TBD',
       rental_type: rentalType,
+      mileage_allowance: mileageAllowanceLine,
       pricing_options: pricingOptionsBlock,
     };
 
@@ -650,6 +664,12 @@ For booking or inquiries, please contact us.`;
     try {
       const rentalDays = calculateRentalDays() + (inputs.hasHalfDay ? 0.5 : 0);
       const filteredResults = results.filter(r => visibleCategories.includes(r.categoryName));
+      const firstResult = filteredResults[0];
+      const dailyMileageAllowance = firstResult?.dailyMileageAllowance ?? companySettings.daily_mileage_allowance_km ?? 250;
+      const totalMileageAllowance = firstResult?.totalMileageAllowance ?? Math.round(rentalDays * dailyMileageAllowance);
+      const mileageAllowanceLine = firstResult
+        ? `${totalMileageAllowance.toLocaleString()} km - ${rentalDays} day${rentalDays !== 1 ? 's' : ''} x ${dailyMileageAllowance.toLocaleString()} km/day`
+        : '';
 
       const pdfData = {
         quoteReference: savedQuoteReference,
@@ -662,6 +682,8 @@ For booking or inquiries, please contact us.`;
         pickupLocation: inputs.pickupLocation || 'TBD',
         dropoffLocation: inputs.dropoffLocation || 'TBD',
         rentalType: inputs.quoteType === 'self_drive' ? 'Self Drive' : inputs.quoteType === 'chauffeur' ? 'With Chauffeur' : 'Transfer',
+        dailyMileageAllowance: firstResult ? dailyMileageAllowance : undefined,
+        totalMileageAllowance: firstResult ? totalMileageAllowance : undefined,
         categories: filteredResults.map(r => ({
           categoryName: r.categoryName,
           grandTotal: r.grandTotal,
@@ -684,7 +706,9 @@ For booking or inquiries, please contact us.`;
         endTime: inputs.endDateTime.split('T')[1],
         duration: `${rentalDays} day${rentalDays !== 1 ? 's' : ''}`,
         pickupLocation: inputs.pickupLocation || 'TBD',
+        dropoffLocation: inputs.dropoffLocation || 'TBD',
         rentalType: inputs.quoteType === 'self_drive' ? 'Self Drive' : inputs.quoteType === 'chauffeur' ? 'With Chauffeur' : 'Transfer',
+        mileageAllowance: mileageAllowanceLine,
         pdfBase64,
         vehicleOptions: filteredResults.map(r => ({
           name: r.categoryName,
@@ -1735,6 +1759,30 @@ For booking or inquiries, please contact us.`;
               ))}
             </div>
           </div>
+
+          {visibleCategories.length > 0 && (() => {
+            const firstResult = results.find(r => visibleCategories.includes(r.categoryName));
+            if (!firstResult) return null;
+            const rentalDays = calculateRentalDays() + (inputs.hasHalfDay ? 0.5 : 0);
+            const dailyMileageAllowance = firstResult.dailyMileageAllowance ?? companySettings.daily_mileage_allowance_km ?? 250;
+            const totalMileageAllowance = firstResult.totalMileageAllowance ?? Math.round(rentalDays * dailyMileageAllowance);
+            return (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-green-50 border border-green-200 flex items-center justify-center flex-shrink-0">
+                    <Gauge className="w-5 h-5 text-green-700" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">Inclusions</h3>
+                    <p className="text-sm text-gray-700 mt-1">
+                      Mileage allowance: <span className="font-semibold">{totalMileageAllowance.toLocaleString()} km</span>
+                      <span className="text-gray-500"> - {rentalDays} day{rentalDays !== 1 ? 's' : ''} x {dailyMileageAllowance.toLocaleString()} km/day</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">

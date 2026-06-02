@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, User, Phone, Mail, Car, AlertTriangle, FileText, Edit, Download, Eye, XCircle, History, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Calendar, MapPin, User, Phone, Mail, Car, AlertTriangle, FileText, Edit, Download, Eye, XCircle, History, ChevronDown, ChevronUp, Gauge } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Booking, Vehicle, Branch, BookingDocument, BookingAmendment } from '../types/database';
 import { formatDate, formatBookingTime, checkInsuranceExpiryDuringBooking, nowNaive } from '../lib/utils';
 import { bookingDocumentService, bookingAmendmentService } from '../services/api';
 import { BookingDocumentUpload } from './BookingDocumentUpload';
 import { showToast } from '../lib/toast';
+import { useCompanySettings } from '../lib/company-settings-context';
 
 interface BookingDetailsModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export function BookingDetailsModal({
   userRole,
 }: BookingDetailsModalProps) {
   const navigate = useNavigate();
+  const { settings } = useCompanySettings();
   const [documents, setDocuments] = useState<BookingDocument[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [amendments, setAmendments] = useState<BookingAmendment[]>([]);
@@ -101,6 +103,15 @@ export function BookingDetailsModal({
   const startDate = new Date(booking.start_datetime);
   const endDate = new Date(booking.end_datetime);
   const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  const dailyMileageAllowance = settings.daily_mileage_allowance_km || 250;
+  const totalMileageAllowance = durationDays * dailyMileageAllowance;
+  const mileageDistance = booking.handover_mileage != null && booking.return_mileage != null
+    ? booking.return_mileage - booking.handover_mileage
+    : null;
+  const excessMileage = mileageDistance != null ? Math.max(0, mileageDistance - totalMileageAllowance) : null;
+  const avgDailyKm = booking.avg_daily_km ?? (
+    mileageDistance != null && durationDays > 0 ? mileageDistance / durationDays : null
+  );
 
   const hasInsuranceIssue = vehicle?.insurance_expiry &&
     (booking.status === 'Active') &&
@@ -344,6 +355,62 @@ export function BookingDetailsModal({
                       <p className="font-semibold text-gray-900">{booking.end_location}</p>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Mileage</h3>
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                      <Gauge className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Included Allowance</p>
+                      <p className="font-semibold text-gray-900">
+                        {totalMileageAllowance.toLocaleString()} km
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {durationDays} {durationDays === 1 ? 'day' : 'days'} x {dailyMileageAllowance.toLocaleString()} km/day
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-xs text-gray-500">Handover KM</p>
+                      <p className="font-semibold text-gray-900">
+                        {booking.handover_mileage != null ? `${booking.handover_mileage.toLocaleString()} km` : 'Not recorded'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Return KM</p>
+                      <p className="font-semibold text-gray-900">
+                        {booking.return_mileage != null ? `${booking.return_mileage.toLocaleString()} km` : 'Not recorded'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Distance</p>
+                      <p className="font-semibold text-gray-900">
+                        {mileageDistance != null ? `${mileageDistance.toLocaleString()} km` : 'Not recorded'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Avg Daily</p>
+                      <p className="font-semibold text-gray-900">
+                        {avgDailyKm != null ? `${Math.round(avgDailyKm).toLocaleString()} km/day` : 'Not recorded'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {excessMileage != null && (
+                    <div className={`mt-4 rounded-lg border p-3 ${excessMileage > 0 ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'}`}>
+                      <p className="text-xs text-gray-500">Excess Mileage</p>
+                      <p className={`font-semibold ${excessMileage > 0 ? 'text-orange-700' : 'text-green-700'}`}>
+                        {excessMileage.toLocaleString()} km
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

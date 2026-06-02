@@ -99,6 +99,7 @@ export function CompanySettingsPage() {
           email_signature: formData.email_signature,
           currency_code: formData.currency_code,
           currency_locale: formData.currency_locale,
+          daily_mileage_allowance_km: Number(formData.daily_mileage_allowance_km) || 250,
           google_client_id: formData.google_client_id || null,
           google_redirect_uri: formData.google_redirect_uri || null,
           quote_whatsapp_template: formData.quote_whatsapp_template || null,
@@ -296,6 +297,16 @@ export function CompanySettingsPage() {
                   hint="Used for number formatting (e.g. en-KE, en-US)"
                 />
               </FieldGroup>
+              <FieldGroup>
+                <Field
+                  label="Daily Mileage Allowance"
+                  value={String(formData.daily_mileage_allowance_km ?? 250)}
+                  onChange={v => handleChange('daily_mileage_allowance_km', v)}
+                  placeholder="250"
+                  type="number"
+                  hint="Included kilometres per rental day shown on quotes and used for excess mileage checks"
+                />
+              </FieldGroup>
             </SettingsCard>
           )}
 
@@ -433,7 +444,7 @@ export function CompanySettingsPage() {
                     value={formData.quote_whatsapp_template ?? ''}
                     onChange={e => handleChange('quote_whatsapp_template', e.target.value)}
                     rows={22}
-                    placeholder={`*{{company_name}} - Vehicle Rental Quote*\n\n{{quote_reference}}*Client:* {{client_name}}\n*Period:* {{period}}\n*Duration:* {{duration}}\n*Pickup:* {{pickup_location}}\n*Drop-off:* {{dropoff_location}}\n*Type:* {{rental_type}}\n\n*Available Options:*\n\n{{pricing_options}}\n\n*Notes:*\n\n1. Prices include 16% VAT\n2. Card payments accepted - 3% transaction fee applies\n3. 25% to book; 75% balance AND refundable deposits are due on day 1 of your rental\n\n_Terms & Conditions Apply_\n\nFor booking or inquiries, please contact us.`}
+                    placeholder={`*{{company_name}} - Vehicle Rental Quote*\n\n{{quote_reference}}*Client:* {{client_name}}\n*Period:* {{period}}\n*Duration:* {{duration}}\n*Pickup:* {{pickup_location}}\n*Drop-off:* {{dropoff_location}}\n*Type:* {{rental_type}}\n\n*Inclusions:*\n{{mileage_allowance}}\n\n*Available Options:*\n\n{{pricing_options}}\n\n*Notes:*\n\n1. Prices include 16% VAT\n2. Card payments accepted - 3% transaction fee applies\n3. 25% to book; 75% balance AND refundable deposits are due on day 1 of your rental\n\n_Terms & Conditions Apply_\n\nFor booking or inquiries, please contact us.`}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm resize-y"
                   />
                   <p className="mt-1 text-xs text-gray-500">Leave blank to use the default template. WhatsApp bold: *text*. WhatsApp italic: _text_.</p>
@@ -450,6 +461,7 @@ export function CompanySettingsPage() {
                       '{{pickup_location}}',
                       '{{dropoff_location}}',
                       '{{rental_type}}',
+                      '{{mileage_allowance}}',
                       '{{pricing_options}}',
                     ].map(variable => (
                       <button
@@ -464,6 +476,7 @@ export function CompanySettingsPage() {
                     ))}
                   </div>
                   <p className="mt-2 text-xs text-gray-500">
+                    <strong>{'{{mileage_allowance}}'}</strong> — auto-generates the included kilometres line.<br />
                     <strong>{'{{pricing_options}}'}</strong> — auto-generates one line per vehicle category with price and deposit.<br />
                     <strong>{'{{quote_reference}}'}</strong> — only appears if the quote has been saved with a reference number.
                   </p>

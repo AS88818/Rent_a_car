@@ -15,7 +15,9 @@ interface QuoteEmailRequest {
   endDate: string;
   duration: string;
   pickupLocation: string;
+  dropoffLocation?: string;
   rentalType: string;
+  mileageAllowance?: string;
   pdfBase64: string;
   vehicleOptions?: Array<{ name: string; price: number; deposit: number }>;
 }
@@ -201,7 +203,9 @@ Deno.serve(async (req: Request) => {
       end_date: payload.endDate,
       duration: payload.duration,
       pickup_location: payload.pickupLocation,
+      dropoff_location: payload.dropoffLocation || payload.pickupLocation,
       rental_type: payload.rentalType,
+      mileage_allowance: payload.mileageAllowance || '',
       vehicle_options: vehicleOptionsList,
     };
 

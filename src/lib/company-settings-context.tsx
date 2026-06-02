@@ -18,6 +18,7 @@ const DEFAULT_SETTINGS: CompanySettings = {
   email_signature: '',
   currency_code: 'KES',
   currency_locale: 'en-KE',
+  daily_mileage_allowance_km: 250,
   google_sync_enabled: false,
   updated_at: '',
 };
