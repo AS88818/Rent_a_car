@@ -154,11 +154,13 @@ export function ReportsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         {summary.map(report => (
-          <section key={report.type} className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+          <section key={report.type} className="bg-white border border-gray-200 border-l-4 border-l-[#b6ff00] rounded-lg p-5 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <BarChart3 className="w-5 h-5 text-blue-600" />
+                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-[#b6ff00]">
+                    <BarChart3 className="w-5 h-5 text-gray-900" />
+                  </span>
                   <h2 className="text-lg font-semibold text-gray-900">{report.title}</h2>
                 </div>
                 <p className="text-sm text-gray-600">{report.description}</p>
@@ -173,7 +175,7 @@ export function ReportsPage() {
                   <button
                     onClick={() => handlePreview(report.type)}
                     disabled={runningReport === report.type}
-                    className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    className="p-2 border border-gray-300 rounded-lg hover:bg-[#f7ffe8] transition-colors disabled:opacity-50"
                     title={`Preview ${report.title}`}
                   >
                     <Eye className="w-4 h-4 text-gray-700" />
@@ -181,7 +183,7 @@ export function ReportsPage() {
                   <button
                     onClick={() => handleTestSend(report.type)}
                     disabled={runningReport === report.type}
-                    className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    className="p-2 bg-[#b6ff00] text-gray-900 rounded-lg hover:bg-[#a7ed00] transition-colors disabled:opacity-50"
                     title={`Send test ${report.title}`}
                   >
                     <Send className="w-4 h-4" />
@@ -208,7 +210,7 @@ export function ReportsPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-[#eef6ff] border-b border-gray-200">
                 <tr>
                   <th className="text-left px-5 py-3 font-semibold text-gray-700">Report</th>
                   <th className="text-left px-5 py-3 font-semibold text-gray-700">User</th>
@@ -239,7 +241,7 @@ export function ReportsPage() {
                           disabled={updatingId === subscription.id || disabledByRole}
                           className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50 ${
                             subscription.enabled
-                              ? 'bg-green-50 text-green-700 hover:bg-green-100'
+                              ? 'bg-[#b6ff00] text-gray-900 hover:bg-[#a7ed00]'
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                           }`}
                         >
@@ -256,12 +258,12 @@ export function ReportsPage() {
         )}
       </section>
 
-      <section className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <section className="mt-6 bg-[#f7ffe8] border border-[#b6ff00] rounded-lg p-4">
         <div className="flex items-start gap-3">
-          <Mail className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+          <Mail className="w-5 h-5 text-gray-900 mt-0.5 flex-shrink-0" />
           <div>
-            <h2 className="text-sm font-semibold text-blue-900">Email delivery</h2>
-            <p className="text-sm text-blue-800 mt-1">
+            <h2 className="text-sm font-semibold text-gray-900">Email delivery</h2>
+            <p className="text-sm text-gray-700 mt-1">
               Reports are queued through the existing email queue and sent by the existing queue processor. No PDF attachments are generated for these reports.
             </p>
           </div>
@@ -287,7 +289,7 @@ export function ReportsPage() {
             <iframe
               title={`${reportLabel(preview.type)} preview`}
               srcDoc={preview.report.html}
-              className="w-full flex-1 min-h-[70vh] bg-white"
+              className="w-full flex-1 min-h-[70vh] bg-[#fbfaf7]"
             />
           </div>
         </div>

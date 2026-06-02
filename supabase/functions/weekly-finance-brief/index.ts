@@ -67,9 +67,9 @@ function percentChange(current: number, previous: number) {
 }
 
 function table(headers: string[], rows: string[][]) {
-  if (rows.length === 0) return `<p class="muted">None</p>`;
+  if (rows.length === 0) return `<div class="empty-state">No rows to show.</div>`;
   return `
-    <table>
+    <table class="data-table">
       <thead><tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr></thead>
       <tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join("")}</tr>`).join("")}</tbody>
     </table>
@@ -77,7 +77,181 @@ function table(headers: string[], rows: string[][]) {
 }
 
 function unavailable(label: string) {
-  return `<p class="muted">${label}: not available until landing page/customer CRM is live.</p>`;
+  return `
+    <div class="notice">
+      <strong>${label}</strong>
+      <span>Not available until landing page/customer CRM is live.</span>
+    </div>
+  `;
+}
+
+function metric(label: string, value: string | number, tone = "default") {
+  return `
+    <div class="metric metric-${tone}">
+      <span>${label}</span>
+      <strong>${value}</strong>
+    </div>
+  `;
+}
+
+function section(title: string, content: string) {
+  return `
+    <section class="section-card">
+      <h2>${title}</h2>
+      ${content}
+    </section>
+  `;
+}
+
+function reportStyles() {
+  return `
+  <style>
+    html, body { margin: 0; padding: 0; background: #fbfaf7; }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      color: #0f172a;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    .report-bg { background: #fbfaf7; padding: 24px; }
+    .report-shell { max-width: 1040px; margin: 0 auto; }
+    .brand-row {
+      margin: 0 0 14px;
+      color: #111827;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .brand-row > div { display: inline-block; vertical-align: middle; }
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      background: #b6ff00;
+      border: 1px solid #9be000;
+      color: #020617;
+      line-height: 38px;
+      text-align: center;
+      font-weight: 800;
+      letter-spacing: 0;
+      margin-right: 10px;
+    }
+    .hero-card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+      margin-bottom: 16px;
+    }
+    .hero-accent { height: 8px; background: #b6ff00; }
+    .hero-body { padding: 24px; }
+    .eyebrow {
+      margin: 0 0 6px;
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    h1 { margin: 0; font-size: 30px; line-height: 1.15; letter-spacing: 0; color: #020617; }
+    h2 { margin: 0 0 16px; font-size: 18px; line-height: 1.2; color: #020617; }
+    h3 { margin: 18px 0 8px; font-size: 15px; line-height: 1.3; color: #111827; }
+    p { margin: 0 0 12px; }
+    .muted { color: #64748b; }
+    .hero-meta { margin-top: 8px; color: #64748b; font-size: 14px; }
+    .metric-row { margin: 0 -6px 14px; }
+    .metric {
+      display: inline-block;
+      vertical-align: top;
+      min-width: 170px;
+      margin: 6px;
+      padding: 14px 16px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+    }
+    .metric span {
+      display: block;
+      color: #334155;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .metric strong {
+      display: block;
+      color: #020617;
+      font-size: 24px;
+      line-height: 1.1;
+      font-weight: 800;
+    }
+    .metric-lime { background: #b6ff00; border-color: #9be000; }
+    .metric-blue strong { color: #0284c7; }
+    .metric-green strong { color: #16a34a; }
+    .metric-red strong { color: #dc2626; }
+    .section-card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 16px 0;
+      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+    }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 14px;
+      border: 1px solid #dbe3ef;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    th, td {
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 10px 12px;
+      font-size: 13px;
+      vertical-align: top;
+    }
+    th {
+      background: #eef6ff;
+      color: #1f2937;
+      font-weight: 800;
+    }
+    tr:last-child td { border-bottom: 0; }
+    .empty-state {
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      border-radius: 10px;
+      color: #64748b;
+      padding: 14px;
+      margin: 8px 0 14px;
+      font-size: 13px;
+    }
+    .notice {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid #b6ff00;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin: 8px 0;
+      color: #475569;
+      font-size: 13px;
+    }
+    .notice strong { display: block; color: #111827; margin-bottom: 2px; }
+    .footer {
+      color: #64748b;
+      font-size: 12px;
+      padding: 8px 4px 0;
+    }
+    @media (max-width: 640px) {
+      .report-bg { padding: 12px; }
+      .hero-body, .section-card { padding: 16px; }
+      h1 { font-size: 24px; }
+      .metric { display: block; min-width: 0; }
+    }
+  </style>
+  `;
 }
 
 async function getAuthContext(req: Request, supabase: SupabaseClient): Promise<AuthContext> {
@@ -225,47 +399,69 @@ async function buildWeeklyReport(supabase: SupabaseClient) {
 <html>
 <head>
   <meta charset="utf-8" />
-  <style>
-    body { font-family: Arial, sans-serif; color: #111827; line-height: 1.45; }
-    h1 { font-size: 22px; margin-bottom: 4px; }
-    h2 { font-size: 16px; margin-top: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    th, td { text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px; font-size: 13px; vertical-align: top; }
-    th { background: #f9fafb; color: #374151; }
-    .muted { color: #6b7280; }
-    .metric { display: inline-block; margin: 6px 12px 6px 0; padding: 8px 10px; background: #f3f4f6; border-radius: 6px; }
-  </style>
+  ${reportStyles()}
 </head>
 <body>
-  <h1>Weekly Finance Brief</h1>
-  <p class="muted">Prior week: ${window.startDate} to ${window.endDate}</p>
+  <div class="report-bg">
+    <div class="report-shell">
+      <div class="brand-row">
+        <div class="brand-mark">RC</div>
+        <div>Rent A Car In Kenya</div>
+      </div>
 
-  <h2>Revenue Last Week</h2>
-  <div class="metric">Total invoiced: <strong>${formatCurrency(totalInvoiced)}</strong> (${percentChange(totalInvoiced, priorInvoiced)} vs prior week)</div>
-  <div class="metric">Total collected: <strong>${formatCurrency(totalCollected)}</strong></div>
-  <div class="metric">Top revenue category: <strong>${topCategory ? `${topCategory[0]}: ${formatCurrency(topCategory[1])}` : "Not enough invoice category data"}</strong></div>
-  ${table(["Payment Method", "Collected"], Object.entries(collectionBreakdown).map(([method, amount]) => [method, formatCurrency(amount as number)]))}
+      <header class="hero-card">
+        <div class="hero-accent"></div>
+        <div class="hero-body">
+          <p class="eyebrow">Finance summary</p>
+          <h1>Weekly Finance Brief</h1>
+          <p class="hero-meta">Prior week: ${window.startDate} to ${window.endDate}</p>
+        </div>
+      </header>
 
-  <h2>Pipeline & Conversion</h2>
-  ${unavailable("Landing page requests received")}
-  ${unavailable("Approved to deposit paid to booking conversion")}
-  <p>Quotes sent to bookings: <strong>${quoteConversion}</strong></p>
-  ${unavailable("Lost reasons summary")}
+      ${section("Revenue Last Week", `
+        <div class="metric-row">
+          ${metric("Total invoiced", formatCurrency(totalInvoiced), "lime")}
+          ${metric("Vs prior week", percentChange(totalInvoiced, priorInvoiced), totalInvoiced >= priorInvoiced ? "green" : "red")}
+          ${metric("Total collected", formatCurrency(totalCollected), totalCollected > 0 ? "green" : "default")}
+          ${metric("Top revenue category", topCategory ? `${topCategory[0]}: ${formatCurrency(topCategory[1])}` : "Not enough data", "blue")}
+        </div>
+        <h3>Collection breakdown</h3>
+        ${table(["Payment Method", "Collected"], Object.entries(collectionBreakdown).map(([method, amount]) => [method, formatCurrency(amount as number)]))}
+      `)}
 
-  <h2>Fleet Utilization</h2>
-  ${table(["Category", "Booked Days", "Available Days", "Utilization"], utilizationRows)}
-  ${unavailable("Most-requested vehicle units")}
-  ${unavailable("Least-requested vehicle units")}
+      ${section("Pipeline & Conversion", `
+        ${unavailable("Landing page requests received")}
+        ${unavailable("Approved to deposit paid to booking conversion")}
+        <div class="metric-row">
+          ${metric("Quotes sent to bookings", quoteConversion, "blue")}
+        </div>
+        ${unavailable("Lost reasons summary")}
+      `)}
 
-  <h2>Customers</h2>
-  ${unavailable("New customers added")}
-  ${unavailable("Returning customers")}
-  ${unavailable("Total active customers in CRM")}
+      ${section("Fleet Utilization", `
+        ${table(["Category", "Booked Days", "Available Days", "Utilization"], utilizationRows)}
+        ${unavailable("Most-requested vehicle units")}
+        ${unavailable("Least-requested vehicle units")}
+      `)}
 
-  <h2>Receivables</h2>
-  <div class="metric">Outstanding balance: <strong>${formatCurrency(outstanding)}</strong> across ${openInvoices.length} open invoices</div>
-  ${table(["Age", "Amount"], Object.entries(aging).map(([bucket, amount]) => [bucket, formatCurrency(amount)]))}
-  <p>Overdue follow-ups recommended: <strong>${openInvoices.filter((invoice: any) => invoice.payment_status === "Overdue").length}</strong></p>
+      ${section("Customers", `
+        ${unavailable("New customers added")}
+        ${unavailable("Returning customers")}
+        ${unavailable("Total active customers in CRM")}
+      `)}
+
+      ${section("Receivables", `
+        <div class="metric-row">
+          ${metric("Outstanding balance", formatCurrency(outstanding), outstanding > 0 ? "red" : "green")}
+          ${metric("Open invoices", openInvoices.length)}
+          ${metric("Overdue follow-ups", openInvoices.filter((invoice: any) => invoice.payment_status === "Overdue").length, "red")}
+        </div>
+        ${table(["Age", "Amount"], Object.entries(aging).map(([bucket, amount]) => [bucket, formatCurrency(amount)]))}
+      `)}
+
+      <p class="footer">Queued by the automated Reports section.</p>
+    </div>
+  </div>
 </body>
 </html>`;
 
