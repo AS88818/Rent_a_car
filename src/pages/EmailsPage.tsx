@@ -840,8 +840,12 @@ export function EmailsPage() {
           <div className="space-y-4">
             {filteredTemplates.map((template) => {
               const canEdit =
-                (template.approval_status === 'draft' || template.approval_status === 'rejected') &&
-                (template.created_by === currentUser?.id || isAdmin);
+                isAdmin ||
+                (
+                  !template.is_system_template &&
+                  (template.approval_status === 'draft' || template.approval_status === 'rejected') &&
+                  template.created_by === currentUser?.id
+                );
               const canDelete = !template.is_system_template && (template.created_by === currentUser?.id || isAdmin);
               const canApprove = isAdmin && template.approval_status === 'pending';
               const canSubmit = template.approval_status === 'draft' && template.created_by === currentUser?.id;
