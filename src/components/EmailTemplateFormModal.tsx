@@ -218,6 +218,33 @@ export function EmailTemplateFormModal({
   };
 
   const currentVariables = getVariablesForCategory(formData.template_category);
+  const approvalNotice = (() => {
+    if (!template) {
+      return {
+        title: 'Template Approval Required',
+        body: 'After creating this template, it will be saved as a draft. Submit it for approval before it can be used for sending emails.',
+      };
+    }
+
+    if (template.approval_status === 'approved') {
+      return {
+        title: 'Approved Template',
+        body: 'This template is already approved. Saving changes keeps it approved, so active changes can be used immediately.',
+      };
+    }
+
+    if (template.approval_status === 'pending') {
+      return {
+        title: 'Pending Approval',
+        body: 'This template is waiting for approval. Saving changes keeps it pending until an admin approves it.',
+      };
+    }
+
+    return {
+      title: 'Draft Template',
+      body: 'Saving changes keeps this template as a draft. Submit it for approval when it is ready to be used for sending emails.',
+    };
+  })();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -259,11 +286,8 @@ export function EmailTemplateFormModal({
               <div className="flex items-start gap-2">
                 <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                 <div className="text-sm text-blue-800">
-                  <p className="font-medium mb-1">Template Approval Required</p>
-                  <p>
-                    After creating this template, it will be saved as a draft. You'll need to submit it for
-                    approval before it can be used for sending emails.
-                  </p>
+                  <p className="font-medium mb-1">{approvalNotice.title}</p>
+                  <p>{approvalNotice.body}</p>
                 </div>
               </div>
             </div>
@@ -516,7 +540,11 @@ export function EmailTemplateFormModal({
                 disabled={submitting}
                 className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
               />
-              <label className="text-sm text-gray-700">Active (template will be used once approved)</label>
+              <label className="text-sm text-gray-700">
+                {template?.approval_status === 'approved'
+                  ? 'Active (approved template can be used for sending)'
+                  : 'Active (template will be used once approved)'}
+              </label>
             </div>
           </div>
 
