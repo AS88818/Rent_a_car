@@ -203,16 +203,6 @@ export function EmailsPage() {
     }
   };
 
-  const handleRevertToDraft = async (id: string) => {
-    try {
-      const updated = await emailService.revertTemplateToDraft(id);
-      setEmailTemplates(emailTemplates.map((t) => (t.id === updated.id ? updated : t)));
-      showToast('Template unlocked for editing', 'success');
-    } catch (error: any) {
-      showToast(error.message || 'Failed to unlock template', 'error');
-    }
-  };
-
   const handleUpdateQueueEmail = async (updates: Partial<EmailQueue>) => {
     if (!editingQueueEmail) return;
 
@@ -849,7 +839,6 @@ export function EmailsPage() {
               const canDelete = !template.is_system_template && (template.created_by === currentUser?.id || isAdmin);
               const canApprove = isAdmin && template.approval_status === 'pending';
               const canSubmit = template.approval_status === 'draft' && template.created_by === currentUser?.id;
-              const canRevert = isAdmin && template.approval_status === 'approved';
 
               return (
                 <div key={template.id} className="border border-gray-200 rounded-lg p-3 sm:p-4">
@@ -927,21 +916,6 @@ export function EmailsPage() {
                             <ThumbsDown className="w-4 h-4" />
                           </button>
                         </>
-                      )}
-                      {canRevert && (
-                        <button
-                          onClick={() =>
-                            setConfirmAction({
-                              action: () => handleRevertToDraft(template.id),
-                              message:
-                                'Unlock this approved template for editing? It will be moved back to Draft status and will not be sent until it is approved again.',
-                            })
-                          }
-                          className="p-1.5 sm:p-2 text-amber-600 hover:bg-amber-50 rounded transition-colors"
-                          title="Unlock for editing (revert to draft)"
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                        </button>
                       )}
                       <button
                         onClick={() => handleDuplicateTemplate(template)}
