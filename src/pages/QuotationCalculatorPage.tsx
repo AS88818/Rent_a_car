@@ -579,7 +579,7 @@ export function QuotationCalculatorPage() {
 
 1. Prices include 16% VAT
 2. Card payments accepted - 3% transaction fee applies
-3. 25% to book; 75% balance AND refundable deposits are due on day 1 of your rental
+3. 25% to book; 75% balance PLUS refundable deposits are due on day 1 of your rental
 
 _Terms & Conditions Apply_
 
