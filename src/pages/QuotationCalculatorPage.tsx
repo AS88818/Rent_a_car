@@ -598,7 +598,7 @@ For booking or inquiries, please contact us.`;
     const pricingOptionsBlock = filteredResults.map((r, index) => {
       let line = `${index + 1}.  ${r.categoryName} at ${formatCurrency(r.grandTotal)}/-`;
       if (!inputs.hasChauffeur && r.securityDeposit > 0) {
-        line += ` with a refundable security deposit of ${formatCurrency(r.securityDeposit)}/-`;
+        line += ` PLUS a refundable security deposit of ${formatCurrency(r.securityDeposit)}/-`;
       }
       if ((r.outsideHoursCharge ?? 0) > 0) {
         line += ` (incl. out-of-hours surcharge of ${formatCurrency(r.outsideHoursCharge ?? 0)}/-)`;
