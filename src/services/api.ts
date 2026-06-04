@@ -76,7 +76,7 @@ const maintenanceLogSelect = `
     resolution_method,
     resolution_notes,
     resolved_at,
-    snags (
+    snags!snag_resolutions_snag_id_fkey (
       id,
       snag_number,
       description,
