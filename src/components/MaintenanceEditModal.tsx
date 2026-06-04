@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { MaintenanceLog, AuthUser } from '../types/database';
+import { MAINTENANCE_WORK_CATEGORIES } from '../lib/maintenance';
 
 interface MaintenanceEditModalProps {
   isOpen: boolean;
@@ -152,16 +153,9 @@ export function MaintenanceEditModal({
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed text-base"
               >
                 <option value="">No Category</option>
-                <option value="Accessories">Accessories</option>
-                <option value="Body">Body</option>
-                <option value="Cooling">Cooling</option>
-                <option value="Electrical">Electrical</option>
-                <option value="Engine / Fuel">Engine / Fuel</option>
-                <option value="Gearbox">Gearbox</option>
-                <option value="Service">Service</option>
-                <option value="Steering">Steering</option>
-                <option value="Suspension">Suspension</option>
-                <option value="Wheels">Wheels</option>
+                {MAINTENANCE_WORK_CATEGORIES.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
               </select>
             </div>
 

@@ -2,6 +2,7 @@ import { X, CheckCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Snag, MaintenanceLog, ResolutionMethod, AuthUser } from '../types/database';
 import { PhotoUpload } from './PhotoUpload';
+import { MAINTENANCE_WORK_CATEGORIES } from '../lib/maintenance';
 
 interface SnagResolutionModalProps {
   isOpen: boolean;
@@ -157,6 +158,7 @@ export function SnagResolutionModal({
         performed_by: performedByName,
         performed_by_user_id: performedByUserIdValue,
         checked_by_user_id: maintenanceCheckedByUserId || undefined,
+        work_category: (workCategory || undefined) as MaintenanceLog['work_category'],
         notes: maintenanceNotes || undefined,
         photo_urls: maintenancePhotoUrls.length > 0 ? maintenancePhotoUrls : undefined,
         branch_id: branchId,
@@ -394,16 +396,9 @@ export function SnagResolutionModal({
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 text-base bg-white"
                     >
                       <option value="">No Category</option>
-                      <option value="Accessories">Accessories</option>
-                      <option value="Body">Body</option>
-                      <option value="Cooling">Cooling</option>
-                      <option value="Electrical">Electrical</option>
-                      <option value="Engine / Fuel">Engine / Fuel</option>
-                      <option value="Gearbox">Gearbox</option>
-                      <option value="Service">Service</option>
-                      <option value="Steering">Steering</option>
-                      <option value="Suspension">Suspension</option>
-                      <option value="Wheels">Wheels</option>
+                      {MAINTENANCE_WORK_CATEGORIES.map(category => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
                     </select>
                   </div>
 

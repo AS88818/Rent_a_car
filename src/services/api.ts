@@ -5,6 +5,8 @@ import {
   Booking,
   MileageLog,
   MaintenanceLog,
+  MaintenanceWorkCategory,
+  MaintenanceWorkItem,
   Snag,
   Branch,
   VehicleCategory,
@@ -35,6 +37,64 @@ import {
   ReportType,
 } from '../types/database';
 import { checkBookingConflict, calculateVehicleHealth, nowNaive } from '../lib/utils';
+import { sortMaintenanceLogs, sortMaintenanceWorkItems } from '../lib/maintenance';
+
+type MaintenanceWorkItemInput = {
+  work_description: string;
+  work_category?: MaintenanceWorkCategory | '';
+  photos?: string[];
+  performed_by?: string;
+  performed_by_user_id?: string;
+  checked_by_user_id?: string;
+};
+
+type MaintenanceLogCreateInput = Omit<MaintenanceLog, 'id' | 'created_at' | 'work_items' | 'snag_resolutions'> & {
+  work_items?: MaintenanceWorkItemInput[];
+};
+
+type MaintenanceLogRow = Omit<MaintenanceLog, 'work_items'> & {
+  maintenance_work_items?: MaintenanceWorkItem[];
+};
+
+const maintenanceLogSelect = `
+  *,
+  maintenance_work_items (
+    id,
+    maintenance_log_id,
+    work_description,
+    work_category,
+    photo_urls,
+    order_index,
+    performed_by,
+    performed_by_user_id,
+    checked_by_user_id,
+    created_at
+  ),
+  snag_resolutions (
+    id,
+    snag_id,
+    resolution_method,
+    resolution_notes,
+    resolved_at,
+    snags (
+      id,
+      snag_number,
+      description,
+      priority,
+      date_opened,
+      mileage_reported
+    )
+  )
+`;
+
+function normalizeMaintenanceLog(row: MaintenanceLogRow): MaintenanceLog {
+  const { maintenance_work_items, ...log } = row;
+
+  return {
+    ...log,
+    work_items: sortMaintenanceWorkItems(maintenance_work_items),
+  };
+}
 
 export const vehicleService = {
   async getVehicles(branchId?: string, includeDrafts: boolean = false) {
@@ -585,14 +645,17 @@ export const maintenanceService = {
   async getMaintenanceLog(vehicleId: string) {
     const { data, error } = await supabase
       .from('maintenance_logs')
-      .select('*')
+      .select(maintenanceLogSelect)
       .eq('vehicle_id', vehicleId)
-      .order('service_date', { ascending: false });
+      .order('service_date', { ascending: false })
+      .order('mileage', { ascending: false })
+      .order('created_at', { ascending: false });
     if (error) throw error;
-    return data as MaintenanceLog[];
+
+    return sortMaintenanceLogs(((data || []) as MaintenanceLogRow[]).map(normalizeMaintenanceLog));
   },
 
-  async createMaintenanceLog(log: Omit<MaintenanceLog, 'id' | 'created_at'> & { work_items?: Array<{ work_description: string; work_category: string; photos: string[] }> }) {
+  async createMaintenanceLog(log: MaintenanceLogCreateInput) {
     const { work_items, ...maintenanceLogData } = log;
 
     const { data: createdLog, error: logError } = await supabase
@@ -602,6 +665,8 @@ export const maintenanceService = {
       .single();
 
     if (logError) throw logError;
+
+    let insertedWorkItems: MaintenanceWorkItem[] = [];
 
     // Auto-update vehicle current_mileage if maintenance log mileage is higher
     if (maintenanceLogData.vehicle_id && maintenanceLogData.mileage) {
@@ -623,15 +688,20 @@ export const maintenanceService = {
         maintenance_log_id: createdLog.id,
         work_description: item.work_description,
         work_category: item.work_category || null,
-        photo_urls: item.photos,
+        photo_urls: item.photos || [],
+        performed_by: item.performed_by || null,
+        performed_by_user_id: item.performed_by_user_id || null,
+        checked_by_user_id: item.checked_by_user_id || null,
         order_index: index,
       }));
 
-      const { error: itemsError } = await supabase
+      const { data: itemsData, error: itemsError } = await supabase
         .from('maintenance_work_items')
-        .insert(workItemsToInsert);
+        .insert(workItemsToInsert)
+        .select();
 
       if (itemsError) throw itemsError;
+      insertedWorkItems = sortMaintenanceWorkItems(itemsData as MaintenanceWorkItem[]);
 
       // AUTO-RESET DISABLED — client manages next_service_mileage manually.
       // To re-enable, uncomment the block below.
@@ -650,7 +720,10 @@ export const maintenanceService = {
       // }
     }
 
-    return createdLog as MaintenanceLog;
+    return {
+      ...(createdLog as MaintenanceLog),
+      work_items: insertedWorkItems,
+    };
   },
 
   async getMaintenanceLogsByUser(userId: string) {
@@ -675,10 +748,10 @@ export const maintenanceService = {
       .from('maintenance_logs')
       .update(updates)
       .eq('id', id)
-      .select()
+      .select(maintenanceLogSelect)
       .single();
     if (error) throw error;
-    return data as MaintenanceLog;
+    return normalizeMaintenanceLog(data as MaintenanceLogRow);
   },
 
   async deleteMaintenanceLog(id: string, userId: string, reason: string) {
@@ -2216,7 +2289,7 @@ export const snagResolutionService = {
 
   async createResolutionWithMaintenanceLog(
     resolution: Omit<SnagResolution, 'id' | 'created_at' | 'resolved_at' | 'maintenance_log_id'>,
-    maintenanceLog: Omit<MaintenanceLog, 'id' | 'created_at'> & { work_items?: Array<{ work_description: string; work_category: string; photos: string[] }> }
+    maintenanceLog: MaintenanceLogCreateInput
   ) {
     const createdLog = await maintenanceService.createMaintenanceLog(maintenanceLog);
 
