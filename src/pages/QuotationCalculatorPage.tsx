@@ -579,7 +579,7 @@ export function QuotationCalculatorPage() {
 
 1. Prices include 16% VAT
 2. Card payments accepted - 3% transaction fee applies
-3. 25% to book; 75% balance PLUS refundable deposits are due on day 1 of your rental
+3. 25% to book; 75% balance AND refundable deposits are due on day 1 of your rental
 
 _Terms & Conditions Apply_
 
@@ -598,7 +598,7 @@ For booking or inquiries, please contact us.`;
     const pricingOptionsBlock = filteredResults.map((r, index) => {
       let line = `${index + 1}.  ${r.categoryName} at ${formatCurrency(r.grandTotal)}/-`;
       if (!inputs.hasChauffeur && r.securityDeposit > 0) {
-        line += ` PLUS a refundable security deposit of ${formatCurrency(r.securityDeposit)}/-`;
+        line += ` with a refundable security deposit of ${formatCurrency(r.securityDeposit)}/-`;
       }
       if ((r.outsideHoursCharge ?? 0) > 0) {
         line += ` (incl. out-of-hours surcharge of ${formatCurrency(r.outsideHoursCharge ?? 0)}/-)`;

@@ -55,7 +55,6 @@ import { useAuth } from '../lib/auth-context';
 import { VehicleDocumentUpload } from '../components/VehicleDocumentUpload';
 import { MileageHistoryModal } from '../components/MileageHistoryModal';
 import { BookingHistoryModal } from '../components/BookingHistoryModal';
-import { sortMaintenanceLogs } from '../lib/maintenance';
 
 export function VehicleDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -360,7 +359,12 @@ export function VehicleDetailsPage() {
     })
     .slice(0, 5);
 
-  const recentMaintenance = sortMaintenanceLogs(maintenanceLogs).slice(0, 3);
+  const recentMaintenance = maintenanceLogs
+    .sort(
+      (a, b) =>
+        new Date(b.service_date).getTime() - new Date(a.service_date).getTime()
+    )
+    .slice(0, 3);
 
   const openSnags = snags.filter((s) => s.status === 'Open');
   const primaryImage = images.find(img => img.is_primary);

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { maintenanceService, vehicleService, userService } from '../services/api';
-import { MaintenanceLog, Vehicle, AuthUser, MaintenanceResolvedSnag, MaintenanceWorkCategory } from '../types/database';
+import { MaintenanceLog, Vehicle, AuthUser } from '../types/database';
 import { formatDate } from '../lib/utils';
 import { Plus, Filter, X, Image as ImageIcon, Trash2, RefreshCw, Pencil } from 'lucide-react';
 import { showToast } from '../lib/toast';
@@ -10,28 +10,16 @@ import { PhotoUpload } from '../components/PhotoUpload';
 import { MaintenanceEditModal } from '../components/MaintenanceEditModal';
 import { MaintenanceDeleteModal } from '../components/MaintenanceDeleteModal';
 import { getPermissions } from '../lib/permissions';
-import {
-  getMaintenanceLogCategories,
-  getMaintenanceResolvedSnag,
-  MAINTENANCE_WORK_CATEGORIES,
-  sortMaintenanceLogs,
-  sortMaintenanceWorkItems,
-} from '../lib/maintenance';
 
 interface WorkItem {
   work_description: string;
-  work_category: MaintenanceWorkCategory | '';
+  work_category: string;
   photos: string[];
   performed_by: string;
   performed_by_user_id: string;
   performed_by_type: 'registered' | 'other';
   performed_by_other: string;
   checked_by_user_id: string;
-}
-
-function formatSnagTitle(snag: MaintenanceResolvedSnag): string {
-  const prefix = snag.snag_number ? `Snag #${snag.snag_number}` : 'Snag';
-  return `${prefix}: ${snag.description}`;
 }
 
 export function MaintenancePage() {
@@ -101,7 +89,7 @@ export function MaintenancePage() {
         if (initialVehicleId) {
           setSelectedVehicle(initialVehicleId);
           const logsData = await maintenanceService.getMaintenanceLog(initialVehicleId);
-          setLogs(sortMaintenanceLogs(logsData));
+          setLogs(logsData);
         }
       } catch (error: any) {
         console.error('Maintenance fetch error:', error);
@@ -133,7 +121,7 @@ export function MaintenancePage() {
 
       if (selectedVehicle) {
         const logsData = await maintenanceService.getMaintenanceLog(selectedVehicle);
-        setLogs(sortMaintenanceLogs(logsData));
+        setLogs(logsData);
       }
 
       showToast('Data refreshed', 'success');
@@ -160,7 +148,7 @@ export function MaintenancePage() {
 
     try {
       const logsData = await maintenanceService.getMaintenanceLog(vehicleId);
-      setLogs(sortMaintenanceLogs(logsData));
+      setLogs(logsData);
     } catch (error) {
       showToast('Failed to fetch maintenance logs', 'error');
     }
@@ -280,7 +268,7 @@ export function MaintenancePage() {
         work_items: processedWorkItems,
       });
 
-      setLogs(sortMaintenanceLogs([newLog, ...logs]));
+      setLogs([newLog, ...logs]);
       setFormData({
         service_date: '',
         mileage: '',
@@ -310,7 +298,7 @@ export function MaintenancePage() {
     setEditSubmitting(true);
     try {
       const updated = await maintenanceService.updateMaintenanceLog(editingLog.id, updates);
-      setLogs(sortMaintenanceLogs(logs.map(l => l.id === editingLog.id ? updated : l)));
+      setLogs(logs.map(l => l.id === editingLog.id ? updated : l));
       setEditingLog(null);
       showToast('Maintenance log updated', 'success');
     } catch (error: any) {
@@ -325,7 +313,7 @@ export function MaintenancePage() {
     setDeleteLoading(true);
     try {
       await maintenanceService.deleteMaintenanceLog(deletingLog.id, user.id, reason);
-      setLogs(sortMaintenanceLogs(logs.filter(l => l.id !== deletingLog.id)));
+      setLogs(logs.filter(l => l.id !== deletingLog.id));
       setDeletingLog(null);
       showToast('Maintenance log deleted', 'success');
     } catch (error: any) {
@@ -338,11 +326,6 @@ export function MaintenancePage() {
   const permissions = userRole ? getPermissions(userRole) : null;
 
   const currentVehicle = vehicles.find(v => v.id === selectedVehicle);
-  const sortedLogs = sortMaintenanceLogs(logs);
-  const latestLog = sortedLogs[0];
-  const selectedLogWorkItems = selectedLog ? sortMaintenanceWorkItems(selectedLog.work_items) : [];
-  const selectedLogCategories = selectedLog ? getMaintenanceLogCategories(selectedLog) : [];
-  const selectedResolvedSnag = selectedLog ? getMaintenanceResolvedSnag(selectedLog) : null;
 
   if (loading) {
     return (
@@ -490,9 +473,16 @@ export function MaintenancePage() {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-base"
                       >
                         <option value="">No Category</option>
-                        {MAINTENANCE_WORK_CATEGORIES.map(category => (
-                          <option key={category} value={category}>{category}</option>
-                        ))}
+                        <option value="Accessories">Accessories</option>
+                        <option value="Body">Body</option>
+                        <option value="Cooling">Cooling</option>
+                        <option value="Electrical">Electrical</option>
+                        <option value="Engine / Fuel">Engine / Fuel</option>
+                        <option value="Gearbox">Gearbox</option>
+                        <option value="Service">Service</option>
+                        <option value="Steering">Steering</option>
+                        <option value="Suspension">Suspension</option>
+                        <option value="Wheels">Wheels</option>
                       </select>
                     </div>
 
@@ -727,13 +717,13 @@ export function MaintenancePage() {
             <div className="bg-green-50 rounded-lg p-4">
               <p className="text-sm text-green-600 mb-1">Last Service</p>
               <p className="text-lg font-bold text-green-900">
-                {latestLog ? formatDate(latestLog.service_date) : 'N/A'}
+                {logs.length > 0 ? formatDate(logs[0].service_date) : 'N/A'}
               </p>
             </div>
             <div className="bg-yellow-50 rounded-lg p-4">
               <p className="text-sm text-yellow-600 mb-1">Last Mileage</p>
               <p className="text-lg font-bold text-yellow-900">
-                {latestLog ? latestLog.mileage.toLocaleString() : 'N/A'} km
+                {logs.length > 0 ? logs[0].mileage.toLocaleString() : 'N/A'} km
               </p>
             </div>
           </div>
@@ -758,10 +748,8 @@ export function MaintenancePage() {
             )}
           </div>
         ) : (
-          sortedLogs.map(log => {
+          logs.map(log => {
             const vehicle = vehicles.find(v => v.id === log.vehicle_id);
-            const categories = getMaintenanceLogCategories(log);
-            const resolvedSnag = getMaintenanceResolvedSnag(log);
             return (
               <div
                 key={log.id}
@@ -831,13 +819,6 @@ export function MaintenancePage() {
                   <p className="text-gray-900 whitespace-pre-line">{log.work_done}</p>
                 </div>
 
-                {resolvedSnag && (
-                  <div className="mb-4 pb-4 border-b border-gray-200">
-                    <h4 className="text-sm font-medium text-gray-700 mb-1">Resolved Snag</h4>
-                    <p className="text-sm text-gray-900">{formatSnagTitle(resolvedSnag)}</p>
-                  </div>
-                )}
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-600">Performed By:</span>
@@ -854,10 +835,10 @@ export function MaintenancePage() {
                       </p>
                     </div>
                   )}
-                  {categories.length > 0 && (
+                  {log.work_category && (
                     <div>
-                      <span className="text-gray-600">Categories:</span>
-                      <p className="font-medium text-gray-900">{categories.join(', ')}</p>
+                      <span className="text-gray-600">Category:</span>
+                      <p className="font-medium text-gray-900">{log.work_category}</p>
                     </div>
                   )}
                   {log.photo_urls && log.photo_urls.length > 0 && (
@@ -933,62 +914,9 @@ export function MaintenancePage() {
                 </p>
               </div>
 
-              {selectedResolvedSnag && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                  <h4 className="text-sm font-medium text-amber-900 mb-2">Resolved Snag</h4>
-                  <p className="text-gray-900 font-medium">{formatSnagTitle(selectedResolvedSnag)}</p>
-                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-amber-900">
-                    {selectedResolvedSnag.priority && (
-                      <span>Priority: {selectedResolvedSnag.priority}</span>
-                    )}
-                    <span>Opened: {formatDate(selectedResolvedSnag.date_opened)}</span>
-                    {selectedResolvedSnag.mileage_reported && (
-                      <span>Reported at: {selectedResolvedSnag.mileage_reported.toLocaleString()} km</span>
-                    )}
-                  </div>
-                </div>
-              )}
-
               <div>
                 <h4 className="text-sm font-medium text-gray-700 mb-2">Work Performed</h4>
-                {selectedLogWorkItems.length > 0 ? (
-                  <div className="space-y-3">
-                    {selectedLogWorkItems.map((item, index) => (
-                      <div key={item.id || index} className="border border-gray-200 rounded-lg p-3">
-                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                          <p className="text-gray-900 whitespace-pre-line">{item.work_description}</p>
-                          {item.work_category && (
-                            <span className="inline-flex w-fit rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
-                              {item.work_category}
-                            </span>
-                          )}
-                        </div>
-
-                        {item.photo_urls && item.photo_urls.length > 0 && (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {item.photo_urls.map((url, photoIndex) => (
-                              <a
-                                key={photoIndex}
-                                href={url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="block"
-                              >
-                                <img
-                                  src={url}
-                                  alt={`Work item ${index + 1} photo ${photoIndex + 1}`}
-                                  className="h-20 w-20 object-cover rounded border border-gray-200 hover:opacity-90 transition-opacity"
-                                />
-                              </a>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-900 whitespace-pre-line">{selectedLog.work_done}</p>
-                )}
+                <p className="text-gray-900 whitespace-pre-line">{selectedLog.work_done}</p>
               </div>
 
               <div>
@@ -1008,10 +936,10 @@ export function MaintenancePage() {
                 </div>
               )}
 
-              {selectedLogCategories.length > 0 && (
+              {selectedLog.work_category && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Work Categories</h4>
-                  <p className="text-gray-900">{selectedLogCategories.join(', ')}</p>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Work Category</h4>
+                  <p className="text-gray-900">{selectedLog.work_category}</p>
                 </div>
               )}
 

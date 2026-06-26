@@ -191,38 +191,6 @@ export interface MileageLog {
   created_at: string;
 }
 
-export type MaintenanceWorkCategory =
-  | 'Accessories'
-  | 'Body'
-  | 'Brakes'
-  | 'Cooling'
-  | 'Electrical'
-  | 'Engine / Fuel'
-  | 'Exhaust'
-  | 'Gearbox'
-  | 'Service'
-  | 'Steering'
-  | 'Suspension'
-  | 'Wheels';
-
-export interface MaintenanceResolvedSnag {
-  id: string;
-  snag_number?: number;
-  description: string;
-  priority: 'Dangerous' | 'Important' | 'Nice to Fix' | 'Aesthetic' | null;
-  date_opened: string;
-  mileage_reported?: number;
-}
-
-export interface MaintenanceSnagResolution {
-  id: string;
-  snag_id: string;
-  resolution_method: string;
-  resolution_notes: string;
-  resolved_at: string;
-  snags?: MaintenanceResolvedSnag | MaintenanceResolvedSnag[];
-}
-
 export interface MaintenanceLog {
   id: string;
   vehicle_id: string;
@@ -232,25 +200,20 @@ export interface MaintenanceLog {
   performed_by: string;
   performed_by_user_id?: string;
   checked_by_user_id?: string;
-  work_category?: MaintenanceWorkCategory | null;
+  work_category?: 'Engine / Fuel' | 'Gearbox' | 'Suspension' | 'Electrical' | 'Body' | 'Accessories';
   notes?: string;
   photo_urls?: string[];
   branch_id: string;
   created_at: string;
-  work_items?: MaintenanceWorkItem[];
-  snag_resolutions?: MaintenanceSnagResolution[];
 }
 
 export interface MaintenanceWorkItem {
   id: string;
   maintenance_log_id: string;
   work_description: string;
-  work_category?: MaintenanceWorkCategory | null;
+  work_category?: string;
   photo_urls: string[];
   order_index: number;
-  performed_by?: string;
-  performed_by_user_id?: string;
-  checked_by_user_id?: string;
   created_at: string;
 }
 
